@@ -21,7 +21,11 @@ const io = new Server(server, {
   cors: {
     origin: process.env.WS_CORS_ORIGIN || "*",
     methods: ["GET", "POST"]
-  }
+  },
+  // 🔧 AUGMENTER LES TIMEOUTS
+  pingTimeout: 60000,      // 60 secondes avant timeout
+  pingInterval: 25000,     // Ping toutes les 25 secondes  
+  connectTimeout: 45000    // 45 secondes pour se connecter
 });
 
 // Configuration Express

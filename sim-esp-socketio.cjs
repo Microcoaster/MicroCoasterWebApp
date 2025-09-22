@@ -219,7 +219,10 @@ function connect() {
   
   socket = io(SERVER_URL, {
     transports: ['websocket'], // Force WebSocket
-    timeout: 5000
+    timeout: 20000,
+    reconnection: true,
+    reconnectionDelay: 2000,
+    reconnectionAttempts: 5
   });
   
   socket.on('connect', () => {

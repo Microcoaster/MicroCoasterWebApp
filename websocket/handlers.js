@@ -1,4 +1,4 @@
-const { updateModuleStatus } = require('../models/database');
+const { updateModuleStatus, getUserModules } = require('../models/database');
 
 // Maps pour stocker les connexions actives (adaptées du serveur WebSocket original)
 const connectedClients = new Map();     // socket.id -> client info
@@ -72,7 +72,7 @@ module.exports = function(io) {
   });
 
   // Gestionnaire pour les clients web (interfaces utilisateur)
-  function handleClientConnection(socket, session) {
+  async function handleClientConnection(socket, session) {
     const userId = session.user_id;
     const userName = session.nickname || 'User';
     const userCode = session.code;
@@ -91,6 +91,21 @@ module.exports = function(io) {
     // Ajouter au registre par code
     if (!webByCode.has(userCode)) webByCode.set(userCode, new Set());
     webByCode.get(userCode).add(socket);
+
+    // 🔄 NOUVEAU: Récupérer les modules depuis la base de données
+    try {
+      const userModules = await getUserModules(userId);
+      console.log(`📋 User ${userName} has ${userModules.length} modules in database`);
+      
+      // Auto-claim tous les modules de l'utilisateur
+      for (const module of userModules) {
+        const moduleId = module.module_id;
+        codeByModuleId.set(moduleId, userCode);
+        console.log(`🔗 Auto-claimed module: ${moduleId} for user ${userCode}`);
+      }
+    } catch (error) {
+      console.error('Error loading user modules:', error);
+    }
 
     // Renvoyer la présence connue des modules déjà "claimés" par ce code
     const moduleStates = [];

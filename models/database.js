@@ -49,6 +49,26 @@ async function verifyAccessCode(code) {
 }
 
 /**
+ * Ajoute un module pour un utilisateur (pour les tests)
+ * @param {string} moduleId - ID du module
+ * @param {string} name - Nom du module
+ * @param {string} type - Type du module
+ * @param {number} userId - ID de l'utilisateur
+ */
+async function addModule(moduleId, name, type, userId) {
+  try {
+    await pool.execute(
+      'INSERT INTO modules (id, name, type, user_id) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), type = VALUES(type)',
+      [moduleId, name, type, userId]
+    );
+    console.log(`✅ Module ${moduleId} added/updated for user ${userId}`);
+  } catch (error) {
+    console.error('Database error in addModule:', error);
+    throw error;
+  }
+}
+
+/**
  * Récupère les modules d'un utilisateur
  * @param {number} userId - ID de l'utilisateur
  * @returns {Array} Liste des modules
@@ -56,7 +76,7 @@ async function verifyAccessCode(code) {
 async function getUserModules(userId) {
   try {
     const [rows] = await pool.execute(
-      'SELECT * FROM modules WHERE user_id = ? ORDER BY name ASC',
+      'SELECT id, module_id, name, type FROM modules WHERE user_id = ? ORDER BY name ASC',
       [userId]
     );
     
@@ -69,14 +89,14 @@ async function getUserModules(userId) {
 
 /**
  * Récupère un module spécifique
- * @param {string} moduleId - ID du module
+ * @param {string} moduleId - ID du module (module_id dans la BDD)
  * @param {number} userId - ID de l'utilisateur (pour sécurité)
  * @returns {Object|null} Module ou null si non trouvé
  */
 async function getModule(moduleId, userId) {
   try {
     const [rows] = await pool.execute(
-      'SELECT * FROM modules WHERE id = ? AND user_id = ? LIMIT 1',
+      'SELECT id, module_id, name, type FROM modules WHERE module_id = ? AND user_id = ? LIMIT 1',
       [moduleId, userId]
     );
     
@@ -133,5 +153,6 @@ module.exports = {
   getUserModules,
   getModule,
   updateModuleStatus,
-  testConnection
+  testConnection,
+  addModule
 };
