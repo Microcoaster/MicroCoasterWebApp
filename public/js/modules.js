@@ -713,30 +713,34 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 
     let visibleCount = 0;
 
-    document.querySelectorAll('.panel[data-mid], .mod[data-id]').forEach(root => {
+    document.querySelectorAll('.panel[data-mid], .mod[data-id]').forEach(panel => {
       let show = true;
 
       // Online only (strict)
       if (only) {
-        show = serverDown ? false : root.classList.contains('online');
+        show = serverDown ? false : panel.classList.contains('online');
       }
 
       // Recherche texte
       if (show && q) {
-        const title = root.querySelector('.h1')?.textContent || '';
-        const alias = root.querySelector('.alias--type')?.textContent || '';
-        const type  = root.dataset.type || '';
-        const mid   = root.dataset.mid || '';
+        const title = panel.querySelector('.h1')?.textContent || '';
+        const alias = panel.querySelector('.alias--type')?.textContent || '';
+        const type  = panel.dataset.type || '';
+        const mid   = panel.dataset.mid || '';
         const hay   = (title + ' ' + alias + ' ' + type + ' ' + mid).toLowerCase();
         show = hay.includes(q);
       }
 
-      const wasHidden = (root.style.display === 'none');
-      root.style.display = show ? '' : 'none';
+      // Trouver le conteneur Bootstrap Grid parent (.col-12.col-lg-6)
+      const gridContainer = panel.closest('.col-12, .col-lg-6') || panel;
+      
+      const wasHidden = (gridContainer.style.display === 'none');
+      gridContainer.style.display = show ? '' : 'none';
+      
       if (show) {
         visibleCount++;
         if (wasHidden) {
-          root.dispatchEvent(new CustomEvent('mc:visible'));
+          panel.dispatchEvent(new CustomEvent('mc:visible'));
         }
       }
     });
