@@ -31,7 +31,7 @@ MicroCoaster WebApp is a comprehensive web-based control system for managing ESP
 └─────────────────┘    └─────────────────┘    └─────────────────┘
          │                       │                       │
          │              ┌─────────────────┐              │
-         └──────────────►│   Socket.io     │◄─────────────┘
+         └─────────────►│   Socket.io     │◄─────────────┘
                         │  (Real-time)    │
                         └─────────────────┘
                                  │

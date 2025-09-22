@@ -2,7 +2,11 @@
 <html lang="fr">
 <head>
   <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title><%= title %></title>
+  <!-- Bootstrap Grid pour la responsivité -->
+  <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
+  <!-- Votre CSS custom pour le design -->
   <link rel="stylesheet" href="/css/modules.css">
   <style>
     /* Styles temporaires pour les tests */
@@ -26,7 +30,7 @@
 <body class="compact">
 
   <div class="layout">
-    <aside class="sidebar">
+    <aside class="sidebar d-none d-lg-flex">
       <div class="logo">MicroCoaster © 2025</div>
       <nav class="nav nav-main">
         <a href="#dashboard">Dashboard</a>
@@ -45,31 +49,50 @@
       </a>
     </aside>
 
-    <div class="wrap">
+    <!-- Navigation mobile -->
+    <nav class="mobile-nav d-lg-none">
+      <div class="container-fluid">
+        <div class="row align-items-center">
+          <div class="col">
+            <div class="logo">MicroCoaster</div>
+          </div>
+          <div class="col-auto">
+            <a class="btn btn-sm" href="/logout">Logout</a>
+          </div>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container-fluid main-content">
       <main class="content">
         <section class="card panels">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-            <div class="hdr">
-              <header class="page-header">
-                <h1 class="page-title">My Modules</h1>
-                <div class="page-actions">
-                  <!-- Barre de recherche -->
-                  <div class="searchbar">
-                    <span class="search-ico" aria-hidden="true">🔎</span>
-                    <input id="moduleSearch" type="search" placeholder="Search modules…">
-                    <button type="button" class="search-clear" aria-label="Clear">×</button>
-                  </div>
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col-12">
+                <header class="page-header">
+                  <h1 class="page-title">My Modules</h1>
+                  <div class="page-actions">
+                    <!-- Barre de recherche -->
+                    <div class="searchbar">
+                      <span class="search-ico" aria-hidden="true">🔎</span>
+                      <input id="moduleSearch" type="search" placeholder="Search modules…">
+                      <button type="button" class="search-clear" aria-label="Clear">×</button>
+                    </div>
 
-                  <!-- Toggle + bouton -->
-                  <label class="toggle">
-                    <input type="checkbox" id="filterOnlineOnly">
-                    <span>Online only</span>
-                  </label>
-                  <button id="openModal" class="btn">+ Add module</button>
-                </div>
-              </header>
+                    <!-- Toggle + bouton -->
+                    <label class="toggle">
+                      <input type="checkbox" id="filterOnlineOnly">
+                      <span>Online only</span>
+                    </label>
+                    <button id="openModal" class="btn">+ Add module</button>
+                  </div>
+                </header>
+              </div>
             </div>
-          </div>
+
+            <!-- Messages et états -->
+            <div class="row">
+              <div class="col-12">
 
           <!-- SERVER UNREACHABLE / MAINTENANCE -->
           <div id="serverState" class="server-state" hidden>
@@ -92,6 +115,9 @@
             </script>
           <% } %>
 
+          <!-- Conteneur pour les notifications toasts -->
+          <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
+
           <!-- EMPTY STATE : no modules online -->
           <div id="emptyState" class="empty-state" hidden>
             <div>
@@ -108,6 +134,11 @@
               </div>
             </div>
           <% } %>
+              </div>
+            </div>
+
+            <!-- Grille des modules -->
+            <div class="row g-1">
 
           <% modules.forEach(function(module) { %>
             <%
@@ -115,7 +146,8 @@
               const moduleType = module.type || 'Unknown';
               const moduleName = module.name || module.type || moduleType;
             %>
-            <div class="panel offline disabled" data-type="<%= moduleType %>" data-mid="<%= moduleId %>">
+            <div class="col-12 col-lg-6">
+              <div class="panel offline disabled" data-type="<%= moduleType %>" data-mid="<%= moduleId %>">
               <button class="kill" type="button" aria-label="Delete this module"></button>
               <div class="h1">
                 <%= moduleName %>
@@ -127,7 +159,7 @@
                 </span>
               </div>
 
-              <div class="row">
+              <div class="tiles-grid">
                 <% if (moduleType === 'Station') { %>
                   <div class="tile">
                     <div class="label">E-Stop</div>
@@ -267,15 +299,15 @@
                 <% } %>
               </div>
             </div>
+            </div>
           <% }); %>
 
+            </div><!-- /.row modules -->
+          </div><!-- /.container-fluid -->
         </section>
       </main>
-    </div><!-- /.wrap -->
+    </div><!-- /.main-content -->
   </div><!-- /.layout -->
-
-  <br><br>
-  <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
 
   <!-- Modal: Add a module -->
   <div id="modalAdd" class="modal" aria-hidden="true">
