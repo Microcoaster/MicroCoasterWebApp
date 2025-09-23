@@ -1,0 +1,1041 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
+  <link rel="stylesheet" href="/css/modules.css">
+  <style>
+    .timeline-app {
+      display: flex;
+      height: 100vh;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+      color: white;
+    }
+
+    /* Panel des modules à gauche */
+    .modules-panel {
+      width: 350px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .modules-panel h3 {
+      color: #20c26a;
+      margin-bottom: 20px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .module-item {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 10px;
+      cursor: grab;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .module-item:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .module-item:active {
+      cursor: grabbing;
+    }
+
+    .module-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .module-main-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .module-name {
+      font-weight: 600;
+      font-size: 14px;
+      flex: 1;
+    }
+
+    .module-secondary-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .module-type {
+      font-size: 11px;
+      padding: 4px 8px;
+      background: rgba(32, 194, 106, 0.2);
+      border-radius: 6px;
+      color: #20c26a;
+    }
+
+    .module-id {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* État des modules (repris du CSS modules) */
+    .state {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: #1b1c1e;
+      flex-shrink: 0;
+    }
+
+    .state.online {
+      border-color: rgba(32,194,106,.35);
+      background: rgba(32,194,106,.15);
+      color: #a7f3d0;
+    }
+
+    .state.offline {
+      border-color: rgba(239,68,68,.35);
+      background: rgba(239,68,68,.12);
+      color: #fecaca;
+    }
+
+    /* Timeline principale à droite */
+    .timeline-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Header avec contrôles */
+    .timeline-header {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .timeline-title {
+      font-size: 24px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .timeline-controls {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .play-btn {
+      background: linear-gradient(135deg, #20c26a, #16a055);
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .play-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(32, 194, 106, 0.3);
+    }
+
+    .play-btn.playing {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    }
+
+    .control-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .control-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Zone de timeline */
+    .timeline-workspace {
+      flex: 1;
+      position: relative;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .timeline-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      min-height: calc(100vh - 160px);
+      position: relative;
+      border: 2px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    /* Règle temporelle */
+    .time-ruler {
+      height: 60px;
+      background: rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .time-marker {
+      position: absolute;
+      height: 100%;
+      border-left: 1px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 5px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      padding-left: 5px;
+    }
+
+    /* Éléments de timeline */
+    .timeline-element {
+      position: absolute;
+      background: linear-gradient(135deg, #4a90e2, #357abd);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 15px;
+      cursor: move;
+      user-select: none;
+      min-width: 150px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .timeline-element:hover {
+      transform: scale(1.02);
+      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .timeline-element.selected {
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.3);
+    }
+
+    .element-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .element-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .element-duration {
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .element-config {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Connexions entre éléments */
+    .timeline-connection {
+      position: absolute;
+      height: 2px;
+      background: linear-gradient(90deg, #20c26a, #00d4ff);
+      z-index: 1;
+    }
+
+    .connection-delay {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    /* Modal de configuration */
+    .config-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .config-modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, rgba(45,47,51,.95), rgba(35,37,41,.98));
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #20c26a;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+
+    .close-btn:hover {
+      opacity: 1;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #20c26a;
+      box-shadow: 0 0 0 3px rgba(32, 194, 106, 0.2);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #20c26a, #16a055);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    /* Timeline playback indicator */
+    .playback-indicator {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #ff6b6b;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+    }
+
+    .playback-indicator.active {
+      display: block;
+    }
+
+    /* Drop zone styling */
+    .timeline-track.drag-over {
+      border-color: #20c26a;
+      background: rgba(32, 194, 106, 0.1);
+    }
+
+    /* Instructions */
+    .timeline-instructions {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+    }
+
+    .timeline-instructions h4 {
+      margin-bottom: 10px;
+      color: rgba(255, 255, 255, 0.7);
+    }
+  </style>
+</head>
+<body>
+  <!-- Modern Navigation Bar -->
+  <div style="position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(26,26,26,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 15px 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 30px;">
+        <div style="color: #ffffff; font-weight: bold; font-size: 18px;">MicroCoaster © 2025</div>
+        <nav style="display: flex; gap: 20px;">
+          <a href="/dashboard" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            Dashboard
+          </a>
+          <a href="/modules" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+              <rect x="9" y="9" width="6" height="6"/>
+              <line x1="9" y1="1" x2="9" y2="4"/>
+              <line x1="15" y1="1" x2="15" y2="4"/>
+              <line x1="9" y1="20" x2="9" y2="23"/>
+              <line x1="15" y1="20" x2="15" y2="23"/>
+              <line x1="20" y1="9" x2="23" y2="9"/>
+              <line x1="20" y1="14" x2="23" y2="14"/>
+              <line x1="1" y1="9" x2="4" y2="9"/>
+              <line x1="1" y1="14" x2="4" y2="14"/>
+            </svg>
+            Modules
+          </a>
+          <a href="/timelines" style="color: #20c26a; text-decoration: none; padding: 8px 16px; border-radius: 8px; background: rgba(32,194,106,0.1); display: flex; align-items: center; gap: 6px; transition: all 0.3s;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            Timelines
+          </a>
+          <a href="/documentations" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10,9 9,9 8,9"/>
+            </svg>
+            Docs
+          </a>
+        </nav>
+      </div>
+      <a href="/logout" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,71,87,0.1)'; this.style.color='#ff4757'" onmouseout="this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 5H7a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3"/>
+          <path d="M14 16l5-4-5-4"/>
+          <path d="M19 12H9"/>
+        </svg>
+        Déconnexion
+      </a>
+    </div>
+  </div>
+
+  <div class="timeline-app" style="margin-top: 70px;">
+    <!-- Panel des modules -->
+    <div class="modules-panel">
+      <h3>
+        <i class="bi bi-cpu"></i>
+        Mes Modules
+      </h3>
+      
+      <div class="modules-list">
+        <% modules.forEach(module => { %>
+          <div class="module-item" 
+               draggable="true"
+               data-module-id="<%= module.module_id %>"
+               data-module-name="<%= module.name %>"
+               data-module-type="<%= module.type %>"
+               data-is-online="<%= module.isOnline %>">
+            
+            <div class="module-header">
+              <div class="module-main-line">
+                <div class="module-name"><%= module.name || module.module_id %></div>
+                <span class="state <%= module.isOnline ? 'online' : 'offline' %>">
+                  <%= module.isOnline ? 'online' : 'offline' %>
+                </span>
+              </div>
+              <div class="module-secondary-line">
+                <div class="module-type"><%= module.type %></div>
+                <div class="module-id"><%= module.module_id %></div>
+              </div>
+            </div>
+          </div>
+        <% }) %>
+      </div>
+    </div>
+
+    <!-- Timeline principale -->
+    <div class="timeline-container">
+      <!-- Header avec contrôles -->
+      <div class="timeline-header">
+        <div class="timeline-title">
+          <i class="bi bi-play-circle"></i>
+          Timeline Sequencer
+        </div>
+        
+        <div class="timeline-controls">
+          <button class="control-btn" onclick="timeline.clear()">
+            <i class="bi bi-trash"></i> Clear
+          </button>
+          <button class="control-btn" onclick="timeline.save()">
+            <i class="bi bi-save"></i> Save
+          </button>
+          <button class="play-btn" id="playBtn" onclick="timeline.togglePlayback()">
+            <i class="bi bi-play-fill" id="playIcon"></i>
+            <span id="playText">Play Timeline</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Workspace de timeline -->
+      <div class="timeline-workspace">
+        <div class="timeline-track" id="timelineTrack">
+          <!-- Règle temporelle -->
+          <div class="time-ruler" id="timeRuler">
+            <!-- Les marqueurs de temps seront générés par JS -->
+          </div>
+          
+          <!-- Indicateur de lecture -->
+          <div class="playback-indicator" id="playbackIndicator"></div>
+          
+          <!-- Instructions -->
+          <div class="timeline-instructions" id="instructions">
+            <h4>🎬 Créez votre séquence</h4>
+            <p>Glissez vos modules ici pour créer une timeline</p>
+            <p>Cliquez sur un module pour le configurer</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de configuration -->
+  <div class="config-modal" id="configModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title" id="modalTitle">Configuration Module</h3>
+        <button class="close-btn" onclick="timeline.closeConfig()">&times;</button>
+      </div>
+      
+      <form id="configForm">
+        <div class="form-group">
+          <label class="form-label">Nom du module</label>
+          <input type="text" class="form-input" id="moduleName" readonly>
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Durée d'exécution (secondes)</label>
+          <input type="number" class="form-input" id="moduleDuration" value="2" min="0.1" step="0.1">
+        </div>
+        
+        <div class="form-group">
+          <label class="form-label">Délai avant le prochain (secondes)</label>
+          <input type="number" class="form-input" id="moduleDelay" value="1" min="0" step="0.1">
+        </div>
+        
+        <div class="form-group" id="moduleSpecificConfig">
+          <!-- Configuration spécifique selon le type de module -->
+        </div>
+        
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" onclick="timeline.closeConfig()">Annuler</button>
+          <button type="button" class="btn btn-primary" onclick="timeline.saveConfig()">Sauvegarder</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    class TimelineSequencer {
+      constructor() {
+        this.track = document.getElementById('timelineTrack');
+        this.ruler = document.getElementById('timeRuler');
+        this.playbackIndicator = document.getElementById('playbackIndicator');
+        this.instructions = document.getElementById('instructions');
+        
+        this.elements = [];
+        this.isPlaying = false;
+        this.currentTime = 0;
+        this.totalDuration = 0;
+        this.pixelsPerSecond = 100; // 1 seconde = 100px
+        
+        this.selectedElement = null;
+        this.draggedElement = null;
+        
+        this.init();
+      }
+
+      init() {
+        this.setupEventListeners();
+        this.setupDragAndDrop();
+        this.generateTimeRuler();
+      }
+
+      setupEventListeners() {
+        // Drag & drop
+        this.track.addEventListener('dragover', (e) => this.handleDragOver(e));
+        this.track.addEventListener('drop', (e) => this.handleDrop(e));
+        this.track.addEventListener('dragleave', (e) => this.handleDragLeave(e));
+        
+        // Click sur track
+        this.track.addEventListener('click', (e) => this.handleTrackClick(e));
+        
+        // Keyboard
+        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+      }
+
+      setupDragAndDrop() {
+        document.querySelectorAll('.module-item').forEach(item => {
+          item.addEventListener('dragstart', (e) => {
+            const moduleData = {
+              id: item.dataset.moduleId,
+              name: item.dataset.moduleName,
+              type: item.dataset.moduleType,
+              isOnline: item.dataset.isOnline === 'true'
+            };
+            e.dataTransfer.setData('text/plain', JSON.stringify(moduleData));
+          });
+        });
+      }
+
+      generateTimeRuler() {
+        this.ruler.innerHTML = '';
+        const maxTime = Math.max(30, this.totalDuration + 10); // Au moins 30 secondes
+        
+        for (let i = 0; i <= maxTime; i += 5) {
+          const marker = document.createElement('div');
+          marker.className = 'time-marker';
+          marker.style.left = (i * this.pixelsPerSecond) + 'px';
+          marker.textContent = i + 's';
+          this.ruler.appendChild(marker);
+        }
+      }
+
+      handleDragOver(e) {
+        e.preventDefault();
+        this.track.classList.add('drag-over');
+      }
+
+      handleDragLeave(e) {
+        this.track.classList.remove('drag-over');
+      }
+
+      handleDrop(e) {
+        e.preventDefault();
+        this.track.classList.remove('drag-over');
+        
+        try {
+          const moduleData = JSON.parse(e.dataTransfer.getData('text/plain'));
+          const rect = this.track.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top - 60; // Compensation pour la règle
+          
+          this.addElementToTimeline(moduleData, x, y);
+        } catch (error) {
+          console.error('Erreur lors du drop:', error);
+        }
+      }
+
+      addElementToTimeline(moduleData, x, y) {
+        // Calculer le temps basé sur la position X
+        const timePosition = Math.max(0, x / this.pixelsPerSecond);
+        
+        const element = document.createElement('div');
+        element.className = 'timeline-element';
+        element.dataset.moduleId = moduleData.id;
+        element.dataset.startTime = timePosition.toFixed(1);
+        element.dataset.duration = '2';
+        element.dataset.delay = '1';
+        
+        element.style.left = (timePosition * this.pixelsPerSecond) + 'px';
+        element.style.top = Math.max(80, y) + 'px';
+        
+        element.innerHTML = `
+          <div class="element-header">
+            <div class="element-name">${moduleData.name}</div>
+            <div class="element-duration">2s</div>
+          </div>
+          <div class="element-config">Cliquez pour configurer</div>
+        `;
+        
+        // Events
+        element.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.selectElement(element);
+          this.openConfig(element);
+        });
+        
+        element.addEventListener('mousedown', (e) => {
+          if (e.target === element || e.target.parentElement === element) {
+            this.startDrag(element, e);
+          }
+        });
+        
+        this.track.appendChild(element);
+        this.elements.push({
+          element: element,
+          moduleData: moduleData,
+          startTime: timePosition,
+          duration: 2,
+          delay: 1
+        });
+        
+        this.updateTotalDuration();
+        this.generateTimeRuler();
+        this.hideInstructions();
+      }
+
+      selectElement(element) {
+        // Désélectionner tous
+        document.querySelectorAll('.timeline-element.selected').forEach(el => {
+          el.classList.remove('selected');
+        });
+        
+        // Sélectionner l'élément
+        element.classList.add('selected');
+        this.selectedElement = element;
+      }
+
+      openConfig(element) {
+        const moduleData = this.elements.find(e => e.element === element);
+        if (!moduleData) return;
+        
+        document.getElementById('modalTitle').textContent = `Configuration ${moduleData.moduleData.name}`;
+        document.getElementById('moduleName').value = moduleData.moduleData.name;
+        document.getElementById('moduleDuration').value = moduleData.duration;
+        document.getElementById('moduleDelay').value = moduleData.delay;
+        
+        // Configuration spécifique selon le type
+        this.generateSpecificConfig(moduleData.moduleData.type);
+        
+        document.getElementById('configModal').classList.add('show');
+      }
+
+      generateSpecificConfig(moduleType) {
+        const container = document.getElementById('moduleSpecificConfig');
+        container.innerHTML = '';
+        
+        switch(moduleType) {
+          case 'Audio Player':
+            container.innerHTML = `
+              <div class="form-group">
+                <label class="form-label">Fichier audio</label>
+                <input type="text" class="form-input" id="audioFile" placeholder="chemin/vers/audio.mp3">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Volume (0-100)</label>
+                <input type="number" class="form-input" id="volume" value="50" min="0" max="100">
+              </div>
+            `;
+            break;
+          case 'Light FX':
+            container.innerHTML = `
+              <div class="form-group">
+                <label class="form-label">Couleur</label>
+                <input type="color" class="form-input" id="lightColor" value="#ff0000">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Effet</label>
+                <select class="form-input" id="lightEffect">
+                  <option value="static">Statique</option>
+                  <option value="fade">Fondu</option>
+                  <option value="blink">Clignotant</option>
+                </select>
+              </div>
+            `;
+            break;
+          case 'Smoke Machine':
+            container.innerHTML = `
+              <div class="form-group">
+                <label class="form-label">Intensité (0-100)</label>
+                <input type="number" class="form-input" id="smokeIntensity" value="50" min="0" max="100">
+              </div>
+            `;
+            break;
+        }
+      }
+
+      saveConfig() {
+        if (!this.selectedElement) return;
+        
+        const duration = parseFloat(document.getElementById('moduleDuration').value);
+        const delay = parseFloat(document.getElementById('moduleDelay').value);
+        
+        this.selectedElement.dataset.duration = duration;
+        this.selectedElement.dataset.delay = delay;
+        
+        // Mettre à jour l'affichage
+        this.selectedElement.querySelector('.element-duration').textContent = duration + 's';
+        
+        // Mettre à jour dans le tableau
+        const elementData = this.elements.find(e => e.element === this.selectedElement);
+        if (elementData) {
+          elementData.duration = duration;
+          elementData.delay = delay;
+        }
+        
+        this.updateTotalDuration();
+        this.closeConfig();
+      }
+
+      closeConfig() {
+        document.getElementById('configModal').classList.remove('show');
+      }
+
+      startDrag(element, e) {
+        this.draggedElement = element;
+        this.selectElement(element);
+        
+        const rect = element.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const offsetY = e.clientY - rect.top;
+        
+        const handleMouseMove = (e) => {
+          if (!this.draggedElement) return;
+          
+          const trackRect = this.track.getBoundingClientRect();
+          const x = e.clientX - trackRect.left - offsetX;
+          const y = e.clientY - trackRect.top - offsetY;
+          
+          const timePosition = Math.max(0, x / this.pixelsPerSecond);
+          
+          this.draggedElement.style.left = (timePosition * this.pixelsPerSecond) + 'px';
+          this.draggedElement.style.top = Math.max(80, y) + 'px';
+          this.draggedElement.dataset.startTime = timePosition.toFixed(1);
+          
+          // Mettre à jour dans le tableau
+          const elementData = this.elements.find(e => e.element === this.draggedElement);
+          if (elementData) {
+            elementData.startTime = timePosition;
+          }
+        };
+        
+        const handleMouseUp = () => {
+          this.draggedElement = null;
+          this.updateTotalDuration();
+          document.removeEventListener('mousemove', handleMouseMove);
+          document.removeEventListener('mouseup', handleMouseUp);
+        };
+        
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp);
+      }
+
+      handleTrackClick(e) {
+        if (e.target === this.track) {
+          this.clearSelection();
+        }
+      }
+
+      handleKeyDown(e) {
+        if (e.key === 'Delete' && this.selectedElement) {
+          this.deleteElement(this.selectedElement);
+        }
+      }
+
+      deleteElement(element) {
+        element.remove();
+        this.elements = this.elements.filter(e => e.element !== element);
+        this.updateTotalDuration();
+        this.selectedElement = null;
+        
+        if (this.elements.length === 0) {
+          this.showInstructions();
+        }
+      }
+
+      clearSelection() {
+        document.querySelectorAll('.timeline-element.selected').forEach(el => {
+          el.classList.remove('selected');
+        });
+        this.selectedElement = null;
+      }
+
+      updateTotalDuration() {
+        this.totalDuration = Math.max(...this.elements.map(e => e.startTime + e.duration + e.delay), 0);
+        this.generateTimeRuler();
+      }
+
+      hideInstructions() {
+        this.instructions.style.display = 'none';
+      }
+
+      showInstructions() {
+        this.instructions.style.display = 'block';
+      }
+
+      togglePlayback() {
+        if (this.isPlaying) {
+          this.stopPlayback();
+        } else {
+          this.startPlayback();
+        }
+      }
+
+      startPlayback() {
+        if (this.elements.length === 0) {
+          alert('Aucun module dans la timeline !');
+          return;
+        }
+        
+        this.isPlaying = true;
+        this.currentTime = 0;
+        
+        document.getElementById('playBtn').classList.add('playing');
+        document.getElementById('playIcon').className = 'bi bi-stop-fill';
+        document.getElementById('playText').textContent = 'Stop Timeline';
+        
+        this.playbackIndicator.classList.add('active');
+        
+        this.playbackInterval = setInterval(() => {
+          this.currentTime += 0.1;
+          this.playbackIndicator.style.left = (this.currentTime * this.pixelsPerSecond) + 'px';
+          
+          // Vérifier si on doit déclencher des modules
+          this.checkModuleActivation();
+          
+          if (this.currentTime >= this.totalDuration) {
+            this.stopPlayback();
+          }
+        }, 100);
+      }
+
+      stopPlayback() {
+        this.isPlaying = false;
+        
+        if (this.playbackInterval) {
+          clearInterval(this.playbackInterval);
+        }
+        
+        document.getElementById('playBtn').classList.remove('playing');
+        document.getElementById('playIcon').className = 'bi bi-play-fill';
+        document.getElementById('playText').textContent = 'Play Timeline';
+        
+        this.playbackIndicator.classList.remove('active');
+        this.currentTime = 0;
+        this.playbackIndicator.style.left = '0px';
+      }
+
+      checkModuleActivation() {
+        this.elements.forEach(elementData => {
+          const { element, moduleData, startTime, duration } = elementData;
+          
+          if (this.currentTime >= startTime && this.currentTime <= startTime + duration) {
+            element.style.boxShadow = '0 0 20px rgba(32, 194, 106, 0.8)';
+            
+            // Ici on pourrait envoyer des commandes aux vrais modules
+            console.log(`Activation ${moduleData.name} à ${this.currentTime.toFixed(1)}s`);
+          } else {
+            element.style.boxShadow = '0 4px 15px rgba(0, 0, 0, 0.3)';
+          }
+        });
+      }
+
+      clear() {
+        if (confirm('Effacer toute la timeline ?')) {
+          this.elements.forEach(e => e.element.remove());
+          this.elements = [];
+          this.stopPlayback();
+          this.showInstructions();
+          this.updateTotalDuration();
+        }
+      }
+
+      save() {
+        const timelineData = {
+          elements: this.elements.map(e => ({
+            moduleId: e.moduleData.id,
+            startTime: e.startTime,
+            duration: e.duration,
+            delay: e.delay,
+            position: {
+              x: parseInt(e.element.style.left),
+              y: parseInt(e.element.style.top)
+            }
+          })),
+          totalDuration: this.totalDuration
+        };
+        
+        console.log('Timeline sauvegardée:', timelineData);
+        alert('Timeline sauvegardée avec succès !');
+        
+        // Ici on pourrait sauvegarder en base
+      }
+    }
+
+    // Initialiser la timeline
+    const timeline = new TimelineSequencer();
+  </script>
+</body>
+</html>

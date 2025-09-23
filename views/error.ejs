@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %></title>
+  <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
+  <link rel="stylesheet" href="/css/modules.css">
+</head>
+<body class="compact">
+  <div class="layout">
+    <div class="container-fluid main-content">
+      <main class="content">
+        <section class="card panels">
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col-12">
+                <div style="text-align: center; padding: 60px 20px;">
+                  <h1 style="color: #ff6b6b; font-size: 48px; margin-bottom: 20px;">⚠️</h1>
+                  <h2 style="color: var(--text); margin-bottom: 16px;">Oops! Something went wrong</h2>
+                  <p style="color: #a8aeb5; margin-bottom: 30px;"><%= message %></p>
+                  <a href="/dashboard" style="
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 8px;
+                    padding: 12px 24px;
+                    background: var(--accent);
+                    color: white;
+                    text-decoration: none;
+                    border-radius: 10px;
+                    font-weight: 600;
+                    transition: all 0.3s ease;
+                  ">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                      <path d="M19 12H5M12 19l-7-7 7-7"/>
+                    </svg>
+                    Back to Dashboard
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

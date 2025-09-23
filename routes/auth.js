@@ -12,7 +12,7 @@ function requireAuth(req, res, next) {
 
 router.get("/login", (req, res) => {
   if (req.session.user_id) {
-    return res.redirect("/modules");
+    return res.redirect("/dashboard");
   }
   res.render("login", { 
     error: null,
@@ -34,7 +34,7 @@ router.post("/login", async (req, res) => {
         req.session.code = user.code;
         req.session.nickname = user.name;
         console.log("User authenticated:", user.name);
-        return res.redirect("/modules");
+        return res.redirect("/dashboard");
       } else {
         error = "Invalid code. Please try again.";
       }
@@ -63,7 +63,7 @@ router.get("/logout", (req, res) => {
 
 router.get("/", (req, res) => {
   if (req.session.user_id) {
-    res.redirect("/modules");
+    res.redirect("/dashboard");
   } else {
     res.redirect("/login");
   }

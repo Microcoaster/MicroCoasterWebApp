@@ -29,41 +29,67 @@
 </head>
 <body class="compact">
 
-  <div class="layout">
-    <aside class="sidebar d-none d-lg-flex">
-      <div class="logo">MicroCoaster © 2025</div>
-      <nav class="nav nav-main">
-        <a href="#dashboard">Dashboard</a>
-        <a href="#modules" class="active"><span class="dot"></span> Modules</a>
-        <a href="#timelines">Timelines</a>
-        <a href="#docs">Documentations</a>
-      </nav>
-
-      <a class="nav-logout" href="/logout" aria-label="Se déconnecter">
-        <svg class="icon-logout" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor">
-          <path d="M10 5H7a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3" stroke-width="2" stroke-linecap="round"/>
-          <path d="M14 16l5-4-5-4" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-          <path d="M19 12H9" stroke-width="2" stroke-linecap="round"/>
-        </svg>
-        <span>Logout</span>
-      </a>
-    </aside>
-
-    <!-- Navigation mobile -->
-    <nav class="mobile-nav d-lg-none">
-      <div class="container-fluid">
-        <div class="row align-items-center">
-          <div class="col">
-            <div class="logo">MicroCoaster</div>
-          </div>
-          <div class="col-auto">
-            <a class="btn btn-sm" href="/logout">Logout</a>
-          </div>
-        </div>
+  <!-- Modern Navigation Bar -->
+  <div style="position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(26,26,26,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 15px 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 30px;">
+        <div style="color: #ffffff; font-weight: bold; font-size: 18px;">MicroCoaster © 2025</div>
+        <nav style="display: flex; gap: 20px;">
+          <a href="/dashboard" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            Dashboard
+          </a>
+          <a href="/modules" style="color: #20c26a; text-decoration: none; padding: 8px 16px; border-radius: 8px; background: rgba(32,194,106,0.1); display: flex; align-items: center; gap: 6px; transition: all 0.3s;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+              <rect x="9" y="9" width="6" height="6"/>
+              <line x1="9" y1="1" x2="9" y2="4"/>
+              <line x1="15" y1="1" x2="15" y2="4"/>
+              <line x1="9" y1="20" x2="9" y2="23"/>
+              <line x1="15" y1="20" x2="15" y2="23"/>
+              <line x1="20" y1="9" x2="23" y2="9"/>
+              <line x1="20" y1="14" x2="23" y2="14"/>
+              <line x1="1" y1="9" x2="4" y2="9"/>
+              <line x1="1" y1="14" x2="4" y2="14"/>
+            </svg>
+            Modules
+          </a>
+          <a href="/timelines" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            Timelines
+          </a>
+          <a href="/documentations" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10,9 9,9 8,9"/>
+            </svg>
+            Docs
+          </a>
+        </nav>
       </div>
-    </nav>
+      <a href="/logout" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,71,87,0.1)'; this.style.color='#ff4757'" onmouseout="this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 5H7a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3"/>
+          <path d="M14 16l5-4-5-4"/>
+          <path d="M19 12H9"/>
+        </svg>
+        Déconnexion
+      </a>
+    </div>
+  </div>
 
-    <div class="container-fluid main-content">
+  <div class="container-fluid main-content" style="margin-top: 70px;">
       <main class="content">
         <section class="card panels">
           <div class="container-fluid">
@@ -74,9 +100,17 @@
                   <div class="page-actions">
                     <!-- Barre de recherche -->
                     <div class="searchbar">
-                      <span class="search-ico" aria-hidden="true">🔎</span>
-                      <input id="moduleSearch" type="search" placeholder="Search modules…">
-                      <button type="button" class="search-clear" aria-label="Clear">×</button>
+                      <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"/>
+                        <path d="m21 21-4.35-4.35"/>
+                      </svg>
+                      <input id="moduleSearch" type="text" placeholder="Search modules…">
+                      <button type="button" class="search-clear" aria-label="Clear">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <path d="M18 6L6 18"/>
+                          <path d="M6 6l12 12"/>
+                        </svg>
+                      </button>
                     </div>
 
                     <!-- Toggle + bouton -->
@@ -221,7 +255,7 @@
                     <div class="label">Direction</div>
                     <div class="face">
                       <img data-role="ln_dir" class="clickable" src="/assets/img/switch_0.png" alt="Direction">
-                      <div data-role="ln_dir_lbl" style="font-weight:800;font-size:12px;opacity:.85">Forward</div>
+                      <div data-role="ln_dir_lbl" class="direction-text">Forward</div>
                     </div>
                   </div>
                   <div class="tile">
@@ -314,20 +348,50 @@
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="dlgAddTitle">
       <h3 id="dlgAddTitle">Add a module</h3>
 
-      <form method="post" action="/modules/add" autocomplete="off">
+      <form method="post" action="/modules/claim" autocomplete="off">
         <div class="form-row">
-          <label for="f_mod_id">Module ID (ex: MC-1234-SM)</label>
-          <input id="f_mod_id" class="input" name="module_id" required>
+          <label for="f_mod_id">Module ID</label>
+          <input id="f_mod_id" class="input" name="module_id"
+                 placeholder="MC-1234-STN" required
+                 inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false"
+                 pattern="^MC-\d{4}-(STN|LFX|AP|SM|ST|LT)$"
+                 title="Ex. : MC-1234-AP" maxlength="11">
         </div>
 
         <div class="form-row">
-          <label for="f_mod_name">Display name (optionnel)</label>
-          <input id="f_mod_name" class="input" name="name" placeholder="My Smoke Machine">
+          <label for="f_mod_code">Module code</label>
+          <input id="f_mod_code" class="input" name="module_code"
+                 placeholder="AB12-CD34" required maxlength="9"
+                 inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false"
+                 pattern="^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$"
+                 title="Code de sécurité du module">
+        </div>
+
+        <div class="form-row">
+          <label for="f_mod_name">Display name (optional)</label>
+          <input id="f_mod_name" class="input" name="name"
+                 placeholder="My Module Name" autocomplete="off" spellcheck="false">
         </div>
 
         <div class="modal-actions">
           <button type="button" class="btn btn-ghost" id="btnCancelAdd">Cancel</button>
           <button type="submit" class="btn">Save</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal: Delete a module -->
+  <div id="modalDelete" class="modal" aria-hidden="true">
+    <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="dlgDelTitle">
+      <h3 id="dlgDelTitle">Delete module</h3>
+      <p id="dlgDelText" class="muted" style="margin:8px 0 16px">…</p>
+
+      <form id="deleteForm" method="post">
+        <input type="hidden" name="moduleId" id="del_moduleId">
+        <div class="modal-actions">
+          <button type="button" class="btn btn-ghost" id="btnCancelDel">Cancel</button>
+          <button type="submit" class="btn btn-danger">Delete</button>
         </div>
       </form>
     </div>

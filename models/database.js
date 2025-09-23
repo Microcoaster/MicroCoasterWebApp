@@ -80,7 +80,12 @@ async function getUserModules(userId) {
       [userId]
     );
     
-    return rows;
+    // Simuler le statut en ligne pour le dashboard (aléatoire pour démonstration)
+    return rows.map(module => ({
+      ...module,
+      isOnline: Math.random() > 0.3, // 70% de chance d'être en ligne
+      type: module.type || 'Unknown'
+    }));
   } catch (error) {
     console.error('Database error in getUserModules:', error);
     throw error;
@@ -140,6 +145,34 @@ async function testConnection() {
   }
 }
 
+/**
+ * Récupère un utilisateur par son ID
+ * @param {number} userId - ID de l'utilisateur
+ * @returns {Object|null} Utilisateur ou null si non trouvé
+ */
+async function getUserById(userId) {
+  try {
+    const [rows] = await pool.execute(
+      'SELECT id, code, name FROM access_codes WHERE id = ? LIMIT 1',
+      [userId]
+    );
+    
+    if (rows.length > 0) {
+      return {
+        id: rows[0].id,
+        code: rows[0].code,
+        name: rows[0].name,
+        nickname: rows[0].name || rows[0].code // Utilise le nom ou le code comme nickname
+      };
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Database error in getUserById:', error);
+    throw error;
+  }
+}
+
 // Fermeture propre du pool
 process.on('SIGINT', async () => {
   console.log('Closing database pool...');
@@ -154,5 +187,6 @@ module.exports = {
   getModule,
   updateModuleStatus,
   testConnection,
-  addModule
+  addModule,
+  getUserById
 };

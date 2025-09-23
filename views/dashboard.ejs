@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %></title>
+  <!-- Bootstrap Grid pour la responsivité -->
+  <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
+  <!-- CSS modules réutilisé pour la cohérence -->
+  <link rel="stylesheet" href="/css/modules.css">
+  <style>
+    /* Styles spécifiques au dashboard */
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+      margin: 20px 0;
+    }
+    
+    .dashboard-card {
+      background: linear-gradient(135deg, rgba(45,47,51,.9), rgba(35,37,41,.95));
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: 
+        0 8px 32px rgba(0,0,0,.3),
+        inset 0 1px 0 rgba(255,255,255,.05);
+      transition: all 0.3s ease;
+    }
+    
+    .dashboard-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 12px 40px rgba(0,0,0,.4),
+        inset 0 1px 0 rgba(255,255,255,.08);
+      border-color: rgba(255,255,255,.12);
+    }
+    
+    .dashboard-card h3 {
+      margin: 0 0 12px 0;
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    
+    .dashboard-card .icon {
+      width: 24px;
+      height: 24px;
+      color: var(--accent);
+    }
+    
+    .dashboard-stat {
+      font-size: 36px;
+      font-weight: 900;
+      color: var(--accent);
+      margin: 8px 0;
+      line-height: 1;
+    }
+    
+    .dashboard-description {
+      color: #a8aeb5;
+      font-size: 14px;
+      margin: 0;
+      line-height: 1.4;
+    }
+    
+    .welcome-card {
+      grid-column: 1 / -1;
+      text-align: center;
+      background: linear-gradient(135deg, rgba(32,194,106,.15), rgba(32,194,106,.05));
+      border-color: rgba(32,194,106,.3);
+    }
+    
+    .welcome-card h2 {
+      font-size: 28px;
+      font-weight: 900;
+      color: var(--text);
+      margin: 0 0 8px 0;
+    }
+    
+    .welcome-card p {
+      color: #a8aeb5;
+      font-size: 16px;
+      margin: 0;
+    }
+    
+    .quick-actions {
+      display: flex;
+      gap: 12px;
+      margin-top: 20px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+    
+    .quick-action-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 20px;
+      background: var(--accent);
+      color: white;
+      text-decoration: none;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 14px;
+      transition: all 0.3s ease;
+      border: none;
+      cursor: pointer;
+    }
+    
+    .quick-action-btn:hover {
+      background: #1ea759;
+      transform: translateY(-1px);
+      box-shadow: 0 4px 20px rgba(32,194,106,.3);
+      color: white;
+      text-decoration: none;
+    }
+    
+    .quick-action-btn svg {
+      width: 16px;
+      height: 16px;
+    }
+    
+    @media (max-width: 768px) {
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+        margin: 16px 0;
+      }
+      
+      .dashboard-card {
+        padding: 20px;
+      }
+      
+      .welcome-card h2 {
+        font-size: 24px;
+      }
+      
+      .dashboard-stat {
+        font-size: 28px;
+      }
+    }
+  </style>
+</head>
+<body class="compact">
+
+  <!-- Modern Navigation Bar -->
+  <div style="position: fixed; top: 0; left: 0; right: 0; z-index: 1000; background: rgba(26,26,26,0.95); backdrop-filter: blur(20px); border-bottom: 1px solid rgba(255,255,255,0.1); padding: 15px 20px;">
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <div style="display: flex; align-items: center; gap: 30px;">
+        <div style="color: #ffffff; font-weight: bold; font-size: 18px;">MicroCoaster © 2025</div>
+        <nav style="display: flex; gap: 20px;">
+          <a href="/dashboard" style="color: #20c26a; text-decoration: none; padding: 8px 16px; border-radius: 8px; background: rgba(32,194,106,0.1); display: flex; align-items: center; gap: 6px; transition: all 0.3s;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            Dashboard
+          </a>
+          <a href="/modules" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="4" y="4" width="16" height="16" rx="2"/>
+              <rect x="9" y="9" width="6" height="6"/>
+              <line x1="9" y1="1" x2="9" y2="4"/>
+              <line x1="15" y1="1" x2="15" y2="4"/>
+              <line x1="9" y1="20" x2="9" y2="23"/>
+              <line x1="15" y1="20" x2="15" y2="23"/>
+              <line x1="20" y1="9" x2="23" y2="9"/>
+              <line x1="20" y1="14" x2="23" y2="14"/>
+              <line x1="1" y1="9" x2="4" y2="9"/>
+              <line x1="1" y1="14" x2="4" y2="14"/>
+            </svg>
+            Modules
+          </a>
+          <a href="/timelines" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+            Timelines
+          </a>
+          <a href="/documentations" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='transparent'">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14,2 14,8 20,8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10,9 9,9 8,9"/>
+            </svg>
+            Docs
+          </a>
+        </nav>
+      </div>
+      <a href="/logout" style="color: rgba(255,255,255,0.7); text-decoration: none; padding: 8px 16px; border-radius: 8px; transition: all 0.3s; display: flex; align-items: center; gap: 6px;" onmouseover="this.style.background='rgba(255,71,87,0.1)'; this.style.color='#ff4757'" onmouseout="this.style.background='transparent'; this.style.color='rgba(255,255,255,0.7)'">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M10 5H7a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3"/>
+          <path d="M14 16l5-4-5-4"/>
+          <path d="M19 12H9"/>
+        </svg>
+        Déconnexion
+      </a>
+    </div>
+  </div>
+
+  <div class="container-fluid main-content" style="margin-top: 70px;">
+      <main class="content">
+        <section class="card panels">
+          <div class="container-fluid">
+            <div class="row">
+              <div class="col-12">
+                <header class="page-header">
+                  <h1 class="page-title">Dashboard</h1>
+                </header>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-12">
+                <div class="dashboard-grid">
+                  
+                  <!-- Carte de bienvenue -->
+                  <div class="dashboard-card welcome-card">
+                    <h2>Welcome back, <%= user.nickname || 'User' %>!</h2>
+                    <p>Manage your MicroCoaster modules and monitor your theme park systems.</p>
+                    
+                    <div class="quick-actions">
+                      <a href="/modules" class="quick-action-btn">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                          <circle cx="9" cy="9" r="2"/>
+                          <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                        </svg>
+                        View Modules
+                      </a>
+                      <button class="quick-action-btn" onclick="addNewModule()">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                          <circle cx="12" cy="12" r="10"/>
+                          <line x1="12" y1="8" x2="12" y2="16"/>
+                          <line x1="8" y1="12" x2="16" y2="12"/>
+                        </svg>
+                        Add Module
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Statistiques -->
+                  <div class="dashboard-card">
+                    <h3>
+                      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="3" width="18" height="18" rx="2" ry="2"/>
+                        <circle cx="9" cy="9" r="2"/>
+                        <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+                      </svg>
+                      Total Modules
+                    </h3>
+                    <div class="dashboard-stat"><%= stats.totalModules %></div>
+                    <p class="dashboard-description">Modules claimed on your account</p>
+                  </div>
+
+                  <div class="dashboard-card">
+                    <h3>
+                      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <polyline points="12,6 12,12 16,14"/>
+                      </svg>
+                      Online Modules
+                    </h3>
+                    <div class="dashboard-stat" style="color: var(--accent);"><%= stats.onlineModules %></div>
+                    <p class="dashboard-description">Currently connected and active</p>
+                  </div>
+
+                  <div class="dashboard-card">
+                    <h3>
+                      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="12" cy="12" r="10"/>
+                        <line x1="12" y1="8" x2="12" y2="12"/>
+                        <line x1="12" y1="16" x2="12.01" y2="16"/>
+                      </svg>
+                      Offline Modules
+                    </h3>
+                    <div class="dashboard-stat" style="color: #ff6b6b;"><%= stats.offlineModules %></div>
+                    <p class="dashboard-description">Disconnected or unavailable</p>
+                  </div>
+
+                  <!-- Types de modules -->
+                  <div class="dashboard-card">
+                    <h3>
+                      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M12 2L2 7v10c0 5.55 3.84 10 9 10s9-4.45 9-10V7L12 2z"/>
+                        <polyline points="8,12 12,16 16,12"/>
+                      </svg>
+                      Module Types
+                    </h3>
+                    <div style="margin-top: 16px;">
+                      <% Object.entries(stats.moduleTypes).forEach(([type, count]) => { %>
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                          <span style="color: #a8aeb5; font-size: 14px;"><%= type %></span>
+                          <span style="color: var(--text); font-weight: 600;"><%= count %></span>
+                        </div>
+                      <% }); %>
+                    </div>
+                  </div>
+
+                  <!-- Activité récente -->
+                  <div class="dashboard-card">
+                    <h3>
+                      <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
+                      </svg>
+                      System Status
+                    </h3>
+                    <div style="margin-top: 16px;">
+                      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <div style="width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 3px rgba(32,194,106,.2);"></div>
+                        <span style="color: var(--text); font-weight: 600;">WebSocket Connected</span>
+                      </div>
+                      <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 12px;">
+                        <div style="width: 8px; height: 8px; background: var(--accent); border-radius: 50%; box-shadow: 0 0 0 3px rgba(32,194,106,.2);"></div>
+                        <span style="color: var(--text); font-weight: 600;">Database Connected</span>
+                      </div>
+                      <p class="dashboard-description">All systems operational</p>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <script>
+    function addNewModule() {
+      window.location.href = '/modules#add';
+    }
+    
+    // Animation d'entrée des cartes
+    document.addEventListener('DOMContentLoaded', function() {
+      const cards = document.querySelectorAll('.dashboard-card');
+      cards.forEach((card, index) => {
+        card.style.opacity = '0';
+        card.style.transform = 'translateY(20px)';
+        
+        setTimeout(() => {
+          card.style.transition = 'all 0.5s ease';
+          card.style.opacity = '1';
+          card.style.transform = 'translateY(0)';
+        }, index * 100);
+      });
+    });
+  </script>
+
+</body>
+</html>

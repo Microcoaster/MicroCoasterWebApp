@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Timeline Editor - MicroCoaster</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css" rel="stylesheet">
+  <style>
+    :root {
+      --primary: #20c26a;
+      --secondary: #1a1a1a;
+      --accent: #00d4ff;
+      --background: #0a0a0a;
+      --surface: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.1);
+      --text: #ffffff;
+      --text-secondary: rgba(255, 255, 255, 0.7);
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: var(--background);
+      color: var(--text);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    .timeline-container {
+      display: flex;
+      height: 100vh;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+    }
+
+    /* Sidebar Track Builder */
+    .track-builder-sidebar {
+      width: 300px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .section-title {
+      color: var(--primary);
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .start-point-section {
+      margin-bottom: 30px;
+    }
+
+    .start-btn {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, var(--primary), #16a055);
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .start-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(32, 194, 106, 0.3);
+    }
+
+    .start-btn.active {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    }
+
+    /* Track Pieces Grid */
+    .track-pieces-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 30px;
+    }
+
+    .track-piece-btn {
+      padding: 15px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-align: center;
+      color: var(--text);
+    }
+
+    .track-piece-btn:hover {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--accent);
+      transform: translateY(-2px);
+    }
+
+    .track-piece-btn.selected {
+      background: rgba(0, 212, 255, 0.2);
+      border-color: var(--accent);
+      box-shadow: 0 0 20px rgba(0, 212, 255, 0.3);
+    }
+
+    .track-icon {
+      font-size: 24px;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .track-name {
+      font-size: 11px;
+      opacity: 0.8;
+    }
+
+    /* Canvas Area */
+    .canvas-area {
+      flex: 1;
+      position: relative;
+      background: #0f0f0f;
+    }
+
+    .canvas-header {
+      padding: 15px 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      justify-content: between;
+      align-items: center;
+    }
+
+    .canvas-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .canvas-actions {
+      display: flex;
+      gap: 10px;
+    }
+
+    .canvas-btn {
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      font-size: 14px;
+    }
+
+    .canvas-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Canvas with Grid */
+    .timeline-canvas {
+      width: 100%;
+      height: calc(100vh - 70px);
+      position: relative;
+      background: 
+        linear-gradient(rgba(255,255,255,.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.02) 1px, transparent 1px);
+      background-size: 50px 50px;
+      overflow: auto;
+      cursor: crosshair;
+    }
+
+    .scale-indicator {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(0, 0, 0, 0.7);
+      color: white;
+      padding: 5px 10px;
+      border-radius: 5px;
+      font-size: 12px;
+      z-index: 100;
+    }
+
+    /* Track Elements */
+    .track-start {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background: radial-gradient(circle, var(--primary), #16a055);
+      border: 3px solid white;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      cursor: pointer;
+      z-index: 10;
+      box-shadow: 0 4px 20px rgba(32, 194, 106, 0.5);
+    }
+
+    .track-piece {
+      position: absolute;
+      cursor: pointer;
+      z-index: 5;
+      transition: all 0.2s ease;
+    }
+
+    .track-piece:hover {
+      transform: scale(1.05);
+      z-index: 15;
+    }
+
+    .track-piece.selected {
+      box-shadow: 0 0 0 3px var(--accent);
+    }
+
+    /* Straight Track */
+    .track-straight {
+      width: 100px;
+      height: 20px;
+      background: linear-gradient(to bottom, #8b4513, #654321);
+      border-radius: 3px;
+      position: relative;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+    }
+
+    .track-straight::before,
+    .track-straight::after {
+      content: '';
+      position: absolute;
+      left: 10px;
+      right: 10px;
+      height: 2px;
+      background: #c0c0c0;
+      border-radius: 1px;
+    }
+
+    .track-straight::before { top: 4px; }
+    .track-straight::after { bottom: 4px; }
+
+    /* Curve Track */
+    .track-curve {
+      width: 100px;
+      height: 100px;
+      border: 20px solid #8b4513;
+      border-radius: 50%;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+      position: relative;
+    }
+
+    .track-curve-left {
+      border-color: transparent transparent #8b4513 #8b4513;
+    }
+
+    .track-curve-right {
+      border-color: #8b4513 #8b4513 transparent transparent;
+    }
+
+    .track-curve::before {
+      content: '';
+      position: absolute;
+      top: -15px;
+      left: -15px;
+      right: -15px;
+      bottom: -15px;
+      border: 2px solid #c0c0c0;
+      border-radius: 50%;
+      opacity: 0.8;
+    }
+
+    /* Instructions */
+    .instructions {
+      position: absolute;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 15px;
+      border-radius: 10px;
+      font-size: 12px;
+      max-width: 250px;
+    }
+
+    .instruction-step {
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .step-number {
+      width: 20px;
+      height: 20px;
+      background: var(--primary);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="timeline-container">
+    <!-- Track Builder Sidebar -->
+    <div class="track-builder-sidebar">
+      <!-- Start Point Section -->
+      <div class="start-point-section">
+        <h3 class="section-title">
+          <i class="bi bi-play-circle"></i>
+          Start Point
+        </h3>
+        <button class="start-btn" id="startBtn" onclick="trackBuilder.toggleStartMode()">
+          <i class="bi bi-plus-circle"></i>
+          <span id="startBtnText">Place Start Point</span>
+        </button>
+      </div>
+
+      <!-- Track Pieces Section -->
+      <div class="track-pieces-section">
+        <h3 class="section-title">
+          <i class="bi bi-bezier2"></i>
+          Track Pieces
+        </h3>
+        <div class="track-pieces-grid">
+          <div class="track-piece-btn" data-type="straight" onclick="trackBuilder.selectPiece('straight')">
+            <span class="track-icon">━</span>
+            <span class="track-name">Straight</span>
+          </div>
+          <div class="track-piece-btn" data-type="curve-left" onclick="trackBuilder.selectPiece('curve-left')">
+            <span class="track-icon">↰</span>
+            <span class="track-name">Curve Left</span>
+          </div>
+          <div class="track-piece-btn" data-type="curve-right" onclick="trackBuilder.selectPiece('curve-right')">
+            <span class="track-icon">↱</span>
+            <span class="track-name">Curve Right</span>
+          </div>
+          <div class="track-piece-btn" data-type="loop" onclick="trackBuilder.selectPiece('loop')">
+            <span class="track-icon">⭕</span>
+            <span class="track-name">Loop</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions Section -->
+      <div class="actions-section">
+        <h3 class="section-title">
+          <i class="bi bi-tools"></i>
+          Actions
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button class="canvas-btn" onclick="trackBuilder.clearCanvas()">
+            <i class="bi bi-trash"></i> Clear Track
+          </button>
+          <button class="canvas-btn" onclick="trackBuilder.saveTrack()">
+            <i class="bi bi-save"></i> Save Track
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Canvas Area -->
+    <div class="canvas-area">
+      <div class="canvas-header">
+        <h2 class="canvas-title">Track Designer</h2>
+        <div class="canvas-actions">
+          <button class="canvas-btn" onclick="trackBuilder.zoomIn()">
+            <i class="bi bi-zoom-in"></i>
+          </button>
+          <button class="canvas-btn" onclick="trackBuilder.zoomOut()">
+            <i class="bi bi-zoom-out"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="timeline-canvas" id="canvas">
+        <div class="scale-indicator">50px = 10cm</div>
+        
+        <!-- Instructions -->
+        <div class="instructions">
+          <div class="instruction-step">
+            <span class="step-number">1</span>
+            <span>Click "Place Start Point"</span>
+          </div>
+          <div class="instruction-step">
+            <span class="step-number">2</span>
+            <span>Click on canvas to place start</span>
+          </div>
+          <div class="instruction-step">
+            <span class="step-number">3</span>
+            <span>Select track piece</span>
+          </div>
+          <div class="instruction-step">
+            <span class="step-number">4</span>
+            <span>Click to place pieces</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    class TrackBuilder {
+      constructor() {
+        this.canvas = document.getElementById('canvas');
+        this.isPlacingStart = false;
+        this.selectedPiece = null;
+        this.startPoint = null;
+        this.trackPieces = [];
+        this.zoom = 1;
+        
+        this.initEventListeners();
+      }
+
+      initEventListeners() {
+        this.canvas.addEventListener('click', (e) => this.handleCanvasClick(e));
+        document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+      }
+
+      toggleStartMode() {
+        const btn = document.getElementById('startBtn');
+        const btnText = document.getElementById('startBtnText');
+        
+        if (this.isPlacingStart) {
+          this.isPlacingStart = false;
+          btn.classList.remove('active');
+          btnText.textContent = 'Place Start Point';
+          this.canvas.style.cursor = 'default';
+        } else {
+          this.isPlacingStart = true;
+          this.selectedPiece = null;
+          this.clearPieceSelection();
+          btn.classList.add('active');
+          btnText.textContent = 'Click on canvas';
+          this.canvas.style.cursor = 'crosshair';
+        }
+      }
+
+      selectPiece(type) {
+        if (this.startPoint === null) {
+          alert('Please place a start point first!');
+          return;
+        }
+
+        this.selectedPiece = type;
+        this.isPlacingStart = false;
+        
+        // Update UI
+        document.getElementById('startBtn').classList.remove('active');
+        document.getElementById('startBtnText').textContent = 'Place Start Point';
+        
+        this.clearPieceSelection();
+        document.querySelector(`[data-type="${type}"]`).classList.add('selected');
+        this.canvas.style.cursor = 'crosshair';
+      }
+
+      clearPieceSelection() {
+        document.querySelectorAll('.track-piece-btn').forEach(btn => {
+          btn.classList.remove('selected');
+        });
+      }
+
+      handleCanvasClick(e) {
+        const rect = this.canvas.getBoundingClientRect();
+        const x = (e.clientX - rect.left) / this.zoom;
+        const y = (e.clientY - rect.top) / this.zoom;
+
+        // Snap to grid
+        const gridX = Math.round(x / 50) * 50;
+        const gridY = Math.round(y / 50) * 50;
+
+        if (this.isPlacingStart) {
+          this.placeStartPoint(gridX, gridY);
+        } else if (this.selectedPiece) {
+          this.placeTrackPiece(this.selectedPiece, gridX, gridY);
+        }
+      }
+
+      placeStartPoint(x, y) {
+        // Remove existing start point
+        if (this.startPoint) {
+          this.startPoint.element.remove();
+        }
+
+        const startElement = document.createElement('div');
+        startElement.className = 'track-start';
+        startElement.style.left = (x - 30) + 'px';
+        startElement.style.top = (y - 30) + 'px';
+        startElement.innerHTML = '🚂';
+        
+        this.canvas.appendChild(startElement);
+        
+        this.startPoint = {
+          element: startElement,
+          x: x,
+          y: y
+        };
+
+        // Reset mode
+        this.toggleStartMode();
+      }
+
+      placeTrackPiece(type, x, y) {
+        const pieceElement = document.createElement('div');
+        pieceElement.className = 'track-piece';
+        
+        switch(type) {
+          case 'straight':
+            pieceElement.classList.add('track-straight');
+            pieceElement.style.left = (x - 50) + 'px';
+            pieceElement.style.top = (y - 10) + 'px';
+            break;
+          case 'curve-left':
+            pieceElement.classList.add('track-curve', 'track-curve-left');
+            pieceElement.style.left = (x - 50) + 'px';
+            pieceElement.style.top = (y - 50) + 'px';
+            break;
+          case 'curve-right':
+            pieceElement.classList.add('track-curve', 'track-curve-right');
+            pieceElement.style.left = (x - 50) + 'px';
+            pieceElement.style.top = (y - 50) + 'px';
+            break;
+          case 'loop':
+            pieceElement.innerHTML = '⭕';
+            pieceElement.style.left = (x - 25) + 'px';
+            pieceElement.style.top = (y - 25) + 'px';
+            pieceElement.style.fontSize = '30px';
+            break;
+        }
+
+        // Add click handler for selection/deletion
+        pieceElement.addEventListener('click', (e) => {
+          e.stopPropagation();
+          this.selectTrackPiece(pieceElement);
+        });
+
+        this.canvas.appendChild(pieceElement);
+        
+        this.trackPieces.push({
+          element: pieceElement,
+          type: type,
+          x: x,
+          y: y
+        });
+      }
+
+      selectTrackPiece(element) {
+        // Clear previous selection
+        document.querySelectorAll('.track-piece.selected').forEach(el => {
+          el.classList.remove('selected');
+        });
+        
+        element.classList.add('selected');
+      }
+
+      handleKeyDown(e) {
+        if (e.key === 'Delete') {
+          const selected = document.querySelector('.track-piece.selected');
+          if (selected) {
+            selected.remove();
+            this.trackPieces = this.trackPieces.filter(piece => piece.element !== selected);
+          }
+        }
+        
+        if (e.key === 'Escape') {
+          this.isPlacingStart = false;
+          this.selectedPiece = null;
+          this.clearPieceSelection();
+          document.getElementById('startBtn').classList.remove('active');
+          document.getElementById('startBtnText').textContent = 'Place Start Point';
+          this.canvas.style.cursor = 'default';
+        }
+      }
+
+      clearCanvas() {
+        if (confirm('Clear entire track?')) {
+          // Clear start point
+          if (this.startPoint) {
+            this.startPoint.element.remove();
+            this.startPoint = null;
+          }
+          
+          // Clear track pieces
+          this.trackPieces.forEach(piece => piece.element.remove());
+          this.trackPieces = [];
+          
+          // Reset UI
+          this.isPlacingStart = false;
+          this.selectedPiece = null;
+          this.clearPieceSelection();
+          document.getElementById('startBtn').classList.remove('active');
+          document.getElementById('startBtnText').textContent = 'Place Start Point';
+          this.canvas.style.cursor = 'default';
+        }
+      }
+
+      saveTrack() {
+        const trackData = {
+          startPoint: this.startPoint ? { x: this.startPoint.x, y: this.startPoint.y } : null,
+          pieces: this.trackPieces.map(piece => ({
+            type: piece.type,
+            x: piece.x,
+            y: piece.y
+          }))
+        };
+        
+        console.log('Track saved:', trackData);
+        alert('Track saved successfully!');
+      }
+
+      zoomIn() {
+        this.zoom = Math.min(this.zoom * 1.2, 3);
+        this.updateZoom();
+      }
+
+      zoomOut() {
+        this.zoom = Math.max(this.zoom / 1.2, 0.5);
+        this.updateZoom();
+      }
+
+      updateZoom() {
+        this.canvas.style.transform = `scale(${this.zoom})`;
+        this.canvas.style.transformOrigin = '0 0';
+      }
+    }
+
+    // Initialize track builder
+    const trackBuilder = new TrackBuilder();
+  </script>
+</body>
+</html>

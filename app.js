@@ -11,6 +11,9 @@ const cors = require('cors');
 // Routes
 const { router: authRoutes } = require('./routes/auth');
 const moduleRoutes = require('./routes/modules');
+const dashboardRoutes = require('./routes/dashboard');
+const timelinesRoutes = require('./routes/timelines');
+const documentationsRoutes = require('./routes/documentations');
 
 // WebSocket handlers
 const websocketHandler = require('./websocket/handlers');
@@ -63,7 +66,10 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.use('/', authRoutes);
+app.use('/dashboard', dashboardRoutes);
 app.use('/modules', moduleRoutes);
+app.use('/timelines', timelinesRoutes);
+app.use('/documentations', documentationsRoutes);
 
 // Gestion WebSocket
 websocketHandler(io);
