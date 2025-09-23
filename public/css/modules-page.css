@@ -1,0 +1,20 @@
+/* ===== MODULES PAGE STYLES ===== */
+
+/* Styles spécifiques pour les états des modules */
+.server-state { 
+  display: none; 
+}
+
+.empty-state { 
+  text-align: center; 
+  padding: 40px; 
+  color: #888; 
+}
+
+.panel.offline {
+  opacity: 0.6;
+}
+
+.panel.online {
+  opacity: 1;
+}

@@ -11,6 +11,7 @@ router.get('/', async (req, res) => {
 
     res.render('documentations', {
       title: 'Documentations - MicroCoaster',
+      currentPage: 'documentations',
       user: {
         id: req.session.user_id,
         code: req.session.code,

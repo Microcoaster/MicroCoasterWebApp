@@ -53,6 +53,7 @@ router.get('/', requireAuth, async (req, res) => {
     // Rendu de la page
     res.render('modules', {
       title: 'My Modules – MicroCoaster',
+      currentPage: 'modules',
       modules,
       user: {
         id: user.id,

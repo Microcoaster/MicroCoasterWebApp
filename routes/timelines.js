@@ -51,6 +51,7 @@ router.get('/', requireAuth, async (req, res) => {
 
     res.render('timelines', {
       title: 'Timeline Editor - MicroCoaster',
+      currentPage: 'timelines',
       user: user,
       modules: formattedModules
     });

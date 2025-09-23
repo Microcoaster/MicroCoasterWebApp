@@ -1,0 +1,431 @@
+.timeline-app {
+      display: flex;
+      height: 100vh;
+      background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 100%);
+      color: white;
+    }
+
+    /* Panel des modules à gauche */
+    .modules-panel {
+      width: 350px;
+      background: rgba(255, 255, 255, 0.05);
+      backdrop-filter: blur(20px);
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .modules-panel h3 {
+      color: #20c26a;
+      margin-bottom: 20px;
+      font-size: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .module-item {
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 15px;
+      margin-bottom: 10px;
+      cursor: grab;
+      transition: all 0.3s ease;
+      position: relative;
+    }
+
+    .module-item:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-2px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    }
+
+    .module-item:active {
+      cursor: grabbing;
+    }
+
+    .module-header {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .module-main-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .module-name {
+      font-weight: 600;
+      font-size: 14px;
+      flex: 1;
+    }
+
+    .module-secondary-line {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .module-type {
+      font-size: 11px;
+      padding: 4px 8px;
+      background: rgba(32, 194, 106, 0.2);
+      border-radius: 6px;
+      color: #20c26a;
+    }
+
+    .module-id {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.6);
+    }
+
+    /* État des modules (repris du CSS modules) */
+    .state {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,.08);
+      background: #1b1c1e;
+      flex-shrink: 0;
+    }
+
+    .state.online {
+      border-color: rgba(32,194,106,.35);
+      background: rgba(32,194,106,.15);
+      color: #a7f3d0;
+    }
+
+    .state.offline {
+      border-color: rgba(239,68,68,.35);
+      background: rgba(239,68,68,.12);
+      color: #fecaca;
+    }
+
+    /* Timeline principale à droite */
+    .timeline-container {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    /* Header avec contrôles */
+    .timeline-header {
+      padding: 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .timeline-title {
+      font-size: 24px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .timeline-controls {
+      display: flex;
+      gap: 15px;
+      align-items: center;
+    }
+
+    .play-btn {
+      background: linear-gradient(135deg, #20c26a, #16a055);
+      border: none;
+      border-radius: 12px;
+      padding: 12px 20px;
+      color: white;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.3s ease;
+    }
+
+    .play-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 25px rgba(32, 194, 106, 0.3);
+    }
+
+    .play-btn.playing {
+      background: linear-gradient(135deg, #ff6b6b, #ee5a52);
+    }
+
+    .control-btn {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      padding: 8px 16px;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .control-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Zone de timeline */
+    .timeline-workspace {
+      flex: 1;
+      position: relative;
+      overflow: auto;
+      padding: 20px;
+    }
+
+    .timeline-track {
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      min-height: calc(100vh - 160px);
+      position: relative;
+      border: 2px dashed rgba(255, 255, 255, 0.1);
+    }
+
+    /* Règle temporelle */
+    .time-ruler {
+      height: 60px;
+      background: rgba(255, 255, 255, 0.08);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      position: relative;
+      display: flex;
+      align-items: center;
+      padding: 0 20px;
+    }
+
+    .time-marker {
+      position: absolute;
+      height: 100%;
+      border-left: 1px solid rgba(255, 255, 255, 0.3);
+      display: flex;
+      align-items: flex-end;
+      padding-bottom: 5px;
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.7);
+      padding-left: 5px;
+    }
+
+    /* Éléments de timeline */
+    .timeline-element {
+      position: absolute;
+      background: linear-gradient(135deg, #4a90e2, #357abd);
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 12px;
+      padding: 15px;
+      cursor: move;
+      user-select: none;
+      min-width: 150px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+      transition: all 0.2s ease;
+    }
+
+    .timeline-element:hover {
+      transform: scale(1.02);
+      box-shadow: 0 6px 25px rgba(0, 0, 0, 0.4);
+    }
+
+    .timeline-element.selected {
+      border-color: #00d4ff;
+      box-shadow: 0 0 0 3px rgba(0, 212, 255, 0.3);
+    }
+
+    .element-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 8px;
+    }
+
+    .element-name {
+      font-weight: 600;
+      font-size: 14px;
+    }
+
+    .element-duration {
+      font-size: 11px;
+      background: rgba(255, 255, 255, 0.2);
+      padding: 2px 6px;
+      border-radius: 4px;
+    }
+
+    .element-config {
+      font-size: 12px;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    /* Connexions entre éléments */
+    .timeline-connection {
+      position: absolute;
+      height: 2px;
+      background: linear-gradient(90deg, #20c26a, #00d4ff);
+      z-index: 1;
+    }
+
+    .connection-delay {
+      position: absolute;
+      top: -20px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.8);
+      color: white;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 10px;
+      white-space: nowrap;
+    }
+
+    /* Modal de configuration */
+    .config-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 1000;
+    }
+
+    .config-modal.show {
+      display: flex;
+    }
+
+    .modal-content {
+      background: linear-gradient(135deg, rgba(45,47,51,.95), rgba(35,37,41,.98));
+      border-radius: 16px;
+      padding: 30px;
+      max-width: 500px;
+      width: 90%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .modal-title {
+      font-size: 20px;
+      font-weight: 600;
+      color: #20c26a;
+    }
+
+    .close-btn {
+      background: none;
+      border: none;
+      color: white;
+      font-size: 24px;
+      cursor: pointer;
+      opacity: 0.7;
+    }
+
+    .close-btn:hover {
+      opacity: 1;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: 500;
+      color: rgba(255, 255, 255, 0.9);
+    }
+
+    .form-input {
+      width: 100%;
+      padding: 12px;
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 8px;
+      color: white;
+      font-size: 14px;
+    }
+
+    .form-input:focus {
+      outline: none;
+      border-color: #20c26a;
+      box-shadow: 0 0 0 3px rgba(32, 194, 106, 0.2);
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-weight: 500;
+      transition: all 0.3s ease;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #20c26a, #16a055);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+
+    /* Timeline playback indicator */
+    .playback-indicator {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: #ff6b6b;
+      z-index: 100;
+      display: none;
+      box-shadow: 0 0 10px rgba(255, 107, 107, 0.5);
+    }
+
+    .playback-indicator.active {
+      display: block;
+    }
+
+    /* Drop zone styling */
+    .timeline-track.drag-over {
+      border-color: #20c26a;
+      background: rgba(32, 194, 106, 0.1);
+    }
+
+    /* Instructions */
+    .timeline-instructions {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      color: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+    }
+
+    .timeline-instructions h4 {
+      margin-bottom: 10px;
+      color: rgba(255, 255, 255, 0.7);
+    }

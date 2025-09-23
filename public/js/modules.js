@@ -3,14 +3,7 @@
  * Adapted for Socket.io instead of native WebSocket
  * =======================================================*/
 
-/* =============== Utils globaux =============== */
-const IMG_BASE = '/assets/img/';
-const urlImg = (name) => IMG_BASE + name;
-
-function preload(paths) {
-  for (const s of paths) { const i = new Image(); i.src = s; }
-}
-
+/* =============== Utils spécifiques aux modules =============== */
 // Envoi Socket.io (défini après init), mais on expose une no-op au cas où
 window.ws_sendCommand = window.ws_sendCommand || function(){};
 

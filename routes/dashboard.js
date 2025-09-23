@@ -37,6 +37,7 @@ router.get('/', async (req, res) => {
 
     res.render('dashboard', {
       title: 'Dashboard - MicroCoaster',
+      currentPage: 'dashboard',
       user: user,
       stats: stats,
       modules: userModules
