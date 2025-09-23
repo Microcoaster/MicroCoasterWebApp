@@ -1,0 +1,47 @@
+/* =========================================================
+ * MicroCoaster - Error Page Styles
+ * =======================================================*/
+
+.error-container {
+  text-align: center;
+  padding: 60px 20px;
+}
+
+.error-icon {
+  color: #ff6b6b;
+  font-size: 48px;
+  margin-bottom: 20px;
+}
+
+.error-title {
+  color: var(--text);
+  margin-bottom: 16px;
+}
+
+.error-message {
+  color: #a8aeb5;
+  margin-bottom: 30px;
+}
+
+.error-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 24px;
+  background: var(--accent);
+  color: white;
+  text-decoration: none;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.error-back-btn:hover {
+  background: var(--accent-hover, #1a7f64);
+  transform: translateY(-1px);
+}
+
+.error-back-icon {
+  width: 16px;
+  height: 16px;
+}

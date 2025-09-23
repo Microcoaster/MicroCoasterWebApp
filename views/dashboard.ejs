@@ -146,28 +146,9 @@
     </main>
   </div>
 
-  <!-- Scripts globaux avec fonctions dashboard -->
+  <!-- Scripts -->
   <script src="/js/global.js"></script>
-  <script>
-    function addNewModule() {
-      window.location.href = '/modules#add';
-    }
-    
-    // Animation d'entrée des cartes
-    document.addEventListener('DOMContentLoaded', function() {
-      const cards = document.querySelectorAll('.dashboard-card');
-      cards.forEach((card, index) => {
-        card.style.opacity = '0';
-        card.style.transform = 'translateY(20px)';
-        
-        setTimeout(() => {
-          card.style.transition = 'all 0.5s ease';
-          card.style.opacity = '1';
-          card.style.transform = 'translateY(0)';
-        }, index * 100);
-      });
-    });
-  </script>
+  <script src="/js/dashboard.js"></script>
 
 </body>
 </html>
