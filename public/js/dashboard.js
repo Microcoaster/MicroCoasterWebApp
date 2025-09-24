@@ -25,7 +25,6 @@ function initializeDashboard() {
   if (onlineElement && offlineElement) {
     onlineModules = parseInt(onlineElement.textContent || '0');
     offlineModules = parseInt(offlineElement.textContent || '0');
-    console.log(`📊 Initial counters: ${onlineModules} online, ${offlineModules} offline`);
   }
 
   // Animation d'entrée des cartes
@@ -40,8 +39,6 @@ function initializeDashboard() {
       card.style.transform = 'translateY(0)';
     }, index * 100);
   });
-  
-  console.log('📊 Dashboard initialized');
 }
 
 function initializeWebSocket() {
@@ -52,29 +49,23 @@ function initializeWebSocket() {
     if (typeof window.socket !== 'undefined' && window.socket && window.socket.connected) {
       // Écouter les changements d'état des modules
       window.socket.on('module_online', function(data) {
-        console.log('📡 Module online:', data.moduleId);
         updateModuleStatus(data.moduleId, true);
       });
 
       window.socket.on('module_offline', function(data) {
-        console.log('📡 Module offline:', data.moduleId);
         updateModuleStatus(data.moduleId, false);
       });
 
       window.socket.on('module_presence', function(data) {
-        console.log('📡 Module presence update:', data.moduleId, data.online);
         updateModuleStatus(data.moduleId, data.online);
       });
 
       // Écouter l'état initial des modules
       window.socket.on('modules_state', function(modules) {
-        console.log('📡 Initial modules state:', modules);
         modules.forEach(module => {
           updateModuleStatus(module.moduleId, module.online);
         });
       });
-
-      console.log('🔌 Dashboard WebSocket listeners initialized');
       webSocketReady = true;
       return true;
     }
@@ -98,7 +89,6 @@ function initializeWebSocket() {
   // Fallback après délai si WebSocket n'est toujours pas prêt
   setTimeout(() => {
     if (!webSocketReady) {
-      console.log('📊 Using polling fallback for dashboard updates');
       startStatsPolling();
     }
   }, 2000);
@@ -114,11 +104,11 @@ function startStatsPolling() {
         updateCountersFromStats(stats);
       }
     } catch (error) {
-      console.error('Error polling stats:', error);
+      if (window.MC?.isDevelopment) {
+        console.error('Error polling stats:', error);
+      }
     }
   }, 10000);
-  
-  console.log('📊 Stats polling started (fallback mode)');
 }
 
 function updateCountersFromStats(stats) {
@@ -182,8 +172,6 @@ function updateModuleStatus(moduleId, isOnline) {
   // Animation de mise à jour des compteurs
   animateCounterUpdate(onlineElement, onlineModules);
   animateCounterUpdate(offlineElement, offlineModules);
-
-  console.log(`📊 Module ${moduleId} ${isOnline ? 'online' : 'offline'} - Counters: ${onlineModules} online, ${offlineModules} offline`);
 }
 
 function animateCounterUpdate(element, newValue) {

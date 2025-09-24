@@ -27,6 +27,4 @@ function initializeLoginPage() {
       box.style.transform = 'translateY(0)';
     }, 100);
   }
-  
-  console.log('🔐 Login page initialized');
 }

@@ -88,13 +88,12 @@ function initializeWebSocket() {
     socket = io();
     
     socket.on('connect', function() {
-      console.log('🔌 WebSocket connected');
       // Déclencher un événement pour indiquer que le socket est prêt
       window.dispatchEvent(new CustomEvent('websocket-ready'));
     });
 
     socket.on('disconnect', function() {
-      console.log('🔌 WebSocket disconnected');
+      // Connexion perdue
     });
 
     socket.on('error', function(data) {
@@ -106,7 +105,6 @@ function initializeWebSocket() {
 
     // Exposer le socket globalement
     window.socket = socket;
-    console.log('🔌 WebSocket initialized');
     
   } catch (error) {
     console.error('❌ Failed to initialize WebSocket:', error);
@@ -115,6 +113,10 @@ function initializeWebSocket() {
 
 /* =============== INITIALIZATION =============== */
 document.addEventListener('DOMContentLoaded', function() {
+  // Configuration globale basée sur l'environnement
+  window.MC = window.MC || {};
+  window.MC.isDevelopment = document.querySelector('meta[name="env"]')?.content === 'development';
+  
   // Exposer les utilitaires globalement
   window.IMG_BASE = IMG_BASE;
   window.urlImg = urlImg;
@@ -123,9 +125,5 @@ document.addEventListener('DOMContentLoaded', function() {
   // Initialiser WebSocket si Socket.IO est disponible
   if (typeof io !== 'undefined') {
     initializeWebSocket();
-  } else {
-    console.warn('⚠️ Socket.IO not loaded, WebSocket features disabled');
   }
-  
-  console.log('🚀 MicroCoaster Global JS loaded');
 });

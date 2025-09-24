@@ -892,21 +892,18 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       socket = io();
 
       socket.on('connect', () => {
-        console.log('🔌 Socket.io connected');
         setServerBanner(false);
         // Plus besoin d'authentification, les sessions sont partagées !
         window.applyOnlineFilter?.();
       });
 
       socket.on('disconnect', () => {
-        console.log('🔌 Socket.io disconnected — reconnecting…');
         markAllOffline();
         setServerBanner(true);
       });
 
       // Réception des états de modules
       socket.on('modules_state', (states) => {
-        console.log('📊 Modules state received:', states);
         states.forEach(state => {
           setPresence(state.moduleId, state.online);
         });
@@ -914,13 +911,11 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 
       // Module en ligne
       socket.on('module_online', (data) => {
-        console.log('🟢 Module online:', data.moduleId);
         setPresence(data.moduleId, true);
       });
 
       // Module hors ligne  
       socket.on('module_offline', (data) => {
-        console.log('🔴 Module offline:', data.moduleId);
         setPresence(data.moduleId, false);
       });
 
@@ -931,7 +926,7 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 
       // Confirmation de commande
       socket.on('command_sent', (data) => {
-        console.log('✅ Command sent:', data);
+        // Commande envoyée avec succès
       });
 
       // Erreur de commande
@@ -965,7 +960,7 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       return;
     }
 
-    console.log(`📡 Sending command: ${command} to ${moduleId}`, params);
+
     
     // Effet visuel sur le bouton (cooldown)
     if (buttonElement) {

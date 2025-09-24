@@ -64,7 +64,6 @@ async function addModule(moduleId, name, type, userId) {
       'INSERT INTO modules (id, name, type, user_id) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), type = VALUES(type)',
       [moduleId, name, type, userId]
     );
-    console.log(`✅ Module ${moduleId} added/updated for user ${userId}`);
   } catch (error) {
     console.error('Database error in addModule:', error);
     throw error;
@@ -149,7 +148,6 @@ async function updateModuleStatus(moduleId, status, userId = null) {
           lastSeen: now,
           userId: userId
         });
-        console.log(`📊 Module ${moduleId} is online (cached)`);
       }
     } else {
       // Marquer comme offline ou supprimer du cache
@@ -160,7 +158,6 @@ async function updateModuleStatus(moduleId, status, userId = null) {
           status: 'offline',
           lastSeen: now
         });
-        console.log(`📊 Module ${moduleId} is offline (cached)`);
       }
     }
   } catch (error) {
@@ -180,7 +177,6 @@ function cleanupModuleStatus(maxAgeMinutes = 5) {
   for (const [moduleId, data] of moduleStatusCache.entries()) {
     if (data.status === 'offline' && (now - data.lastSeen) > maxAge) {
       moduleStatusCache.delete(moduleId);
-      console.log(`🧹 Cleaned up old status for module ${moduleId}`);
     }
   }
 }
