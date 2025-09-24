@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="/css/global.css">
   <!-- CSS principal des modules -->
   <link rel="stylesheet" href="/css/modules.css">
+  <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
 <body class="compact">
 
@@ -323,12 +324,11 @@
     </div>
   </div>
 
+  <!-- Scripts -->
   <!-- Socket.io client -->
   <script src="/socket.io/socket.io.js"></script>
-  
   <!-- Utilitaires globaux -->
   <script src="/js/global.js"></script>
-  
   <!-- Configuration utilisateur -->
   <script>
     window.MC = { 
@@ -337,6 +337,7 @@
       userName: '<%= user.name %>'
     };
   </script>
+  <!-- Logique spécifique aux modules -->
   <script src="/js/modules.js"></script>
 </body>
 </html>
