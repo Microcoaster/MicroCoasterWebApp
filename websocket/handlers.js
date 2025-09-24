@@ -187,7 +187,7 @@ module.exports = function(io) {
       });
       espById.set(moduleId, socket);
 
-      // Mettre à jour le statut en base
+      // Mettre à jour le statut en cache
       updateModuleStatus(moduleId, 'online').catch(console.error);
 
       // Si déjà claimé par un dashboard, annoncer présence
@@ -225,7 +225,7 @@ module.exports = function(io) {
         espById.delete(socket.moduleId);
         connectedModules.delete(socket.id);
         
-        // Mettre à jour le statut en base
+        // Mettre à jour le statut en cache
         updateModuleStatus(socket.moduleId, 'offline').catch(console.error);
         
         // Notifier les clients web

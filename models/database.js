@@ -19,6 +19,9 @@ const pool = mysql.createPool({
   queueLimit: 0
 });
 
+// Cache en mémoire pour les statuts des modules
+const moduleStatusCache = new Map(); // moduleId -> { status, lastSeen, userId }
+
 // Fonctions de base de données
 
 /**
@@ -80,12 +83,20 @@ async function getUserModules(userId) {
       [userId]
     );
     
-    // Simuler le statut en ligne pour le dashboard (aléatoire pour démonstration)
-    return rows.map(module => ({
-      ...module,
-      isOnline: Math.random() > 0.3, // 70% de chance d'être en ligne
-      type: module.type || 'Unknown'
-    }));
+    // Ajouter le statut depuis le cache ou offline par défaut
+    return rows.map(module => {
+      const moduleId = module.module_id;
+      const cached = moduleStatusCache.get(moduleId);
+      const isOnline = cached && cached.status === 'online' && cached.userId === userId;
+      
+      return {
+        ...module,
+        status: isOnline ? 'online' : 'offline',
+        isOnline: isOnline,
+        lastSeen: cached ? cached.lastSeen : null,
+        type: module.type || 'Unknown'
+      };
+    });
   } catch (error) {
     console.error('Database error in getUserModules:', error);
     throw error;
@@ -113,22 +124,69 @@ async function getModule(moduleId, userId) {
 }
 
 /**
- * Met à jour le statut d'un module (fonction simplifiée car status n'existe pas en DB)
+ * Met à jour le statut d'un module dans le cache mémoire
  * @param {string} moduleId - ID du module
- * @param {string} status - Nouveau statut (online/offline) - ignoré car colonne inexistante
+ * @param {string} status - Nouveau statut (online/offline)
+ * @param {number} userId - ID du propriétaire du module (optionnel)
  */
-async function updateModuleStatus(moduleId, status) {
+async function updateModuleStatus(moduleId, status, userId = null) {
   try {
-    // Pour l'instant, on fait juste un log car la table n'a pas de colonne status
-    console.log(`📊 Module ${moduleId} is ${status} (not persisted - no status column)`);
+    const now = new Date();
     
-    // Si on veut persister, on pourrait ajouter une colonne ou utiliser une autre table
-    // await pool.execute('UPDATE modules SET last_seen = NOW() WHERE module_id = ?', [moduleId]);
+    if (status === 'online') {
+      // Récupérer le userId depuis la DB si pas fourni
+      if (!userId) {
+        const [rows] = await pool.execute(
+          'SELECT user_id FROM modules WHERE module_id = ? LIMIT 1',
+          [moduleId]
+        );
+        userId = rows.length > 0 ? rows[0].user_id : null;
+      }
+      
+      if (userId) {
+        moduleStatusCache.set(moduleId, {
+          status: 'online',
+          lastSeen: now,
+          userId: userId
+        });
+        console.log(`📊 Module ${moduleId} is online (cached)`);
+      }
+    } else {
+      // Marquer comme offline ou supprimer du cache
+      const cached = moduleStatusCache.get(moduleId);
+      if (cached) {
+        moduleStatusCache.set(moduleId, {
+          ...cached,
+          status: 'offline',
+          lastSeen: now
+        });
+        console.log(`📊 Module ${moduleId} is offline (cached)`);
+      }
+    }
   } catch (error) {
     console.error('Database error in updateModuleStatus:', error);
     // Ne pas throw pour éviter de casser les connexions WebSocket
   }
 }
+
+/**
+ * Nettoie les statuts anciens (modules déconnectés il y a plus de X minutes)
+ * @param {number} maxAgeMinutes - Âge maximum en minutes (défaut: 5 minutes)
+ */
+function cleanupModuleStatus(maxAgeMinutes = 5) {
+  const now = new Date();
+  const maxAge = maxAgeMinutes * 60 * 1000;
+  
+  for (const [moduleId, data] of moduleStatusCache.entries()) {
+    if (data.status === 'offline' && (now - data.lastSeen) > maxAge) {
+      moduleStatusCache.delete(moduleId);
+      console.log(`🧹 Cleaned up old status for module ${moduleId}`);
+    }
+  }
+}
+
+// Nettoyage automatique toutes les 5 minutes
+setInterval(() => cleanupModuleStatus(), 5 * 60 * 1000);
 
 /**
  * Teste la connexion à la base de données
@@ -188,5 +246,6 @@ module.exports = {
   updateModuleStatus,
   testConnection,
   addModule,
-  getUserById
+  getUserById,
+  moduleStatusCache // Exposer le cache pour debug si nécessaire
 };

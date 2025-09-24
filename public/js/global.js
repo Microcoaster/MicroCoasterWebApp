@@ -80,12 +80,52 @@ window.copyToClipboard = function(text, element = null) {
   }
 };
 
+/* =============== WEBSOCKET CONNECTION =============== */
+let socket = null;
+
+function initializeWebSocket() {
+  try {
+    socket = io();
+    
+    socket.on('connect', function() {
+      console.log('🔌 WebSocket connected');
+      // Déclencher un événement pour indiquer que le socket est prêt
+      window.dispatchEvent(new CustomEvent('websocket-ready'));
+    });
+
+    socket.on('disconnect', function() {
+      console.log('🔌 WebSocket disconnected');
+    });
+
+    socket.on('error', function(data) {
+      console.error('❌ WebSocket error:', data);
+      if (data.message) {
+        window.showToast?.(data.message, 'error', 3000);
+      }
+    });
+
+    // Exposer le socket globalement
+    window.socket = socket;
+    console.log('🔌 WebSocket initialized');
+    
+  } catch (error) {
+    console.error('❌ Failed to initialize WebSocket:', error);
+  }
+}
+
 /* =============== INITIALIZATION =============== */
 document.addEventListener('DOMContentLoaded', function() {
   // Exposer les utilitaires globalement
   window.IMG_BASE = IMG_BASE;
   window.urlImg = urlImg;
   window.preload = preload;
+  
+  // Initialiser WebSocket si Socket.IO est disponible
+  if (typeof io !== 'undefined') {
+    initializeWebSocket();
+  } else {
+    console.warn('⚠️ Socket.IO not loaded, WebSocket features disabled');
+  }
   
   console.log('🚀 MicroCoaster Global JS loaded');
 });

@@ -2,6 +2,29 @@ const express = require('express');
 const router = express.Router();
 const database = require('../models/database');
 
+// Fonction helper pour calculer les statistiques
+async function calculateStats(userId) {
+  const userModules = await database.getUserModules(userId);
+  
+  // Récupérer les statuts en ligne depuis la base de données
+  const onlineModules = userModules.filter(m => m.status === 'online').length;
+  
+  const stats = {
+    totalModules: userModules.length,
+    onlineModules: onlineModules,
+    offlineModules: userModules.length - onlineModules,
+    moduleTypes: {}
+  };
+
+  // Compter les types de modules
+  userModules.forEach(module => {
+    const type = module.type || 'Unknown';
+    stats.moduleTypes[type] = (stats.moduleTypes[type] || 0) + 1;
+  });
+
+  return stats;
+}
+
 // Route pour afficher le dashboard
 router.get('/', async (req, res) => {
   try {
@@ -10,28 +33,9 @@ router.get('/', async (req, res) => {
       return res.redirect('/');
     }
 
-    // Récupérer les modules de l'utilisateur connecté
-    const userModules = await database.getUserModules(req.session.user_id);
-    
-    // S'assurer que tous les modules sont offline par défaut
-    userModules.forEach(module => {
-      module.isOnline = false;
-    });
-    
     // Calculer les statistiques
-    const stats = {
-      totalModules: userModules.length,
-      onlineModules: userModules.filter(m => m.isOnline).length,
-      offlineModules: userModules.filter(m => !m.isOnline).length,
-      moduleTypes: {}
-    };
-
-    // Compter les types de modules
-    userModules.forEach(module => {
-      const type = module.type || 'Unknown';
-      stats.moduleTypes[type] = (stats.moduleTypes[type] || 0) + 1;
-    });
-
+    const stats = await calculateStats(req.session.user_id);
+    
     // Récupérer les informations utilisateur
     const user = await database.getUserById(req.session.user_id);
 
@@ -39,8 +43,7 @@ router.get('/', async (req, res) => {
       title: 'Dashboard - MicroCoaster',
       currentPage: 'dashboard',
       user: user,
-      stats: stats,
-      modules: userModules
+      stats: stats
     });
 
   } catch (error) {
@@ -50,6 +53,23 @@ router.get('/', async (req, res) => {
       message: 'Une erreur est survenue lors du chargement du dashboard',
       error: process.env.NODE_ENV === 'development' ? error : {}
     });
+  }
+});
+
+// Route API pour récupérer les statistiques en temps réel
+router.get('/stats', async (req, res) => {
+  try {
+    // Vérifier que l'utilisateur est connecté
+    if (!req.session.user_id) {
+      return res.status(401).json({ error: 'Not authenticated' });
+    }
+
+    const stats = await calculateStats(req.session.user_id);
+    res.json(stats);
+
+  } catch (error) {
+    console.error('Erreur lors de la récupération des statistiques:', error);
+    res.status(500).json({ error: 'Internal server error' });
   }
 });
 
