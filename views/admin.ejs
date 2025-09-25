@@ -17,7 +17,13 @@
   <link rel="stylesheet" href="/css/admin.css">
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
-<body class="compact">
+<body class="compact" 
+      data-all-users="<%- encodeURIComponent(JSON.stringify(allUsers)) %>"
+      data-all-modules="<%- encodeURIComponent(JSON.stringify(allModules)) %>"
+      data-users-sort="<%= pagination.users.sort %>"
+      data-users-sort-order="<%= pagination.users.sortOrder %>"
+      data-modules-sort="<%= pagination.modules.sort %>"
+      data-modules-sort-order="<%= pagination.modules.sortOrder %>">
   <!-- Navbar -->
   <%- include('partials/navbar', { 
     currentPage: 'admin', 
@@ -158,18 +164,18 @@
                   </th>
                 </tr>
                 <tr class="filter-row">
-                  <td><input type="text" class="column-filter" data-column="name" placeholder="Filtrer nom..." value="<%= pagination.users.filters && pagination.users.filters.name || '' %>" /></td>
-                  <td><input type="text" class="column-filter" data-column="email" placeholder="Filtrer email..." value="<%= pagination.users.filters && pagination.users.filters.email || '' %>" /></td>
+                  <td><input type="text" id="filter-user-name" name="filter-user-name" class="column-filter" data-column="name" placeholder="Filtrer nom..." value="<%= pagination.users.filters && pagination.users.filters.name || '' %>" aria-label="Filtrer par nom d'utilisateur" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-email" name="filter-user-email" class="column-filter" data-column="email" placeholder="Filtrer email..." value="<%= pagination.users.filters && pagination.users.filters.email || '' %>" aria-label="Filtrer par adresse email" autocomplete="off" /></td>
                   <td>
-                    <select class="column-filter" data-column="role">
+                    <select id="filter-user-role" name="filter-user-role" class="column-filter" data-column="role" aria-label="Filtrer par rôle utilisateur">
                       <option value="">Tous les rôles</option>
                       <option value="admin" <%= pagination.users.filters && pagination.users.filters.role === 'admin' ? 'selected' : '' %>>Admin</option>
                       <option value="user" <%= pagination.users.filters && pagination.users.filters.role === 'user' ? 'selected' : '' %>>Utilisateur</option>
                     </select>
                   </td>
-                  <td><input type="number" class="column-filter" data-column="module_count" placeholder="Nb modules..." value="<%= pagination.users.filters && pagination.users.filters.module_count || '' %>" /></td>
-                  <td><input type="text" class="column-filter" data-column="last_login" placeholder="Filtrer date..." value="<%= pagination.users.filters && pagination.users.filters.last_login || '' %>" /></td>
-                  <td><input type="text" class="column-filter" data-column="created_at" placeholder="Filtrer date..." value="<%= pagination.users.filters && pagination.users.filters.created_at || '' %>" /></td>
+                  <td><input type="number" id="filter-user-modules" name="filter-user-modules" class="column-filter" data-column="module_count" placeholder="Nb modules..." value="<%= pagination.users.filters && pagination.users.filters.module_count || '' %>" aria-label="Filtrer par nombre de modules" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-lastlogin" name="filter-user-lastlogin" class="column-filter" data-column="last_login" placeholder="Filtrer date..." value="<%= pagination.users.filters && pagination.users.filters.last_login || '' %>" aria-label="Filtrer par date de dernière connexion" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-created" name="filter-user-created" class="column-filter" data-column="created_at" placeholder="Filtrer date..." value="<%= pagination.users.filters && pagination.users.filters.created_at || '' %>" aria-label="Filtrer par date de création" autocomplete="off" /></td>
                 </tr>
               </thead>
               <tbody>
@@ -289,18 +295,18 @@
                   </th>
                 </tr>
                 <tr class="filter-row">
-                  <td><input type="text" class="column-filter" data-column="module_id" placeholder="Filtrer ID..." value="<%= pagination.modules.filters && pagination.modules.filters.module_id || '' %>" /></td>
-                  <td><input type="text" class="column-filter" data-column="name" placeholder="Filtrer nom..." value="<%= pagination.modules.filters && pagination.modules.filters.name || '' %>" /></td>
-                  <td><input type="text" class="column-filter" data-column="type" placeholder="Filtrer type..." value="<%= pagination.modules.filters && pagination.modules.filters.type || '' %>" /></td>
-                  <td><input type="text" class="column-filter" data-column="user_name" placeholder="Filtrer propriétaire..." value="<%= pagination.modules.filters && pagination.modules.filters.user_name || '' %>" /></td>
+                  <td><input type="text" id="filter-module-id" name="filter-module-id" class="column-filter" data-column="module_id" placeholder="Filtrer ID..." value="<%= pagination.modules.filters && pagination.modules.filters.module_id || '' %>" aria-label="Filtrer par ID de module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-name" name="filter-module-name" class="column-filter" data-column="name" placeholder="Filtrer nom..." value="<%= pagination.modules.filters && pagination.modules.filters.name || '' %>" aria-label="Filtrer par nom de module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-type" name="filter-module-type" class="column-filter" data-column="type" placeholder="Filtrer type..." value="<%= pagination.modules.filters && pagination.modules.filters.type || '' %>" aria-label="Filtrer par type de module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-owner" name="filter-module-owner" class="column-filter" data-column="user_name" placeholder="Filtrer propriétaire..." value="<%= pagination.modules.filters && pagination.modules.filters.user_name || '' %>" aria-label="Filtrer par propriétaire du module" autocomplete="off" /></td>
                   <td>
-                    <select class="column-filter" data-column="status">
+                    <select id="filter-module-status" name="filter-module-status" class="column-filter" data-column="status" aria-label="Filtrer par statut de module">
                       <option value="">Tous les statuts</option>
                       <option value="online" <%= pagination.modules.filters && pagination.modules.filters.status === 'online' ? 'selected' : '' %>>En ligne</option>
                       <option value="offline" <%= pagination.modules.filters && pagination.modules.filters.status === 'offline' ? 'selected' : '' %>>Hors ligne</option>
                     </select>
                   </td>
-                  <td><input type="text" class="column-filter" data-column="last_seen" placeholder="Filtrer date..." value="<%= pagination.modules.filters && pagination.modules.filters.last_seen || '' %>" /></td>
+                  <td><input type="text" id="filter-module-last-seen" name="filter-module-last-seen" class="column-filter" data-column="last_seen" placeholder="Filtrer date..." value="<%= pagination.modules.filters && pagination.modules.filters.last_seen || '' %>" aria-label="Filtrer par dernière activité" autocomplete="off" /></td>
                 </tr>
               </thead>
               <tbody>
@@ -375,27 +381,5 @@
   <!-- Scripts -->
   <script src="/js/global.js"></script>
   <script src="/js/admin.js"></script>
-  <script>
-    // Données intégrées directement dans la page (plus besoin d'API)
-    window.adminData = {
-      allUsers: <%- JSON.stringify(allUsers) %>,
-      allModules: <%- JSON.stringify(allModules) %>,
-      pagination: {
-        users: {
-          sort: '<%= pagination.users.sort %>',
-          sortOrder: '<%= pagination.users.sortOrder %>'
-        },
-        modules: {
-          sort: '<%= pagination.modules.sort %>',
-          sortOrder: '<%= pagination.modules.sortOrder %>'
-        }
-      }
-    };
-
-    // Initialiser la page admin
-    document.addEventListener('DOMContentLoaded', function() {
-      initializeAdminPage(window.adminData.pagination);
-    });
-  </script>
 </body>
 </html>

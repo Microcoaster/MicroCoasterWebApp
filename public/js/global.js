@@ -35,7 +35,17 @@ function preload(paths) {
     const wrap = ensureWrap();
     const el = document.createElement('div');
     el.className = 'toast ' + type;
-    el.innerHTML = `<span>${message}</span><button class="close" aria-label="Close">×</button>`;
+    
+    // Créer les éléments sans innerHTML pour éviter les problèmes CSP
+    const span = document.createElement('span');
+    span.textContent = message;
+    const button = document.createElement('button');
+    button.className = 'close';
+    button.setAttribute('aria-label', 'Close');
+    button.textContent = 'x';
+    
+    el.appendChild(span);
+    el.appendChild(button);
     wrap.appendChild(el);
     
     const close = () => { 
@@ -43,7 +53,7 @@ function preload(paths) {
       setTimeout(() => el.remove(), 180); 
     };
     
-    el.querySelector('.close').addEventListener('click', close);
+    button.addEventListener('click', close);
     if (duration > 0) setTimeout(close, duration);
   };
 })();

@@ -20,7 +20,7 @@ const documentationsRoutes = require('./routes/documentations');
 const websocketHandler = require('./websocket/handlers');
 
 // Database
-const { initializeDatabase, testConnection } = require('./models/database');
+const databaseManager = require('./bdd/DatabaseManager');
 
 const app = express();
 const server = createServer(app);
@@ -39,7 +39,19 @@ const io = new Server(server, {
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Middleware
+// Middleware de sécurité CSP
+app.use((req, res, next) => {
+  res.setHeader('Content-Security-Policy', 
+    "default-src 'self'; " +
+    "script-src 'self' 'unsafe-inline'; " +
+    "style-src 'self' 'unsafe-inline'; " +
+    "img-src 'self' data:; " +
+    "connect-src 'self' ws: wss:; " +
+    "font-src 'self';"
+  );
+  next();
+});
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -87,11 +99,14 @@ app.use((req, res) => {
 // Initialisation de la base de données
 async function startServer() {
   try {
-    // Tester la connexion
-    await testConnection();
+    // Initialiser le gestionnaire de base de données
+    await databaseManager.initialize();
     
     // Initialiser la base de données si nécessaire
-    await initializeDatabase();
+    await databaseManager.initializeDatabase();
+    
+    // Démarrer le nettoyage automatique des statuts des modules
+    databaseManager.startModuleStatusCleanup(1, 5); // Chaque minute, max 5 min
     
     // Démarrer le serveur
     const PORT = process.env.PORT || 3000;

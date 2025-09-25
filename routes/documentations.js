@@ -1,6 +1,6 @@
 const express = require('express');
 const { requireAuth } = require('./auth');
-const { getUserById } = require('../models/database');
+const databaseManager = require('../bdd/DatabaseManager');
 const router = express.Router();
 
 // Route pour afficher les documentations
@@ -9,7 +9,7 @@ router.get('/', requireAuth, async (req, res) => {
     const userId = req.session.user_id;
 
     // Récupérer les informations utilisateur
-    const user = await getUserById(userId);
+    const user = await databaseManager.users.findById(userId);
     if (!user) {
       return res.redirect('/logout');
     }

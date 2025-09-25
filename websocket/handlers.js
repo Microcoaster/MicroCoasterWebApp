@@ -1,4 +1,4 @@
-const { updateModuleStatus, getUserModules } = require('../models/database');
+const databaseManager = require('../bdd/DatabaseManager');
 
 // Maps pour stocker les connexions actives (adaptées du serveur WebSocket original)
 const connectedClients = new Map();     // socket.id -> client info
@@ -94,7 +94,7 @@ module.exports = function(io) {
 
     // 🔄 NOUVEAU: Récupérer les modules depuis la base de données
     try {
-      const userModules = await getUserModules(userId);
+      const userModules = await databaseManager.modules.findByUserId(userId);
       console.log(`📋 User ${userName} has ${userModules.length} modules in database`);
       
       // Auto-claim tous les modules de l'utilisateur
@@ -188,7 +188,7 @@ module.exports = function(io) {
       espById.set(moduleId, socket);
 
       // Mettre à jour le statut en cache
-      updateModuleStatus(moduleId, 'online').catch(console.error);
+      databaseManager.modules.updateStatus(moduleId, 'online').catch(console.error);
 
       // Si déjà claimé par un dashboard, annoncer présence
       const c = codeByModuleId.get(moduleId);
@@ -226,7 +226,7 @@ module.exports = function(io) {
         connectedModules.delete(socket.id);
         
         // Mettre à jour le statut en cache
-        updateModuleStatus(socket.moduleId, 'offline').catch(console.error);
+        databaseManager.modules.updateStatus(socket.moduleId, 'offline').catch(console.error);
         
         // Notifier les clients web
         const c = codeByModuleId.get(socket.moduleId);

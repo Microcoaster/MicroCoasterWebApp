@@ -1,0 +1,251 @@
+const mysql = require('mysql2/promise');
+const fs = require('fs').promises;
+const path = require('path');
+
+const UserDAO = require('./UserDAO');
+const ModuleDAO = require('./ModuleDAO');
+
+/**
+ * Gestionnaire principal de la base de données
+ * Centralise l'accès aux DAO et gère l'initialisation
+ */
+class DatabaseManager {
+  constructor() {
+    this.pool = null;
+    this.userDAO = null;
+    this.moduleDAO = null;
+    this.isInitialized = false;
+  }
+
+  /**
+   * Initialise la connexion à la base de données et les DAO
+   */
+  async initialize() {
+    try {
+      // Configuration de la base de données depuis les variables d'environnement
+      const dbConfig = {
+        host: process.env.DB_HOST,
+        port: parseInt(process.env.DB_PORT),
+        user: process.env.DB_USER,
+        password: process.env.DB_PASSWORD,
+        database: process.env.DB_NAME,
+        charset: process.env.DB_CHARSET,
+        connectTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT)
+      };
+
+      // Créer le pool de connexions
+      this.pool = mysql.createPool({
+        ...dbConfig,
+        waitForConnections: true,
+        connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
+        queueLimit: 0
+      });
+
+      // Tester la connexion
+      await this.testConnection();
+
+      // Initialiser les DAO
+      this.userDAO = new UserDAO(this.pool);
+      this.moduleDAO = new ModuleDAO(this.pool);
+
+      this.isInitialized = true;
+      console.log('✅ Database Manager initialized successfully');
+
+      return true;
+    } catch (error) {
+      console.error('❌ Database Manager initialization failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Teste la connexion à la base de données
+   */
+  async testConnection() {
+    try {
+      const [rows] = await this.pool.execute('SELECT 1 as test');
+      if (rows[0]?.test === 1) {
+        console.log('✅ Database connection successful');
+        return true;
+      } else {
+        throw new Error('Test query failed');
+      }
+    } catch (error) {
+      console.error('❌ Database connection failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Exécute un fichier SQL avec remplacement de variables
+   * @param {string} filename - Nom du fichier SQL
+   * @param {Object} variables - Variables à remplacer (optionnel)
+   */
+  async executeSQLFile(filename, variables = {}) {
+    try {
+      const sqlPath = path.join(__dirname, '..', 'sql', filename);
+      let sql = await fs.readFile(sqlPath, 'utf8');
+      
+      // Remplacer les variables si nécessaire
+      for (const [key, value] of Object.entries(variables)) {
+        sql = sql.replace(new RegExp(`{{${key}}}`, 'g'), value);
+      }
+      
+      // Séparer les requêtes par point-virgule et les exécuter une par une
+      const queries = sql.split(';').filter(query => query.trim().length > 0);
+      
+      for (const query of queries) {
+        if (query.trim()) {
+          await this.pool.execute(query);
+        }
+      }
+      
+      console.log(`✅ SQL file executed: ${filename}`);
+      return true;
+    } catch (error) {
+      console.error(`❌ Error executing SQL file ${filename}:`, error);
+      throw error;
+    }
+  }
+
+  /**
+   * Initialise la base de données avec les tables et données par défaut
+   */
+  async initializeDatabase() {
+    try {
+      console.log('🔄 Initializing database...');
+      
+      // Créer les tables
+      await this.executeSQLFile('001_create_tables.sql');
+      
+      // Insérer les données par défaut
+      await this.executeSQLFile('002_default_data.sql');
+      
+      console.log('✅ Database initialized successfully');
+      return true;
+    } catch (error) {
+      console.error('❌ Database initialization failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Démarre le nettoyage automatique des statuts des modules
+   * @param {number} intervalMinutes - Intervalle en minutes
+   * @param {number} maxAgeMinutes - Age maximum en minutes
+   */
+  startModuleStatusCleanup(intervalMinutes = 1, maxAgeMinutes = 5) {
+    if (!this.moduleDAO) {
+      console.error('❌ ModuleDAO not initialized');
+      return;
+    }
+
+    setInterval(() => {
+      try {
+        this.moduleDAO.cleanupStatus(maxAgeMinutes);
+      } catch (error) {
+        console.error('❌ Error during module status cleanup:', error);
+      }
+    }, intervalMinutes * 60 * 1000);
+
+    console.log(`🧹 Module status cleanup started (every ${intervalMinutes}min, max age ${maxAgeMinutes}min)`);
+  }
+
+  /**
+   * Obtient des statistiques globales
+   * @returns {Object} Statistiques globales
+   */
+  async getGlobalStats() {
+    try {
+      if (!this.isInitialized) {
+        throw new Error('Database Manager not initialized');
+      }
+
+      const [totalUsers, totalModules, adminUsers] = await Promise.all([
+        this.userDAO.count(),
+        this.moduleDAO.count(),
+        this.userDAO.countAdmins()
+      ]);
+
+      const onlineModules = this.moduleDAO.countOnline();
+
+      return {
+        totalUsers,
+        totalModules,
+        onlineModules,
+        adminUsers,
+        regularUsers: totalUsers - adminUsers
+      };
+    } catch (error) {
+      console.error('Error getting global stats:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Ferme proprement les connexions
+   */
+  async close() {
+    try {
+      if (this.pool) {
+        await this.pool.end();
+        console.log('✅ Database connections closed');
+      }
+    } catch (error) {
+      console.error('❌ Error closing database connections:', error);
+      throw error;
+    }
+  }
+
+  // Getters pour accéder aux DAO
+  get users() {
+    if (!this.userDAO) {
+      throw new Error('Database Manager not initialized');
+    }
+    return this.userDAO;
+  }
+
+  get modules() {
+    if (!this.moduleDAO) {
+      throw new Error('Database Manager not initialized');
+    }
+    return this.moduleDAO;
+  }
+}
+
+// Export d'une instance singleton
+const databaseManager = new DatabaseManager();
+
+// Fonctions de compatibilité pour l'ancien système
+// Ces fonctions utilisent les DAO mais gardent la même signature
+
+/**
+ * Fonctions de compatibilité - Utilisateurs
+ */
+const verifyLogin = async (email, password) => databaseManager.users.verifyLogin(email, password);
+const createUser = async (email, password, name) => databaseManager.users.createUser(email, password, name);
+const getUserById = async (userId) => databaseManager.users.findById(userId);
+const getAllUsers = async (options) => databaseManager.users.findAll(options);
+const updateUserProfile = async (userId, updates) => databaseManager.users.updateProfile(userId, updates);
+const updateLastLogin = async (userId) => databaseManager.users.updateLastLogin(userId);
+
+/**
+ * Fonctions de compatibilité - Modules
+ */
+const getUserModules = async (userId) => databaseManager.modules.findByUserId(userId);
+const getAllModules = async (options) => databaseManager.modules.findAll(options);
+const getAvailableModules = async () => databaseManager.modules.findAvailable();
+const claimModule = async (moduleId, userId) => databaseManager.modules.claim(moduleId, userId);
+const releaseModule = async (moduleId, userId) => databaseManager.modules.release(moduleId, userId);
+const getModuleById = async (moduleId) => databaseManager.modules.findById(moduleId);
+const updateModuleStatus = async (moduleId, status, userId) => databaseManager.modules.updateStatus(moduleId, status, userId);
+const cleanupModuleStatus = (maxAgeMinutes) => databaseManager.modules.cleanupStatus(maxAgeMinutes);
+
+/**
+ * Fonctions de compatibilité - Base de données
+ */
+const initializeDatabase = async () => databaseManager.initializeDatabase();
+const testConnection = async () => databaseManager.testConnection();
+
+// Export direct de l'instance pour faciliter l'utilisation dans les routes
+module.exports = databaseManager;

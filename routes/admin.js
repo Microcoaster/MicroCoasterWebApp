@@ -1,6 +1,6 @@
 const express = require("express");
 const { requireAdmin } = require("./auth");
-const { getAllUsers, getAllModules, getUserById } = require("../models/database");
+const databaseManager = require("../bdd/DatabaseManager");
 const router = express.Router();
 
 // Toutes les routes admin nécessitent les permissions administrateur
@@ -47,16 +47,16 @@ router.get("/", async (req, res) => {
     const modulesOffset = (modulesPage - 1) * limit;
     
     const [usersResult, modulesResult, user] = await Promise.all([
-      getAllUsers({ limit, offset: usersOffset, sortBy: usersSort, sortOrder: usersSortOrder, search: usersSearch, filters: usersFilters }),
-      getAllModules({ limit, offset: modulesOffset, sortBy: modulesSort, sortOrder: modulesSortOrder, search: modulesSearch, filters: modulesFilters }),
-      getUserById(req.session.user_id)
+      databaseManager.users.findAll({ limit, offset: usersOffset, sortBy: usersSort, sortOrder: usersSortOrder, search: usersSearch, filters: usersFilters }),
+      databaseManager.modules.findAll({ limit, offset: modulesOffset, sortBy: modulesSort, sortOrder: modulesSortOrder, search: modulesSearch, filters: modulesFilters }),
+      databaseManager.users.findById(req.session.user_id)
     ]);
     
     // Récupérer toutes les données pour le cache côté client ET les statistiques
     // IMPORTANT: Pas de filtres pour les stats - on veut TOUS les utilisateurs et modules
     const [allUsersResult, allModulesResult] = await Promise.all([
-      getAllUsers({ limit: 999999, offset: 0, sortBy: 'created_at', sortOrder: 'DESC', filters: {} }),
-      getAllModules({ limit: 999999, offset: 0, sortBy: 'created_at', sortOrder: 'DESC', filters: {} })
+      databaseManager.users.findAll({ limit: 999999, offset: 0, sortBy: 'created_at', sortOrder: 'DESC', filters: {} }),
+      databaseManager.modules.findAll({ limit: 999999, offset: 0, sortBy: 'created_at', sortOrder: 'DESC', filters: {} })
     ]);
     
     const stats = {
@@ -114,8 +114,8 @@ router.get("/", async (req, res) => {
 router.get("/api/stats", async (req, res) => {
   try {
     const [usersResult, modulesResult] = await Promise.all([
-      getAllUsers({ limit: 10000, offset: 0 }),
-      getAllModules({ limit: 10000, offset: 0 })
+      databaseManager.users.findAll({ limit: 10000, offset: 0 }),
+      databaseManager.modules.findAll({ limit: 10000, offset: 0 })
     ]);
     
     const stats = {
@@ -139,7 +139,7 @@ router.get("/api/stats", async (req, res) => {
  */
 router.get("/api/users", async (req, res) => {
   try {
-    const usersResult = await getAllUsers({ limit: 1000, offset: 0 });
+    const usersResult = await databaseManager.users.findAll({ limit: 1000, offset: 0 });
     res.json(usersResult);
   } catch (error) {
     console.error("Admin users API error:", error);
@@ -152,7 +152,7 @@ router.get("/api/users", async (req, res) => {
  */
 router.get("/api/modules", async (req, res) => {
   try {
-    const modulesResult = await getAllModules({ limit: 1000, offset: 0 });
+    const modulesResult = await databaseManager.modules.findAll({ limit: 1000, offset: 0 });
     res.json(modulesResult);
   } catch (error) {
     console.error("Admin modules API error:", error);

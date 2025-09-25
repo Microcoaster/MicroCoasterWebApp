@@ -1,5 +1,5 @@
 const express = require('express');
-const { getUserModules, getModule, getUserById } = require('../models/database');
+const databaseManager = require('../bdd/DatabaseManager');
 const { requireAuth } = require('./auth');
 const router = express.Router();
 
@@ -35,13 +35,13 @@ router.get('/', requireAuth, async (req, res) => {
     const userId = req.session.user_id;
     
     // Récupérer les informations utilisateur
-    const user = await getUserById(userId);
+    const user = await databaseManager.users.findById(userId);
     if (!user) {
       return res.redirect('/logout');
     }
 
     // Récupérer tous les modules de l'utilisateur
-    const modules = await getUserModules(userId);
+    const modules = await databaseManager.modules.findByUserId(userId);
     
     // Inférer les types manquants
     modules.forEach(module => {
@@ -79,7 +79,7 @@ router.get('/', requireAuth, async (req, res) => {
 router.get('/api', requireAuth, async (req, res) => {
   try {
     const userId = req.session.user_id;
-    const modules = await getUserModules(userId);
+    const modules = await databaseManager.modules.findByUserId(userId);
     
     // Inférer les types manquants
     modules.forEach(module => {
@@ -127,10 +127,10 @@ router.post('/claim', requireAuth, async (req, res) => {
     // Inférer le type
     const type = mcInferType(moduleIdTrim, nameTrim);
 
-    const { pool } = require('../models/database');
+    const databaseManager = require('../bdd/DatabaseManager');
     
     // Vérifier si le module existe déjà
-    const [existingModules] = await pool.execute(
+    const [existingModules] = await databaseManager.execute(
       'SELECT id, user_id, claimed, module_code FROM modules WHERE module_id = ? LIMIT 1',
       [moduleIdTrim]
     );
@@ -156,7 +156,7 @@ router.post('/claim', requireAuth, async (req, res) => {
     }
 
     // Claim le module
-    await pool.execute(`
+    await databaseManager.execute(`
       UPDATE modules 
       SET user_id = ?, name = ?, type = ?, claimed = 1, updated_at = NOW()
       WHERE id = ? AND claimed = 0
@@ -185,8 +185,8 @@ router.post('/add', requireAuth, async (req, res) => {
     const type = mcInferType(module_id, name);
     
     // Ajouter le module en base
-    const { pool } = require('../models/database');
-    await pool.execute(`
+    const databaseManager = require('../bdd/DatabaseManager');
+    await databaseManager.execute(`
       INSERT INTO modules (user_id, module_id, name, type, claimed, created_at)
       VALUES (?, ?, ?, ?, 1, NOW())
     `, [userId, module_id.trim(), name?.trim() || null, type]);
@@ -212,14 +212,17 @@ router.post('/delete/:moduleId', requireAuth, async (req, res) => {
     const userId = req.session.user_id;
 
     // Vérifier que le module appartient à l'utilisateur
-    const module = await getModule(moduleId, userId);
-    if (!module) {
+    const moduleResult = await databaseManager.execute(
+      'SELECT * FROM modules WHERE module_id = ? AND user_id = ? LIMIT 1',
+      [moduleId, userId]
+    );
+    if (!moduleResult || moduleResult.length === 0) {
       return res.status(404).json({ success: false, error: 'Module not found' });
     }
 
     // Unclaim le module (au lieu de le supprimer complètement)
-    const { pool } = require('../models/database');
-    await pool.execute(`
+    const databaseManager = require('../bdd/DatabaseManager');
+    await databaseManager.execute(`
       UPDATE modules 
       SET claimed = 0, user_id = NULL, name = NULL, updated_at = NOW()
       WHERE module_id = ? AND user_id = ?
@@ -242,14 +245,17 @@ router.post('/update/:moduleId', requireAuth, async (req, res) => {
     const userId = req.session.user_id;
 
     // Vérifier que le module appartient à l'utilisateur
-    const module = await getModule(moduleId, userId);
-    if (!module) {
+    const moduleResult = await databaseManager.execute(
+      'SELECT * FROM modules WHERE module_id = ? AND user_id = ? LIMIT 1',
+      [moduleId, userId]
+    );
+    if (!moduleResult || moduleResult.length === 0) {
       return res.status(404).json({ success: false, error: 'Module not found' });
     }
 
     // Mettre à jour le module
-    const { pool } = require('../models/database');
-    await pool.execute(`
+    const databaseManager = require('../bdd/DatabaseManager');
+    await databaseManager.execute(`
       UPDATE modules 
       SET name = ?, type = ?, updated_at = NOW()
       WHERE module_id = ? AND user_id = ?

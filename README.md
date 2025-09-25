@@ -243,8 +243,11 @@ node sim-esp-socketio.cjs
 
 ```
 MicroCoasterWebApp/
-├── 📁 models/              # Database models
-│   └── database.js         # MySQL connection & queries
+├── 📁 bdd/                 # Database access objects (DAO)
+│   ├── BaseDAO.js          # Base class for all DAOs
+│   ├── DatabaseManager.js  # Main database manager
+│   ├── ModuleDAO.js        # Module data access
+│   └── UserDAO.js          # User data access
 ├── 📁 public/              # Static assets
 │   ├── 📁 assets/          # Images, icons
 │   ├── 📁 css/             # Stylesheets

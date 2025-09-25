@@ -15,59 +15,56 @@ let currentModulesPage = 1;
 
 const ITEMS_PER_PAGE = 10;
 
-// Fonction d'initialisation avec les données EJS
-function initializeAdminPage(paginationData) {
-  currentUsersSort = paginationData.users.sort;
-  currentUsersSortOrder = paginationData.users.sortOrder;
-  currentModulesSort = paginationData.modules.sort;
-  currentModulesSortOrder = paginationData.modules.sortOrder;
-  usersFilters = paginationData.users.filters || {};
-  modulesFilters = paginationData.modules.filters || {};
+// Fonction d'initialisation avec les données depuis les attributs data-
+function initializeAdminPage() {
+  const body = document.body;
   
-  // Charger les données directement depuis window.adminData
+  // Lire les paramètres de pagination depuis les attributs data-
+  currentUsersSort = body.getAttribute('data-users-sort') || '';
+  currentUsersSortOrder = body.getAttribute('data-users-sort-order') || '';
+  currentModulesSort = body.getAttribute('data-modules-sort') || '';
+  currentModulesSortOrder = body.getAttribute('data-modules-sort-order') || '';
+  
+  // Charger les données depuis les attributs data-
   loadDataFromPage();
 }
 
-// Charger les données intégrées dans la page (plus d'API)
+// Charger les données depuis les attributs data- de body
 function loadDataFromPage() {
-  if (window.adminData) {
-    allUsers = window.adminData.allUsers || [];
-    allModules = window.adminData.allModules || [];
-        
-    // Initialiser les données filtrées
-    filteredUsers = [...allUsers];
-    filteredModules = [...allModules];
+  const body = document.body;
+  
+  try {
+    // Lire les données depuis les attributs data-
+    const usersData = body.getAttribute('data-all-users');
+    const modulesData = body.getAttribute('data-all-modules');
     
-    console.log(`Données chargées depuis la page: ${allUsers.length} utilisateurs, ${allModules.length} modules`);
-    
-    // Appliquer les filtres initiaux et rendre les tables
-    applyClientSideFilters('users');
-    applyClientSideFilters('modules');
-    
-    // S'assurer que les flèches de tri sont à jour au démarrage
-    updateSortArrows('users');
-    updateSortArrows('modules');
-    
-    return true;
-  } else {
-    console.error('Aucune donnée trouvée dans window.adminData');
+    if (usersData && modulesData) {
+      allUsers = JSON.parse(decodeURIComponent(usersData));
+      allModules = JSON.parse(decodeURIComponent(modulesData));
+          
+      // Initialiser les données filtrées
+      filteredUsers = [...allUsers];
+      filteredModules = [...allModules];
+      
+      console.log(`Données chargées depuis les attributs data-: ${allUsers.length} utilisateurs, ${allModules.length} modules`);
+      
+      // Appliquer les filtres initiaux et rendre les tables
+      applyClientSideFilters('users');
+      applyClientSideFilters('modules');
+      
+      // S'assurer que les flèches de tri sont à jour au démarrage
+      updateSortArrows('users');
+      updateSortArrows('modules');
+      
+      return true;
+    } else {
+      console.error('Aucune donnée trouvée dans les attributs data-');
+      return false;
+    }
+  } catch (error) {
+    console.error('Erreur lors du parsing des données:', error);
     return false;
   }
-}
-
-// Actualiser les stats toutes les 30 secondes
-function startStatsRefresh() {
-  setInterval(() => {
-    fetch('/admin/api/stats')
-      .then(response => response.json())
-      .then(stats => {
-        document.querySelector('.stat-card:nth-child(1) h3').textContent = stats.totalUsers;
-        document.querySelector('.stat-card:nth-child(2) h3').textContent = stats.totalModules;
-        document.querySelector('.stat-card:nth-child(3) h3').textContent = stats.onlineModules;
-        document.querySelector('.stat-card:nth-child(4) h3').textContent = stats.adminUsers;
-      })
-      .catch(console.error);
-  }, 30000);
 }
 
 // Nouveau système de filtrage côté client
@@ -548,15 +545,8 @@ function renderPagination(tableType, totalItems) {
 
 // Initialisation quand le DOM est chargé
 document.addEventListener('DOMContentLoaded', function() {
-  // Charger les données intégrées dans la page (plus d'appels API)
-  const dataLoaded = loadDataFromPage();
-  
-  if (dataLoaded) {
-    console.log('Données chargées depuis la page, utilisation du filtrage côté client');
-  } else {
-    console.log('Échec du chargement des données intégrées');
-  }
+  // Initialiser la page admin avec les données depuis les attributs data-
+  initializeAdminPage();
   
   setupEventListeners();
-  startStatsRefresh();
 });

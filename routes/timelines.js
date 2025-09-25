@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('./auth');
-const { getUserModules, getUserById } = require('../models/database');
+const databaseManager = require('../bdd/DatabaseManager');
 
 // Fonction helper pour déduire le type de module (même que dans modules.js)
 function endsWithCi(haystack, needle) {
@@ -35,7 +35,7 @@ router.get('/', requireAuth, async (req, res) => {
     const userId = req.session.user_id;
 
     // Récupérer les modules de l'utilisateur directement depuis la DB
-    const userModules = await getUserModules(userId);
+    const userModules = await databaseManager.modules.findByUserId(userId);
     
     // Inférer les types manquants et formatter
     const formattedModules = userModules.map(module => ({
@@ -47,7 +47,7 @@ router.get('/', requireAuth, async (req, res) => {
     }));
 
     // Récupérer les informations utilisateur
-    const user = await getUserById(userId);
+    const user = await databaseManager.users.findById(userId);
 
     res.render('timelines', {
       title: 'Timeline Editor - MicroCoaster',

@@ -34,6 +34,21 @@ class TimelineSequencer {
     
     // Keyboard
     document.addEventListener('keydown', (e) => this.handleKeyDown(e));
+    
+    // Control buttons
+    const clearBtn = document.getElementById('clearBtn');
+    const saveBtn = document.getElementById('saveBtn');
+    const playBtn = document.getElementById('playBtn');
+    const closeConfigBtn = document.getElementById('closeConfigBtn');
+    const cancelConfigBtn = document.getElementById('cancelConfigBtn');
+    const saveConfigBtn = document.getElementById('saveConfigBtn');
+    
+    if (clearBtn) clearBtn.addEventListener('click', () => this.clear());
+    if (saveBtn) saveBtn.addEventListener('click', () => this.save());
+    if (playBtn) playBtn.addEventListener('click', () => this.togglePlayback());
+    if (closeConfigBtn) closeConfigBtn.addEventListener('click', () => this.closeConfig());
+    if (cancelConfigBtn) cancelConfigBtn.addEventListener('click', () => this.closeConfig());
+    if (saveConfigBtn) saveConfigBtn.addEventListener('click', () => this.saveConfig());
   }
 
   setupDragAndDrop() {

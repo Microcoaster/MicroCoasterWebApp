@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
-const database = require('../models/database');
+const databaseManager = require('../bdd/DatabaseManager');
 
 // Fonction helper pour calculer les statistiques
 async function calculateStats(userId) {
-  const userModules = await database.getUserModules(userId);
+  const userModules = await databaseManager.modules.findByUserId(userId);
   
   // Récupérer les statuts en ligne depuis la base de données
   const onlineModules = userModules.filter(m => m.status === 'online').length;
@@ -37,7 +37,7 @@ router.get('/', async (req, res) => {
     const stats = await calculateStats(req.session.user_id);
     
     // Récupérer les informations utilisateur
-    const user = await database.getUserById(req.session.user_id);
+    const user = await databaseManager.users.findById(req.session.user_id);
 
     res.render('dashboard', {
       title: 'Dashboard - MicroCoaster',

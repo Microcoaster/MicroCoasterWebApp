@@ -45,7 +45,7 @@
           </svg>
           Docs
         </a>
-        <% if (locals.user && user.isAdmin) { %>
+        <% if (user && user.is_admin) { %>
         <a href="/admin" class="nav-link <%= currentPage === 'admin' ? 'active' : '' %>">
           <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="3"/>
@@ -62,7 +62,7 @@
           <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
           <circle cx="12" cy="7" r="4"/>
         </svg>
-        <span class="profile-name"><%= locals.user ? user.name : 'Profil' %></span>
+        <span class="profile-name"><%= user ? user.name : 'Profil' %></span>
       </a>
       <a href="/logout" class="nav-link logout">
         <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">

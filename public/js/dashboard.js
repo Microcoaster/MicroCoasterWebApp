@@ -11,6 +11,12 @@ let offlineModules = 0;
 document.addEventListener('DOMContentLoaded', function() {
   initializeDashboard();
   initializeWebSocket();
+  
+  // Add event listener for the add module button
+  const addModuleBtn = document.getElementById('addModuleBtn');
+  if (addModuleBtn) {
+    addModuleBtn.addEventListener('click', addNewModule);
+  }
 });
 
 function addNewModule() {

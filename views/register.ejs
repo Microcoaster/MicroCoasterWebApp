@@ -25,13 +25,13 @@
         </div>
       <% } %>
 
-      <form method="post" action="/register" autocomplete="off">
-        <input type="text" name="name" placeholder="Nom complet" 
-               value="<%= locals.formData?.name || '' %>" required>
-        <input type="email" name="email" placeholder="Email" 
-               value="<%= locals.formData?.email || '' %>" required>
-        <input type="password" name="password" placeholder="Mot de passe (min. 6 caractères)" required>
-        <input type="password" name="confirmPassword" placeholder="Confirmer le mot de passe" required>
+      <form method="post" action="/register" autocomplete="on">
+        <input type="text" id="name" name="name" placeholder="Nom complet" 
+               value="<%= locals.formData?.name || '' %>" required autocomplete="name">
+        <input type="email" id="email" name="email" placeholder="Email" 
+               value="<%= locals.formData?.email || '' %>" required autocomplete="email">
+        <input type="password" id="password" name="password" placeholder="Mot de passe (min. 6 caractères)" required autocomplete="new-password">
+        <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirmer le mot de passe" required autocomplete="new-password">
         <button type="submit">Créer mon compte</button>
       </form>
       

@@ -9,8 +9,6 @@
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
   <!-- CSS global -->
   <link rel="stylesheet" href="/css/global.css">
-  <!-- CSS pour le style d'encadré -->
-  <link rel="stylesheet" href="/css/modules.css">
   <!-- CSS spécifique au dashboard (pour la navbar) -->
   <link rel="stylesheet" href="/css/dashboard.css">
   <!-- CSS spécifique au profil -->
@@ -21,10 +19,7 @@
   <!-- Navbar -->
   <%- include('partials/navbar', { 
     currentPage: 'profile', 
-    user: { 
-      nickname: user.name, 
-      isAdmin: user.isAdmin 
-    } 
+    user: user 
   }) %>
 
   <div class="container-fluid main-content">
@@ -60,11 +55,11 @@
           <form method="post" action="/profile" class="profile-form">
             <div class="form-group">
               <label for="name">Nom complet</label>
-              <input type="text" id="name" name="name" value="<%= user.name %>" required>
+              <input type="text" id="name" name="name" value="<%= user.name %>" required autocomplete="name">
             </div>
             <div class="form-group">
               <label for="email">Email</label>
-              <input type="email" id="email" name="email" value="<%= user.email %>" required>
+              <input type="email" id="email" name="email" value="<%= user.email %>" required autocomplete="email">
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">Sauvegarder</button>
@@ -85,16 +80,16 @@
           <form method="post" action="/change-password" class="profile-form">
             <div class="form-group">
               <label for="currentPassword">Mot de passe actuel</label>
-              <input type="password" id="currentPassword" name="currentPassword" required>
+              <input type="password" id="currentPassword" name="currentPassword" required autocomplete="current-password">
             </div>
             <div class="form-group">
               <label for="newPassword">Nouveau mot de passe</label>
               <input type="password" id="newPassword" name="newPassword" 
-                     placeholder="Min. 6 caractères" required>
+                     placeholder="Min. 6 caractères" required autocomplete="new-password">
             </div>
             <div class="form-group">
               <label for="confirmPassword">Confirmer le nouveau mot de passe</label>
-              <input type="password" id="confirmPassword" name="confirmPassword" required>
+              <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
             </div>
             <div class="form-actions">
               <button type="submit" class="btn btn-primary">Changer le mot de passe</button>
@@ -112,18 +107,18 @@
             </svg>
             Informations du compte
           </h2>
-          <div class="info-grid">
+          <dl class="info-grid">
             <div class="info-item">
-              <label>Statut</label>
-              <span class="<%= user.isAdmin ? 'status-admin' : 'status-user' %>">
-                <%= user.isAdmin ? 'Administrateur' : 'Utilisateur' %>
-              </span>
+              <dt>Statut</dt>
+              <dd class="<%= user.is_admin ? 'status-admin' : 'status-user' %>">
+                <%= user.is_admin ? 'Administrateur' : 'Utilisateur' %>
+              </dd>
             </div>
             <div class="info-item">
-              <label>Membre depuis</label>
-              <span><%= new Date(user.createdAt).toLocaleDateString('fr-FR') %></span>
+              <dt>Membre depuis</dt>
+              <dd><%= new Date(user.created_at).toLocaleDateString('fr-FR') %></dd>
             </div>
-          </div>
+          </dl>
                 </div>
               </div>
             </div>
