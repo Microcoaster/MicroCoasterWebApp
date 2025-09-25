@@ -7,6 +7,60 @@ const router = express.Router();
 router.use(requireAdmin);
 
 /**
+ * API pour récupérer toutes les données des utilisateurs
+ */
+router.get("/api/all-users", async (req, res) => {
+  try {
+    // Récupérer tous les utilisateurs sans pagination
+    const usersResult = await getAllUsers({ 
+      limit: 999999, 
+      offset: 0, 
+      sortBy: 'created_at', 
+      sortOrder: 'DESC' 
+    });
+    
+    res.json({
+      success: true,
+      users: usersResult.users,
+      total: usersResult.total
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération de tous les utilisateurs:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur lors de la récupération des utilisateurs'
+    });
+  }
+});
+
+/**
+ * API pour récupérer toutes les données des modules
+ */
+router.get("/api/all-modules", async (req, res) => {
+  try {
+    // Récupérer tous les modules sans pagination
+    const modulesResult = await getAllModules({ 
+      limit: 999999, 
+      offset: 0, 
+      sortBy: 'created_at', 
+      sortOrder: 'DESC' 
+    });
+    
+    res.json({
+      success: true,
+      modules: modulesResult.modules,
+      total: modulesResult.total
+    });
+  } catch (error) {
+    console.error('Erreur lors de la récupération de tous les modules:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur lors de la récupération des modules'
+    });
+  }
+});
+
+/**
  * Page principale d'administration
  */
 router.get("/", async (req, res) => {
