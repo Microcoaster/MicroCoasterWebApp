@@ -1,5 +1,5 @@
 const express = require('express');
-const { getUserModules, getModule, verifyAccessCode } = require('../models/database');
+const { getUserModules, getModule, getUserById } = require('../models/database');
 const { requireAuth } = require('./auth');
 const router = express.Router();
 
@@ -35,7 +35,7 @@ router.get('/', requireAuth, async (req, res) => {
     const userId = req.session.user_id;
     
     // Récupérer les informations utilisateur
-    const user = await verifyAccessCode(req.session.code);
+    const user = await getUserById(userId);
     if (!user) {
       return res.redirect('/logout');
     }
@@ -55,11 +55,7 @@ router.get('/', requireAuth, async (req, res) => {
       title: 'My Modules – MicroCoaster',
       currentPage: 'modules',
       modules,
-      user: {
-        id: user.id,
-        code: user.code,
-        name: user.name
-      },
+      user: user, // Passer l'objet utilisateur complet avec isAdmin
       flash: req.query.flash || null
     });
 
@@ -71,7 +67,8 @@ router.get('/', requireAuth, async (req, res) => {
       user: {
         id: req.session.user_id,
         code: req.session.code,
-        name: req.session.nickname
+        name: req.session.nickname,
+        isAdmin: req.session.isAdmin || false
       },
       flash: 'Database error occurred'
     });

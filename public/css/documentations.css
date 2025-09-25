@@ -49,6 +49,27 @@
   margin: 0 auto;
 }
 
+/* =============== PAGE HEADER =============== */
+.page-header {
+  margin-bottom: 30px;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title svg {
+  width: 36px;
+  height: 36px;
+  color: var(--accent);
+}
+
 /* =============== SECTIONS =============== */
 .docs-section {
   background: rgba(255, 255, 255, 0.05);

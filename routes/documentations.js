@@ -1,22 +1,23 @@
 const express = require('express');
+const { requireAuth } = require('./auth');
+const { getUserById } = require('../models/database');
 const router = express.Router();
 
 // Route pour afficher les documentations
-router.get('/', async (req, res) => {
+router.get('/', requireAuth, async (req, res) => {
   try {
-    // Vérifier que l'utilisateur est connecté
-    if (!req.session.user_id) {
-      return res.redirect('/');
+    const userId = req.session.user_id;
+
+    // Récupérer les informations utilisateur
+    const user = await getUserById(userId);
+    if (!user) {
+      return res.redirect('/logout');
     }
 
     res.render('documentations', {
       title: 'Documentations - MicroCoaster',
       currentPage: 'documentations',
-      user: {
-        id: req.session.user_id,
-        code: req.session.code,
-        nickname: req.session.nickname
-      }
+      user: user // Passer l'objet utilisateur complet avec isAdmin
     });
 
   } catch (error) {

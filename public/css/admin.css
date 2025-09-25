@@ -1,0 +1,777 @@
+/* ===== ADMIN PAGE STYLES ===== */
+
+/* Container avec même style que dashboard */
+.admin-container {
+  width: 100%;
+  padding: 0;
+}
+
+.page-header {
+  margin-bottom: 30px;
+}
+
+.page-title {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--text);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-title svg {
+  width: 36px;
+  height: 36px;
+  color: var(--accent);
+}
+
+/* Grid des statistiques - même style que dashboard */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 20px;
+  margin: 30px 0;
+}
+
+.stat-card {
+  background: linear-gradient(135deg, rgba(45,47,51,.9), rgba(35,37,41,.95));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 
+    0 8px 32px rgba(0,0,0,.3),
+    inset 0 1px 0 rgba(255,255,255,.05);
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 
+    0 12px 40px rgba(0,0,0,.4),
+    inset 0 1px 0 rgba(255,255,255,.08);
+  border-color: rgba(255,255,255,.12);
+}
+
+.stat-icon {
+  font-size: 36px;
+  opacity: 0.9;
+  min-width: 50px;
+}
+
+.stat-icon svg {
+  width: 36px;
+  height: 36px;
+  color: white;
+}
+
+.stat-content h3 {
+  margin: 0 0 4px 0;
+  font-size: 28px;
+  font-weight: 900;
+  color: white;
+  line-height: 1;
+}
+
+.stat-content p {
+  margin: 0;
+  color: white;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Sections admin avec style moderne */
+.admin-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 30px;
+}
+
+.admin-section {
+  background: linear-gradient(135deg, rgba(45,47,51,.9), rgba(35,37,41,.95));
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 
+    0 8px 32px rgba(0,0,0,.3),
+    inset 0 1px 0 rgba(255,255,255,.05);
+  transition: all 0.3s ease;
+}
+
+.admin-section:hover {
+  border-color: rgba(255,255,255,.12);
+  box-shadow: 
+    0 12px 40px rgba(0,0,0,.4),
+    inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+.admin-section h2 {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 0 20px 0;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--text);
+}
+
+.admin-section h2 svg {
+  width: 24px;
+  height: 24px;
+  color: var(--accent);
+}
+
+/* Tables avec design moderne */
+.table-container {
+  overflow-x: auto;
+  border-radius: 12px;
+  background: rgba(30,32,36,.6);
+  border: 1px solid rgba(255,255,255,.06);
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: transparent;
+}
+
+.admin-table thead {
+  background: linear-gradient(135deg, var(--accent), #1db660);
+}
+
+.admin-table thead th {
+  padding: 16px 20px;
+  text-align: left;
+  font-weight: 700;
+  font-size: 14px;
+  color: white;
+  border: none;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.admin-table tbody td {
+  padding: 16px 20px;
+  color: var(--text);
+  font-weight: 500;
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  font-size: 14px;
+}
+
+.admin-table tbody tr:hover {
+  background: rgba(255,255,255,.03);
+}
+
+.admin-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table code {
+  background: rgba(32,194,106,.15);
+  color: var(--accent);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid rgba(32,194,106,.2);
+}
+
+/* Badges avec design moderne */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.badge-admin {
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  color: white;
+  box-shadow: 0 2px 8px rgba(0,198,255,.3);
+}
+
+.badge-user {
+  background: linear-gradient(135deg, #ff8c00, #ff4500);
+  color: white;
+  box-shadow: 0 2px 8px rgba(255,140,0,.3);
+}
+
+.badge-utilisateur {
+  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  color: white;
+  box-shadow: 0 2px 8px rgba(14,165,233,.3);
+}
+
+/* Status indicators avec animations */
+.status {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.status-online, .status-en-ligne {
+  background: linear-gradient(135deg, var(--accent), #1db660);
+  color: white;
+  box-shadow: 0 2px 8px rgba(32,194,106,.3);
+  position: relative;
+}
+
+.status-online::before, .status-en-ligne::before {
+  content: '●';
+  margin-right: 6px;
+  animation: pulse 2s infinite;
+}
+
+.status-offline, .status-hors-ligne {
+  background: linear-gradient(135deg, #ef4444, #dc2626);
+  color: white;
+  box-shadow: 0 2px 8px rgba(239,68,68,.3);
+}
+
+.status-offline::before, .status-hors-ligne::before {
+  content: '●';
+  margin-right: 6px;
+  opacity: 0.7;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* Alerts avec design moderne */
+.alert {
+  padding: 16px 20px;
+  border-radius: 12px;
+  margin-bottom: 20px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  backdrop-filter: blur(10px);
+}
+
+.alert-error {
+  background: linear-gradient(135deg, rgba(239,68,68,.15), rgba(220,38,38,.1));
+  color: #fca5a5;
+  border: 1px solid rgba(239,68,68,.3);
+}
+
+.alert-success {
+  background: linear-gradient(135deg, rgba(32,194,106,.15), rgba(29,182,96,.1));
+  color: #86efac;
+  border: 1px solid rgba(32,194,106,.3);
+}
+
+/* Icons avec SVG modernes */
+.icon-admin::before,
+.icon-users::before,
+.icon-modules::before {
+  display: none; /* Hide emoji fallbacks in favor of SVG */
+}
+
+/* Responsive design */
+@media (max-width: 1200px) {
+  .admin-container {
+    max-width: 100%;
+    padding: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-container {
+    padding: 12px;
+  }
+  
+  .page-title {
+    font-size: 28px;
+  }
+  
+  .stats-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  
+  .stat-card {
+    padding: 20px;
+    flex-direction: column;
+    text-align: center;
+    gap: 12px;
+  }
+  
+  .stat-content h3 {
+    font-size: 24px;
+  }
+  
+  .admin-section {
+    padding: 20px;
+  }
+  
+  .admin-section h2 {
+    font-size: 20px;
+  }
+  
+  .admin-table thead th,
+  .admin-table tbody td {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  
+  .table-container {
+    margin: 0 -20px;
+    border-radius: 0;
+  }
+}
+
+@media (max-width: 480px) {
+  .stats-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .admin-container {
+    padding: 8px;
+  }
+  
+  .page-title {
+    font-size: 24px;
+  }
+  
+  .stat-card {
+    padding: 16px;
+  }
+  
+  .stat-content h3 {
+    font-size: 20px;
+  }
+  
+  .admin-section {
+    padding: 16px;
+  }
+  
+  .admin-table thead th,
+  .admin-table tbody td {
+    padding: 8px 12px;
+    font-size: 12px;
+  }
+  
+  .table-container {
+    margin: 0 -16px;
+  }
+}
+
+/* Styles pour les contrôles de table et pagination */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.table-controls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.search-box {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.search-box input {
+  background: transparent;
+  border: none;
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: 14px;
+  min-width: 200px;
+}
+
+.search-box input::placeholder {
+  color: rgba(255,255,255,.4);
+}
+
+.search-box button {
+  background: var(--accent);
+  border: none;
+  padding: 8px 12px;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.search-box button:hover {
+  background: #1db660;
+}
+
+.table-controls select {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text);
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.sort-btn {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  min-width: 40px;
+}
+
+.sort-btn:hover {
+  background: rgba(255,255,255,.1);
+}
+
+.pagination-container {
+  margin-top: 24px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.pagination-info {
+  color: #a8aeb5;
+  font-size: 14px;
+}
+
+.pagination-controls {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.pagination-controls button {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  border-radius: 6px;
+  padding: 8px 12px;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.pagination-controls button:hover {
+  background: rgba(255,255,255,.1);
+}
+
+.pagination-controls button.active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+.pagination-controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Responsive pour les contrôles */
+@media (max-width: 768px) {
+  .section-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .table-controls {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  
+  .search-box input {
+    min-width: 100%;
+  }
+  
+  .pagination-container {
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .pagination-controls {
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+}
+
+/* Sortable headers */
+.sortable-header {
+  cursor: pointer;
+  position: relative;
+  user-select: none;
+  transition: all 0.2s ease;
+  padding: 16px 20px !important;
+}
+
+.sortable-header:hover {
+  background: rgba(255,255,255,.1);
+}
+
+.sortable-header span {
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.sort-arrow {
+  margin-left: 8px;
+  font-size: 14px;
+  color: rgba(255,255,255,.6);
+  transition: all 0.2s ease;
+  opacity: 0.6;
+}
+
+.sort-arrow::after {
+  content: '↕';
+}
+
+.sortable-header:hover .sort-arrow {
+  opacity: 1;
+  color: rgba(255,255,255,.9);
+}
+
+.sort-arrow.asc {
+  color: #00ff88;
+  opacity: 1;
+}
+
+.sort-arrow.asc::after {
+  content: '↑';
+}
+
+.sort-arrow.desc {
+  color: #00ff88;
+  opacity: 1;
+}
+
+.sort-arrow.desc::after {
+  content: '↓';
+}
+
+/* Filter row */
+.filter-row {
+  background: rgba(20,22,26,.8);
+}
+
+.filter-row td {
+  padding: 12px 20px !important;
+  border-bottom: 2px solid rgba(255,255,255,.1);
+}
+
+.column-filter {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid rgba(255,255,255,.15);
+  border-radius: 6px;
+  font-size: 14px;
+  background: rgba(30,32,36,.9);
+  color: var(--text);
+  transition: all 0.15s ease;
+}
+
+.column-filter:focus {
+  border-color: var(--accent);
+  outline: 0;
+  box-shadow: 0 0 0 3px rgba(0,255,136,0.15);
+  background: rgba(30,32,36,1);
+}
+
+.column-filter::placeholder {
+  color: rgba(255,255,255,.4);
+  font-style: italic;
+}
+
+/* Select filters */
+select.column-filter {
+  background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%23ffffff' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position: right 12px center;
+  background-repeat: no-repeat;
+  background-size: 16px 16px;
+  padding-right: 40px;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/* Clear filters button */
+.filter-actions {
+  margin-bottom: 20px;
+  text-align: right;
+}
+
+.clear-filters-btn {
+  background: rgba(255,255,255,.05);
+  border: 1px solid rgba(255,255,255,.1);
+  color: var(--text);
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-filters-btn:hover {
+  background: rgba(255,255,255,.1);
+}
+
+/* Animation for filter changes */
+.admin-table tbody tr {
+  transition: opacity 0.2s ease;
+}
+
+.admin-table.filtering tbody tr {
+  opacity: 0.7;
+}
+
+/* Bouton pour effacer les filtres */
+.clear-filters-btn {
+  margin-top: 5px;
+  font-size: 0.75rem;
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+
+.clear-filters-btn:hover {
+  background-color: #6c757d;
+  border-color: #6c757d;
+  color: white;
+}
+
+/* Nouveau bouton d'effacement dans le header */
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.clear-filters-btn-header {
+  background: none;
+  border: 2px solid rgba(220, 53, 69, 0.3);
+  border-radius: 8px;
+  padding: 8px;
+  cursor: pointer;
+  color: #dc3545;
+  transition: all 0.2s ease;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.clear-filters-btn-header:hover {
+  background-color: rgba(220, 53, 69, 0.1);
+  border-color: #dc3545;
+  transform: scale(1.05);
+}
+
+.clear-filters-btn-header svg {
+  width: 18px;
+  height: 18px;
+}
+
+/* Message empty state - cellule de tableau propre */
+.empty-state-cell {
+  padding: 0 !important;
+  border: none !important;
+  background: transparent !important;
+}
+
+.empty-state-message {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px 40px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  margin: 20px;
+  color: rgba(255, 255, 255, 0.6);
+  text-align: center;
+}
+
+.empty-state-message svg {
+  width: 80px;
+  height: 80px;
+  margin-bottom: 32px;
+  opacity: 0.3;
+  stroke-width: 1.2;
+}
+
+.empty-state-message h4 {
+  margin: 0 0 16px 0;
+  opacity: 0.8;
+  font-size: 24px;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+.empty-state-message p {
+  margin: 0;
+  opacity: 0.6;
+  font-size: 16px;
+  max-width: 400px;
+  line-height: 1.6;
+}
+
+/* S'assurer que la table prend toute la largeur */
+.admin-table {
+  width: 100%;
+  table-layout: fixed;
+}
+
+/* Enhanced responsive design for filters */
+@media (max-width: 768px) {
+  .column-filter {
+    font-size: 12px;
+    padding: 6px 8px;
+  }
+
+  .sortable-header {
+    padding: 12px 8px !important;
+  }
+
+  .sort-arrow {
+    font-size: 12px;
+    margin-left: 4px;
+  }
+
+  .filter-row td {
+    padding: 8px !important;
+  }
+
+  .clear-filters-btn {
+    font-size: 0.65rem;
+    padding: 1px 4px;
+  }
+}

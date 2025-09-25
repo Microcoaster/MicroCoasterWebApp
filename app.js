@@ -10,6 +10,7 @@ const cors = require('cors');
 
 // Routes
 const { router: authRoutes } = require('./routes/auth');
+const adminRoutes = require('./routes/admin');
 const moduleRoutes = require('./routes/modules');
 const dashboardRoutes = require('./routes/dashboard');
 const timelinesRoutes = require('./routes/timelines');
@@ -17,6 +18,9 @@ const documentationsRoutes = require('./routes/documentations');
 
 // WebSocket handlers
 const websocketHandler = require('./websocket/handlers');
+
+// Database
+const { initializeDatabase, testConnection } = require('./models/database');
 
 const app = express();
 const server = createServer(app);
@@ -66,6 +70,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 
 // Routes
 app.use('/', authRoutes);
+app.use('/admin', adminRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/modules', moduleRoutes);
 app.use('/timelines', timelinesRoutes);
@@ -79,12 +84,29 @@ app.use((req, res) => {
   res.status(404).send('Page not found');
 });
 
-// Démarrage du serveur
-const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  console.log(`🚀 MicroCoaster Server running on port ${PORT}`);
-  console.log(`📱 Web interface: http://localhost:${PORT}`);
-  console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
-});
+// Initialisation de la base de données
+async function startServer() {
+  try {
+    // Tester la connexion
+    await testConnection();
+    
+    // Initialiser la base de données si nécessaire
+    await initializeDatabase();
+    
+    // Démarrer le serveur
+    const PORT = process.env.PORT || 3000;
+    server.listen(PORT, () => {
+      console.log(`🚀 MicroCoaster Server running on port ${PORT}`);
+      console.log(`📱 Web interface: http://localhost:${PORT}`);
+      console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
+    });
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+// Démarrer l'application
+startServer();
 
 module.exports = { app, server, io };

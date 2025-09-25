@@ -17,7 +17,7 @@
 </head>
 <body class="compact">
 
-  <%- include('partials/navbar', { currentPage: 'dashboard' }) %>
+  <%- include('partials/navbar', { currentPage: 'dashboard', user: user }) %>
 
   <div class="container-fluid main-content">
     <main class="content">
@@ -37,7 +37,7 @@
                 
                 <!-- Carte de bienvenue -->
                 <div class="dashboard-card welcome-card">
-                  <h2>Welcome back, <%= user.nickname || 'User' %>!</h2>
+                  <h2>Welcome back, <%= user.name || 'User' %>!</h2>
                   <p>Manage your MicroCoaster modules and monitor your theme park systems.</p>
                   
                   <div class="quick-actions">
