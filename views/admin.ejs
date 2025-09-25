@@ -116,7 +116,7 @@
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
-              Utilisateurs (<%= pagination.users.total %>)
+              Utilisateurs (<%= stats.totalUsers %>)
             </h2>
             <button class="clear-filters-btn-header" id="clearUsersFilters" style="display: none;" title="Effacer tous les filtres">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -247,7 +247,7 @@
                 <line x1="1" y1="9" x2="4" y2="9"/>
                 <line x1="1" y1="14" x2="4" y2="14"/>
               </svg>
-              Modules (<%= pagination.modules.total %>)
+              Modules (<%= stats.totalModules %>)
             </h2>
             <button class="clear-filters-btn-header" id="clearModulesFilters" style="display: none;" title="Effacer tous les filtres">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -376,9 +376,11 @@
   <script src="/js/global.js"></script>
   <script src="/js/admin.js"></script>
   <script>
-    // Initialiser la page admin avec les données de pagination
-    document.addEventListener('DOMContentLoaded', function() {
-      initializeAdminPage({
+    // Données intégrées directement dans la page (plus besoin d'API)
+    window.adminData = {
+      allUsers: <%- JSON.stringify(allUsers) %>,
+      allModules: <%- JSON.stringify(allModules) %>,
+      pagination: {
         users: {
           sort: '<%= pagination.users.sort %>',
           sortOrder: '<%= pagination.users.sortOrder %>'
@@ -387,7 +389,12 @@
           sort: '<%= pagination.modules.sort %>',
           sortOrder: '<%= pagination.modules.sortOrder %>'
         }
-      });
+      }
+    };
+
+    // Initialiser la page admin
+    document.addEventListener('DOMContentLoaded', function() {
+      initializeAdminPage(window.adminData.pagination);
     });
   </script>
 </body>

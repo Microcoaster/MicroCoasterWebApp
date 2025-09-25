@@ -23,46 +23,34 @@ function initializeAdminPage(paginationData) {
   currentModulesSortOrder = paginationData.modules.sortOrder;
   usersFilters = paginationData.users.filters || {};
   modulesFilters = paginationData.modules.filters || {};
+  
+  // Charger les données directement depuis window.adminData
+  loadDataFromPage();
 }
 
-// Charger toutes les données au démarrage
-async function loadAllData() {
-  try {
-    const [usersResponse, modulesResponse] = await Promise.all([
-      fetch('/admin/api/all-users'),
-      fetch('/admin/api/all-modules')
-    ]);
-
-    if (usersResponse.ok && modulesResponse.ok) {
-      const usersData = await usersResponse.json();
-      const modulesData = await modulesResponse.json();
-
-      if (usersData.success && modulesData.success) {
-        allUsers = usersData.users;
-        allModules = modulesData.modules;
+// Charger les données intégrées dans la page (plus d'API)
+function loadDataFromPage() {
+  if (window.adminData) {
+    allUsers = window.adminData.allUsers || [];
+    allModules = window.adminData.allModules || [];
         
-        // Initialiser les données filtrées
-        filteredUsers = [...allUsers];
-        filteredModules = [...allModules];
-        
-        console.log(`Cache chargé: ${allUsers.length} utilisateurs, ${allModules.length} modules`);
-        
-        // Appliquer les filtres initiaux et rendre les tables
-        applyClientSideFilters('users');
-        applyClientSideFilters('modules');
-        
-        // S'assurer que les flèches de tri sont à jour au démarrage
-        updateSortArrows('users');
-        updateSortArrows('modules');
-        
-        return true;
-      }
-    }
+    // Initialiser les données filtrées
+    filteredUsers = [...allUsers];
+    filteredModules = [...allModules];
     
-    throw new Error('Échec du chargement des données');
-  } catch (error) {
-    console.error('Erreur lors du chargement du cache:', error);
-    // Fallback vers l'ancien système si le chargement échoue
+    console.log(`Données chargées depuis la page: ${allUsers.length} utilisateurs, ${allModules.length} modules`);
+    
+    // Appliquer les filtres initiaux et rendre les tables
+    applyClientSideFilters('users');
+    applyClientSideFilters('modules');
+    
+    // S'assurer que les flèches de tri sont à jour au démarrage
+    updateSortArrows('users');
+    updateSortArrows('modules');
+    
+    return true;
+  } else {
+    console.error('Aucune donnée trouvée dans window.adminData');
     return false;
   }
 }
@@ -559,15 +547,14 @@ function renderPagination(tableType, totalItems) {
 }
 
 // Initialisation quand le DOM est chargé
-document.addEventListener('DOMContentLoaded', async function() {
-  // Charger toutes les données en cache
-  const cacheLoaded = await loadAllData();
+document.addEventListener('DOMContentLoaded', function() {
+  // Charger les données intégrées dans la page (plus d'appels API)
+  const dataLoaded = loadDataFromPage();
   
-  if (cacheLoaded) {
-    console.log('Cache chargé avec succès, utilisation du filtrage côté client');
+  if (dataLoaded) {
+    console.log('Données chargées depuis la page, utilisation du filtrage côté client');
   } else {
-    console.log('Échec du cache, utilisation du système serveur');
-    // Fallback vers l'ancien système si nécessaire
+    console.log('Échec du chargement des données intégrées');
   }
   
   setupEventListeners();

@@ -6,59 +6,7 @@ const router = express.Router();
 // Toutes les routes admin nécessitent les permissions administrateur
 router.use(requireAdmin);
 
-/**
- * API pour récupérer toutes les données des utilisateurs
- */
-router.get("/api/all-users", async (req, res) => {
-  try {
-    // Récupérer tous les utilisateurs sans pagination
-    const usersResult = await getAllUsers({ 
-      limit: 999999, 
-      offset: 0, 
-      sortBy: 'created_at', 
-      sortOrder: 'DESC' 
-    });
-    
-    res.json({
-      success: true,
-      users: usersResult.users,
-      total: usersResult.total
-    });
-  } catch (error) {
-    console.error('Erreur lors de la récupération de tous les utilisateurs:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erreur serveur lors de la récupération des utilisateurs'
-    });
-  }
-});
-
-/**
- * API pour récupérer toutes les données des modules
- */
-router.get("/api/all-modules", async (req, res) => {
-  try {
-    // Récupérer tous les modules sans pagination
-    const modulesResult = await getAllModules({ 
-      limit: 999999, 
-      offset: 0, 
-      sortBy: 'created_at', 
-      sortOrder: 'DESC' 
-    });
-    
-    res.json({
-      success: true,
-      modules: modulesResult.modules,
-      total: modulesResult.total
-    });
-  } catch (error) {
-    console.error('Erreur lors de la récupération de tous les modules:', error);
-    res.status(500).json({
-      success: false,
-      error: 'Erreur serveur lors de la récupération des modules'
-    });
-  }
-});
+// Routes API supprimées - les données sont maintenant intégrées directement dans la page
 
 /**
  * Page principale d'administration
@@ -104,15 +52,16 @@ router.get("/", async (req, res) => {
       getUserById(req.session.user_id)
     ]);
     
-    // Statistiques rapides (toujours globales)
+    // Récupérer toutes les données pour le cache côté client ET les statistiques
+    // IMPORTANT: Pas de filtres pour les stats - on veut TOUS les utilisateurs et modules
     const [allUsersResult, allModulesResult] = await Promise.all([
-      getAllUsers({ limit: 10000, offset: 0 }), // Récupérer tous pour les stats
-      getAllModules({ limit: 10000, offset: 0 })
+      getAllUsers({ limit: 999999, offset: 0, sortBy: 'created_at', sortOrder: 'DESC', filters: {} }),
+      getAllModules({ limit: 999999, offset: 0, sortBy: 'created_at', sortOrder: 'DESC', filters: {} })
     ]);
     
     const stats = {
-      totalUsers: allUsersResult.total,
-      totalModules: allModulesResult.total,
+      totalUsers: allUsersResult.users.length, // Utiliser .length au lieu de .total
+      totalModules: allModulesResult.modules.length, // Utiliser .length au lieu de .total
       onlineModules: allModulesResult.modules.filter(m => m.status === 'online').length,
       adminUsers: allUsersResult.users.filter(u => u.is_admin).length
     };
@@ -122,6 +71,8 @@ router.get("/", async (req, res) => {
       currentPage: 'admin',
       users: usersResult.users,
       modules: modulesResult.modules,
+      allUsers: allUsersResult.users, // Toutes les données pour le cache
+      allModules: allModulesResult.modules, // Toutes les données pour le cache
       stats,
       pagination: {
         users: {
