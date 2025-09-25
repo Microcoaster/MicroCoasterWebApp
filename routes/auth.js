@@ -1,5 +1,5 @@
 ﻿const express = require("express");
-const { verifyAccessCode, testConnection } = require("../models/database");
+const { verifyAccessCode } = require("../models/database");
 const router = express.Router();
 
 function requireAuth(req, res, next) {
@@ -67,14 +67,6 @@ router.get("/", (req, res) => {
   } else {
     res.redirect("/login");
   }
-});
-
-router.get("/test-db", async (req, res) => {
-  const isConnected = await testConnection();
-  res.json({ 
-    database: isConnected ? "Connected" : "Disconnected",
-    timestamp: new Date().toISOString() 
-  });
 });
 
 module.exports = { router, requireAuth };
