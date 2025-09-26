@@ -16,8 +16,8 @@ function requireAdmin(req, res, next) {
     next();
   } else {
     res.status(403).render('error', {
-      title: 'Acc�s refus�',
-      message: "Vous n'avez pas les permissions n�cessaires pour acc�der � cette page.",
+      title: 'Accès refusé',
+      message: "Vous n'avez pas les permissions nécessaires pour accéder à cette page.",
     });
   }
 }
@@ -38,7 +38,7 @@ router.get('/register', (req, res) => {
   }
   res.render('register', {
     error: null,
-    title: 'MicroCoaster WebApp - Cr�er un compte',
+    title: 'MicroCoaster WebApp - Créer un compte',
   });
 });
 
@@ -52,7 +52,7 @@ router.post('/login', async (req, res) => {
     } else {
       const user = await databaseManager.users.verifyLogin(email, password);
       if (user) {
-        // Mettre � jour la derni�re connexion
+        // Mettre à jour la dernière connexion
         await databaseManager.users.updateLastLogin(user.id);
 
         req.session.user_id = user.id;
@@ -67,7 +67,7 @@ router.post('/login', async (req, res) => {
     }
   } catch (err) {
     Logger.error('Login error:', err);
-    error = 'Erreur de connexion �� la base de donn�es.';
+    error = 'Erreur de connexion à la base de données.';
   }
 
   res.render('login', {
@@ -87,11 +87,11 @@ router.post('/register', async (req, res) => {
     } else if (password !== confirmPassword) {
       error = 'Les mots de passe ne correspondent pas.';
     } else if (password.length < 6) {
-      error = 'Le mot de passe doit contenir au moins 6 caract�res.';
+      error = 'Le mot de passe doit contenir au moins 6 caractères.';
     } else if (await databaseManager.users.emailExists(email)) {
-      error = 'Un compte avec cet email existe d�j�.';
+      error = 'Un compte avec cet email existe déjà.';
     } else {
-      // Cr�er le compte
+      // Créer le compte
       const user = await databaseManager.users.createUser(email, password, name);
       req.session.user_id = user.id;
       req.session.email = user.email;
@@ -102,13 +102,13 @@ router.post('/register', async (req, res) => {
     }
   } catch (err) {
     Logger.error('Register error:', err);
-    error = err.message || 'Erreur lors de la cr�ation du compte.';
+    error = err.message || 'Erreur lors de la création du compte.';
   }
 
   res.render('register', {
     error,
-    title: 'MicroCoaster WebApp - Cr�er un compte',
-    formData: { email, name }, // Garder les donn�es du formulaire
+    title: 'MicroCoaster WebApp - Créer un compte',
+    formData: { email, name }, // Garder les données du formulaire
   });
 });
 
@@ -160,22 +160,22 @@ router.post('/profile', requireAuth, async (req, res) => {
     if (!name || !email) {
       error = 'Veuillez remplir tous les champs.';
     } else if (email !== user.email && (await databaseManager.users.emailExists(email))) {
-      error = 'Un compte avec cet email existe d�j�.';
+      error = 'Un compte avec cet email existe déjà.';
     } else {
-      // Mise � jour
+      // Mise à jour
       const updatedUser = await databaseManager.users.updateProfile(req.session.user_id, {
         name,
         email,
       });
       req.session.nickname = updatedUser.name;
       req.session.email = updatedUser.email;
-      success = 'Profil mis � jour avec succ�s.';
+      success = 'Profil mis à jour avec succès.';
       user.name = updatedUser.name;
       user.email = updatedUser.email;
     }
   } catch (err) {
     Logger.error('Profile update error:', err);
-    error = err.message || 'Erreur lors de la mise � jour du profil.';
+    error = err.message || 'Erreur lors de la mise à jour du profil.';
   }
 
   const user = await databaseManager.users.findById(req.session.user_id);
@@ -187,7 +187,7 @@ router.post('/profile', requireAuth, async (req, res) => {
   });
 });
 
-router.post('/chang�e-password', requireAuth, async (req, res) => {
+router.post('/change-password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword, confirmPassword } = req.body;
   let error = null;
   let success = null;
@@ -206,7 +206,7 @@ router.post('/chang�e-password', requireAuth, async (req, res) => {
     } else if (newPassword.length < 6) {
       error = 'Le nouveau mot de passe doit contenir au moins 6 caractères.';
     } else {
-      // changer le mot de passe
+      // Changer le mot de passe
       await databaseManager.users.changePassword(req.session.user_id, currentPassword, newPassword);
       success = 'Mot de passe changé avec succès.';
     }
