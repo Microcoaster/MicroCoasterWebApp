@@ -22,7 +22,10 @@
   background: rgba(26, 26, 26, 0.95);
   backdrop-filter: blur(20px);
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  padding: 15px 20px;
+  padding: 12px 20px;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
 }
 
 .navbar-container {
@@ -30,6 +33,7 @@
   justify-content: space-between;
   align-items: center;
   width: 100%;
+  height: 100%;
   padding: 0 20px;
 }
 
@@ -853,4 +857,54 @@ body.compact .face img {
 
 .panel.online {
   opacity: 1;
+}
+
+/* =============== BRAND LOGO =============== */
+.brand-logo {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  height: 44px;
+}
+
+.brand-logo a {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  text-decoration: none;
+  border-radius: 6px;
+  padding: 2px 4px;
+  height: 44px;
+}
+
+/* Effet hover supprimé */
+
+.navbar-logo {
+  height: 40px;
+  width: auto;
+  max-width: 240px;
+  object-fit: contain;
+  display: flex;
+  align-self: center;
+}
+
+/* Correction spécifique pour les SVG - alignement parfait */
+.navbar-logo[src$=".svg"] {
+  transform: translateY(-8px);
+  filter: none;
+}
+
+/* Animation supprimée */
+
+/* Styles spécifiques pour les SVG dans la navbar */
+.navbar-logo[src$=".svg"] {
+  fill: currentColor;
+}
+
+/* Responsive logo */
+@media (max-width: 768px) {
+  .navbar-logo {
+    height: 32px;
+    max-width: 180px;
+  }
 }
