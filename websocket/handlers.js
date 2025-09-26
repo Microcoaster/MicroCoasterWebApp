@@ -39,7 +39,7 @@ function who(socket, session = null) {
 function logRx(socket, event, data, session = null) {
   try {
     Logger.info(
-      `← RX ${who(socket, session)} ${event}\n${JSON.stringify(redact(data), null, 2)}\n`
+      `[RX] ${who(socket, session)} ${event}\n${JSON.stringify(redact(data), null, 2)}\n`
     );
   } catch (error) {
     Logger.error('Erreur lors du logging RX:', error);
@@ -49,7 +49,7 @@ function logRx(socket, event, data, session = null) {
 function logTx(socket, event, data, session = null) {
   try {
     Logger.info(
-      `→ TX ${who(socket, session)} ${event}\n${JSON.stringify(redact(data), null, 2)}\n`
+      `[TX] ${who(socket, session)} ${event}\n${JSON.stringify(redact(data), null, 2)}\n`
     );
   } catch (error) {
     Logger.error('Erreur lors du logging TX:', error);
@@ -129,7 +129,7 @@ module.exports = function (io) {
     socket.emit('modules_state', moduleStates);
     logTx(socket, 'modules_state', moduleStates, session);
 
-    // ===== WEB → CLAIM ===== (automatique pour tous les modules visibles)
+    // ===== WEB -> CLAIM ===== (automatique pour tous les modules visibles)
     socket.on('module_claim', data => {
       logRx(socket, 'module_claim', data, session);
       const mid = String(data.moduleId || '').trim();
@@ -143,7 +143,7 @@ module.exports = function (io) {
       broadcastToWeb(userCode, 'module_presence', { moduleId: mid, online });
     });
 
-    // ===== WEB → COMMAND ===== (gestion des commandes vers les modules)
+    // ===== WEB -> COMMAND ===== (gestion des commandes vers les modules)
     socket.on('module_command', data => {
       logRx(socket, 'module_command', data, session);
       handleModuleCommand(socket, data, session);
@@ -167,7 +167,7 @@ module.exports = function (io) {
   function handleModuleConnection(socket) {
     Logger.info(`🤖 Module attempting connection: ${socket.id}`);
 
-    // ===== ESP → REGISTER ===== (le module doit s'identifier)
+    // ===== ESP -> REGISTER ===== (le module doit s'identifier)
     socket.on('module_identify', data => {
       logRx(socket, 'module_identify', data);
       const { moduleId, type } = data;
@@ -217,11 +217,11 @@ module.exports = function (io) {
       logTx(socket, 'connected', { message: 'Module registered successfully' });
     });
 
-    // ===== ESP → TELEMETRY ===== (télémétrie depuis les modules)
+    // ===== ESP -> TELEMETRY ===== (télémétrie depuis les modules)
     socket.on('telemetry', data => {
       if (!socket.moduleId) return;
       const c = codeByModuleId.get(socket.moduleId);
-      if (!c) return; // pas encore claimé par un web → on ignore
+      if (!c) return; // pas encore claimé par un web -> on ignore
 
       logRx(socket, 'telemetry', data);
       broadcastToWeb(c, 'module_telemetry', {
@@ -253,7 +253,7 @@ module.exports = function (io) {
     });
   }
 
-  // ===== WEB → COMMAND ===== (gestion des commandes vers les modules)
+  // ===== WEB -> COMMAND ===== (gestion des commandes vers les modules)
   function handleModuleCommand(clientSocket, data, session) {
     const { moduleId, command, params } = data;
 
