@@ -1,4 +1,5 @@
 const BaseDAO = require('./BaseDAO');
+const Logger = require('../utils/logger');
 
 /**
  * DAO pour la gestion des modules
@@ -31,10 +32,10 @@ class ModuleDAO extends BaseDAO {
       return modules.map(module => ({
         ...module,
         status: this.getModuleStatus(module),
-        lastSeen: this.getLastSeen(module.module_id)
+        lastSeen: this.getLastSeen(module.module_id),
       }));
     } catch (error) {
-      console.error('Erreur lors de la récupération des modules utilisateur:', error);
+      Logger.error('Erreur lors de la récupération des modules utilisateur:', error);
       throw error;
     }
   }
@@ -46,13 +47,13 @@ class ModuleDAO extends BaseDAO {
    */
   async findAll(options = {}) {
     try {
-      const { 
-        limit = 10, 
-        offset = 0, 
-        sortBy = 'last_seen', 
-        sortOrder = 'DESC', 
+      const {
+        limit = 10,
+        offset = 0,
+        sortBy = 'last_seen',
+        sortOrder = 'DESC',
         search = '',
-        filters = {}
+        filters = {},
       } = options;
 
       // Assurer que limit et offset sont des entiers
@@ -65,8 +66,8 @@ class ModuleDAO extends BaseDAO {
         LEFT JOIN users u ON m.user_id = u.id 
       `;
 
-      let params = [];
-      let whereConditions = [];
+      const params = [];
+      const whereConditions = [];
 
       // Recherche globale (ancienne méthode pour compatibilité)
       if (search && search.trim() !== '') {
@@ -116,7 +117,7 @@ class ModuleDAO extends BaseDAO {
       const modulesWithStatus = modules.map(module => ({
         ...module,
         status: this.getModuleStatus(module),
-        lastSeen: this.getLastSeen(module.module_id)
+        lastSeen: this.getLastSeen(module.module_id),
       }));
 
       // Compter le total (même requête sans LIMIT)
@@ -126,8 +127,8 @@ class ModuleDAO extends BaseDAO {
         LEFT JOIN users u ON m.user_id = u.id 
       `;
 
-      let countParams = [];
-      let countWhereConditions = [];
+      const countParams = [];
+      const countWhereConditions = [];
 
       // Reprendre les mêmes conditions WHERE pour le count
       if (search && search.trim() !== '') {
@@ -164,10 +165,10 @@ class ModuleDAO extends BaseDAO {
 
       return {
         modules: modulesWithStatus,
-        total
+        total,
       };
     } catch (error) {
-      console.error('Erreur lors de la récupération des modules:', error);
+      Logger.error('Erreur lors de la récupération des modules:', error);
       throw error;
     }
   }
@@ -183,7 +184,7 @@ class ModuleDAO extends BaseDAO {
       );
       return modules;
     } catch (error) {
-      console.error('Erreur lors de la récupération des modules disponibles:', error);
+      Logger.error('Erreur lors de la récupération des modules disponibles:', error);
       throw error;
     }
   }
@@ -207,13 +208,13 @@ class ModuleDAO extends BaseDAO {
         return {
           ...module,
           status: this.getModuleStatus(module),
-          lastSeen: this.getLastSeen(module.module_id)
+          lastSeen: this.getLastSeen(module.module_id),
         };
       }
 
       return null;
     } catch (error) {
-      console.error('Erreur lors de la récupération du module:', error);
+      Logger.error('Erreur lors de la récupération du module:', error);
       throw error;
     }
   }
@@ -227,10 +228,9 @@ class ModuleDAO extends BaseDAO {
   async claim(moduleId, userId) {
     try {
       // Vérifier que le module existe et n'est pas déjà réclamé
-      const module = await this.findOne(
-        'SELECT id, user_id FROM modules WHERE module_id = ?',
-        [moduleId]
-      );
+      const module = await this.findOne('SELECT id, user_id FROM modules WHERE module_id = ?', [
+        moduleId,
+      ]);
 
       if (!module) {
         throw new Error('Module non trouvé');
@@ -248,7 +248,7 @@ class ModuleDAO extends BaseDAO {
 
       return result.affectedRows > 0;
     } catch (error) {
-      console.error('Erreur lors de la réclamation du module:', error);
+      Logger.error('Erreur lors de la réclamation du module:', error);
       throw error;
     }
   }
@@ -262,10 +262,9 @@ class ModuleDAO extends BaseDAO {
   async release(moduleId, userId) {
     try {
       // Vérifier que l'utilisateur possède bien ce module
-      const module = await this.findOne(
-        'SELECT id, user_id FROM modules WHERE module_id = ?',
-        [moduleId]
-      );
+      const module = await this.findOne('SELECT id, user_id FROM modules WHERE module_id = ?', [
+        moduleId,
+      ]);
 
       if (!module) {
         throw new Error('Module non trouvé');
@@ -286,7 +285,7 @@ class ModuleDAO extends BaseDAO {
 
       return result.affectedRows > 0;
     } catch (error) {
-      console.error('Erreur lors de la libération du module:', error);
+      Logger.error('Erreur lors de la libération du module:', error);
       throw error;
     }
   }
@@ -306,13 +305,14 @@ class ModuleDAO extends BaseDAO {
       }
 
       // Vérifier que le module existe
-      const module = await this.findOne(
-        'SELECT id, user_id FROM modules WHERE module_id = ?',
-        [moduleId]
-      );
+      const module = await this.findOne('SELECT id, user_id FROM modules WHERE module_id = ?', [
+        moduleId,
+      ]);
 
       if (!module) {
-        console.log(`⚠️  Module ${moduleId} non trouvé dans la base de données, création automatique...`);
+        Logger.info(
+          `⚠️  Module ${moduleId} non trouvé dans la base de données, création automatique...`
+        );
         // Créer le module automatiquement s'il n'existe pas
         await this.insert(
           'INSERT INTO modules (module_id, name, type, user_id, created_at) VALUES (?, ?, ?, ?, NOW())',
@@ -324,19 +324,16 @@ class ModuleDAO extends BaseDAO {
       this.moduleStatusCache.set(moduleId, {
         status,
         lastSeen: new Date(),
-        userId: userId || module?.user_id || null
+        userId: userId || module?.user_id || null,
       });
 
       // Mettre à jour la base de données
-      const result = await this.update(
-        'UPDATE modules SET last_seen = NOW() WHERE module_id = ?',
-        [moduleId]
-      );
+      await this.update('UPDATE modules SET last_seen = NOW() WHERE module_id = ?', [moduleId]);
 
-      console.log(`📡 Module ${moduleId} mis à jour: ${status}`);
+      Logger.info(`📡 Module ${moduleId} mis à jour: ${status}`);
       return true;
     } catch (error) {
-      console.error('Erreur lors de la mise à jour du statut du module:', error);
+      Logger.error('Erreur lors de la mise à jour du statut du module:', error);
       throw error;
     }
   }
@@ -351,7 +348,7 @@ class ModuleDAO extends BaseDAO {
       const cutoffTime = new Date(Date.now() - maxAgeMinutes * 60 * 1000);
       let cleanedCount = 0;
 
-      for (const [moduleId, statusInfo] of this.moduleStatusCache.entries()) {
+      for (const [, statusInfo] of this.moduleStatusCache.entries()) {
         if (statusInfo.lastSeen < cutoffTime) {
           // Marquer comme hors ligne
           statusInfo.status = 'offline';
@@ -360,12 +357,14 @@ class ModuleDAO extends BaseDAO {
       }
 
       if (cleanedCount > 0) {
-        console.log(`🧹 ${cleanedCount} modules marqués comme hors ligne après ${maxAgeMinutes} minutes d'inactivité`);
+        Logger.info(
+          `🧹 ${cleanedCount} modules marqués comme hors ligne après ${maxAgeMinutes} minutes d'inactivité`
+        );
       }
 
       return cleanedCount;
     } catch (error) {
-      console.error('Erreur lors du nettoyage des statuts:', error);
+      Logger.error('Erreur lors du nettoyage des statuts:', error);
       return 0;
     }
   }
@@ -377,28 +376,27 @@ class ModuleDAO extends BaseDAO {
    */
   getModuleStatus(moduleIdOrObject) {
     try {
-      const moduleId = typeof moduleIdOrObject === 'string' 
-        ? moduleIdOrObject 
-        : moduleIdOrObject.module_id;
+      const moduleId =
+        typeof moduleIdOrObject === 'string' ? moduleIdOrObject : moduleIdOrObject.module_id;
 
       const cached = this.moduleStatusCache.get(moduleId);
       if (cached) {
         // Vérifier si le statut n'est pas trop ancien
         const maxAge = 5 * 60 * 1000; // 5 minutes
         const isStale = Date.now() - cached.lastSeen.getTime() > maxAge;
-        
+
         if (isStale && cached.status === 'online') {
           // Marquer comme hors ligne s'il est trop ancien
           cached.status = 'offline';
         }
-        
+
         return cached.status;
       }
 
       // Par défaut, considérer comme hors ligne
       return 'offline';
     } catch (error) {
-      console.error('Erreur lors de l\'obtention du statut du module:', error);
+      Logger.error("Erreur lors de l'obtention du statut du module:", error);
       return 'offline';
     }
   }
@@ -413,7 +411,7 @@ class ModuleDAO extends BaseDAO {
       const cached = this.moduleStatusCache.get(moduleId);
       return cached ? cached.lastSeen : null;
     } catch (error) {
-      console.error('Erreur lors de l\'obtention de la dernière activité:', error);
+      Logger.error("Erreur lors de l'obtention de la dernière activité:", error);
       return null;
     }
   }
@@ -427,10 +425,10 @@ class ModuleDAO extends BaseDAO {
       const stats = {
         total: this.moduleStatusCache.size,
         online: 0,
-        offline: 0
+        offline: 0,
       };
 
-      for (const [moduleId, statusInfo] of this.moduleStatusCache.entries()) {
+      for (const [, statusInfo] of this.moduleStatusCache.entries()) {
         if (statusInfo.status === 'online') {
           stats.online++;
         } else {
@@ -440,7 +438,7 @@ class ModuleDAO extends BaseDAO {
 
       return stats;
     } catch (error) {
-      console.error('Erreur lors de l\'obtention des statistiques:', error);
+      Logger.error("Erreur lors de l'obtention des statistiques:", error);
       return { total: 0, online: 0, offline: 0 };
     }
   }
@@ -454,7 +452,7 @@ class ModuleDAO extends BaseDAO {
       const result = await this.findOne('SELECT COUNT(*) as total FROM modules');
       return result ? result.total : 0;
     } catch (error) {
-      console.error('Erreur lors du comptage des modules:', error);
+      Logger.error('Erreur lors du comptage des modules:', error);
       throw error;
     }
   }
@@ -467,7 +465,7 @@ class ModuleDAO extends BaseDAO {
     try {
       return this.getStats().online;
     } catch (error) {
-      console.error('Erreur lors du comptage des modules en ligne:', error);
+      Logger.error('Erreur lors du comptage des modules en ligne:', error);
       return 0;
     }
   }

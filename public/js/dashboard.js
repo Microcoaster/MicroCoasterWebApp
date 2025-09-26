@@ -4,14 +4,14 @@
  * =======================================================*/
 
 // Variables globales pour les statistiques en temps réel
-let moduleStatus = new Map(); // moduleId -> boolean (online/offline)
+const moduleStatus = new Map(); // moduleId -> boolean (online/offline)
 let onlineModules = 0;
 let offlineModules = 0;
 
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
   initializeDashboard();
   initializeWebSocket();
-  
+
   // Add event listener for the add module button
   const addModuleBtn = document.getElementById('addModuleBtn');
   if (addModuleBtn) {
@@ -27,7 +27,7 @@ function initializeDashboard() {
   // Récupérer les compteurs initiaux depuis le DOM
   const onlineElement = document.querySelector('.dashboard-stat.online');
   const offlineElement = document.querySelector('.dashboard-stat.offline');
-  
+
   if (onlineElement && offlineElement) {
     onlineModules = parseInt(onlineElement.textContent || '0');
     offlineModules = parseInt(offlineElement.textContent || '0');
@@ -38,7 +38,7 @@ function initializeDashboard() {
   cards.forEach((card, index) => {
     card.style.opacity = '0';
     card.style.transform = 'translateY(20px)';
-    
+
     setTimeout(() => {
       card.style.transition = 'all 0.5s ease';
       card.style.opacity = '1';
@@ -49,25 +49,25 @@ function initializeDashboard() {
 
 function initializeWebSocket() {
   let webSocketReady = false;
-  
+
   // Fonction pour configurer les listeners WebSocket
   function setupWebSocketListeners() {
     if (typeof window.socket !== 'undefined' && window.socket && window.socket.connected) {
       // Écouter les changements d'état des modules
-      window.socket.on('module_online', function(data) {
+      window.socket.on('module_online', function (data) {
         updateModuleStatus(data.moduleId, true);
       });
 
-      window.socket.on('module_offline', function(data) {
+      window.socket.on('module_offline', function (data) {
         updateModuleStatus(data.moduleId, false);
       });
 
-      window.socket.on('module_presence', function(data) {
+      window.socket.on('module_presence', function (data) {
         updateModuleStatus(data.moduleId, data.online);
       });
 
       // Écouter l'état initial des modules
-      window.socket.on('modules_state', function(modules) {
+      window.socket.on('modules_state', function (modules) {
         modules.forEach(module => {
           updateModuleStatus(module.moduleId, module.online);
         });
@@ -79,7 +79,7 @@ function initializeWebSocket() {
   }
 
   // Écouter l'événement de disponibilité WebSocket
-  window.addEventListener('websocket-ready', function() {
+  window.addEventListener('websocket-ready', function () {
     if (!webSocketReady) {
       setupWebSocketListeners();
     }
@@ -120,16 +120,16 @@ function startStatsPolling() {
 function updateCountersFromStats(stats) {
   const onlineElement = document.querySelector('.dashboard-stat.online');
   const offlineElement = document.querySelector('.dashboard-stat.offline');
-  
+
   if (onlineElement && offlineElement) {
     const currentOnline = parseInt(onlineElement.textContent || '0');
     const currentOffline = parseInt(offlineElement.textContent || '0');
-    
+
     if (currentOnline !== stats.onlineModules) {
       animateCounterUpdate(onlineElement, stats.onlineModules);
       onlineModules = stats.onlineModules;
     }
-    
+
     if (currentOffline !== stats.offlineModules) {
       animateCounterUpdate(offlineElement, stats.offlineModules);
       offlineModules = stats.offlineModules;
@@ -140,7 +140,7 @@ function updateCountersFromStats(stats) {
 function updateModuleStatus(moduleId, isOnline) {
   const onlineElement = document.querySelector('.dashboard-stat.online');
   const offlineElement = document.querySelector('.dashboard-stat.offline');
-  
+
   if (!onlineElement || !offlineElement) {
     console.warn('Dashboard counter elements not found');
     return;
@@ -148,7 +148,7 @@ function updateModuleStatus(moduleId, isOnline) {
 
   // Vérifier le statut précédent du module
   const previousStatus = moduleStatus.get(moduleId);
-  
+
   if (previousStatus === isOnline) {
     // Pas de changement, rien à faire
     return;
@@ -184,7 +184,7 @@ function animateCounterUpdate(element, newValue) {
   // Animation simple de pulsation pour indiquer la mise à jour
   element.style.transform = 'scale(1.1)';
   element.style.transition = 'transform 0.2s ease';
-  
+
   setTimeout(() => {
     element.textContent = newValue;
     element.style.transform = 'scale(1)';

@@ -1,4 +1,4 @@
-const mysql = require('mysql2/promise');
+const Logger = require('../utils/logger');
 
 /**
  * Classe de base pour tous les DAO
@@ -20,7 +20,7 @@ class BaseDAO {
       const [rows] = await this.pool.execute(query, params);
       return rows;
     } catch (error) {
-      console.error(`❌ Database error in ${this.constructor.name}:`, error);
+      Logger.error(`❌ Database error in ${this.constructor.name}:`, error);
       throw error;
     }
   }
@@ -110,7 +110,7 @@ class BaseDAO {
     if (!validFields.includes(sortBy)) {
       sortBy = validFields[0]; // Valeur par défaut
     }
-    
+
     if (!['ASC', 'DESC'].includes(sortOrder.toUpperCase())) {
       sortOrder = 'DESC'; // Valeur par défaut
     }

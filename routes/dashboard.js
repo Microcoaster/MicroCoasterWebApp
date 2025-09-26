@@ -1,19 +1,20 @@
 const express = require('express');
 const router = express.Router();
 const databaseManager = require('../bdd/DatabaseManager');
+const Logger = require('../utils/logger');
 
 // Fonction helper pour calculer les statistiques
 async function calculateStats(userId) {
   const userModules = await databaseManager.modules.findByUserId(userId);
-  
+
   // Récupérer les statuts en ligne depuis la base de données
   const onlineModules = userModules.filter(m => m.status === 'online').length;
-  
+
   const stats = {
     totalModules: userModules.length,
     onlineModules: onlineModules,
     offlineModules: userModules.length - onlineModules,
-    moduleTypes: {}
+    moduleTypes: {},
   };
 
   // Compter les types de modules
@@ -35,7 +36,7 @@ router.get('/', async (req, res) => {
 
     // Calculer les statistiques
     const stats = await calculateStats(req.session.user_id);
-    
+
     // Récupérer les informations utilisateur
     const user = await databaseManager.users.findById(req.session.user_id);
 
@@ -43,15 +44,14 @@ router.get('/', async (req, res) => {
       title: 'Dashboard - MicroCoaster',
       currentPage: 'dashboard',
       user: user,
-      stats: stats
+      stats: stats,
     });
-
   } catch (error) {
-    console.error('Erreur lors du chargement du dashboard:', error);
+    Logger.error('Erreur lors du chargement du dashboard:', error);
     res.status(500).render('error', {
       title: 'Erreur - MicroCoaster',
       message: 'Une erreur est survenue lors du chargement du dashboard',
-      error: process.env.NODE_ENV === 'development' ? error : {}
+      error: process.env.NODE_ENV === 'development' ? error : {},
     });
   }
 });
@@ -66,9 +66,8 @@ router.get('/stats', async (req, res) => {
 
     const stats = await calculateStats(req.session.user_id);
     res.json(stats);
-
   } catch (error) {
-    console.error('Erreur lors de la récupération des statistiques:', error);
+    Logger.error('Erreur lors de la récupération des statistiques:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

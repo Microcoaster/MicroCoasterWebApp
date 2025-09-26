@@ -1,20 +1,21 @@
 const databaseManager = require('../bdd/DatabaseManager');
+const Logger = require('../utils/logger');
 
 // Maps pour stocker les connexions actives (adaptées du serveur WebSocket original)
-const connectedClients = new Map();     // socket.id -> client info
-const connectedModules = new Map();     // socket.id -> module info  
-const espById = new Map();              // moduleId -> socket (ESP)
-const webByCode = new Map();            // code -> Set<socket> (dashboards)
-const codeByModuleId = new Map();       // moduleId -> code (après "claim" par le web)
+const connectedClients = new Map(); // socket.id -> client info
+const connectedModules = new Map(); // socket.id -> module info
+const espById = new Map(); // moduleId -> socket (ESP)
+const webByCode = new Map(); // code -> Set<socket> (dashboards)
+const codeByModuleId = new Map(); // moduleId -> code (après "claim" par le web)
 
 /* ===================== Helpers log (portés du serveur original) ===================== */
 function redact(val) {
-  const secretKeys = new Set(["code", "module_code", "password", "pwd", "token"]);
+  const secretKeys = new Set(['code', 'module_code', 'password', 'pwd', 'token']);
   if (Array.isArray(val)) return val.map(redact);
-  if (val && typeof val === "object") {
+  if (val && typeof val === 'object') {
     const out = {};
     for (const [k, v] of Object.entries(val)) {
-      out[k] = secretKeys.has(k) ? "***" : redact(v);
+      out[k] = secretKeys.has(k) ? '***' : redact(v);
     }
     return out;
   }
@@ -24,27 +25,35 @@ function redact(val) {
 function who(socket, session = null) {
   const parts = [];
   if (session && session.user_id) {
-    parts.push(`web`);
-    parts.push(`code=${session.code || "?"}`);
+    parts.push('web');
+    parts.push(`code=${session.code || '?'}`);
   } else if (socket.moduleId) {
-    parts.push(`esp`);
+    parts.push('esp');
     parts.push(`mid=${socket.moduleId}`);
   } else {
-    parts.push("unknown");
+    parts.push('unknown');
   }
-  return parts.join(" ");
+  return parts.join(' ');
 }
 
 function logRx(socket, event, data, session = null) {
   try {
-    console.log(`← RX ${who(socket, session)} ${event}\n${JSON.stringify(redact(data), null, 2)}\n`);
-  } catch {}
+    Logger.info(
+      `← RX ${who(socket, session)} ${event}\n${JSON.stringify(redact(data), null, 2)}\n`
+    );
+  } catch (error) {
+    Logger.error('Erreur lors du logging RX:', error);
+  }
 }
 
 function logTx(socket, event, data, session = null) {
   try {
-    console.log(`→ TX ${who(socket, session)} ${event}\n${JSON.stringify(redact(data), null, 2)}\n`);
-  } catch {}
+    Logger.info(
+      `→ TX ${who(socket, session)} ${event}\n${JSON.stringify(redact(data), null, 2)}\n`
+    );
+  } catch (error) {
+    Logger.error('Erreur lors du logging TX:', error);
+  }
 }
 
 function broadcastToWeb(code, event, data) {
@@ -56,12 +65,12 @@ function broadcastToWeb(code, event, data) {
   }
 }
 
-module.exports = function(io) {
-  console.log('🔌 WebSocket handler initialized (Socket.io)');
+module.exports = function (io) {
+  Logger.info('🔌 WebSocket handler initialized (Socket.io)');
 
-  io.on('connection', (socket) => {
+  io.on('connection', socket => {
     const session = socket.request.session;
-    
+
     // Si l'utilisateur est authentifié (client web)
     if (session && session.user_id) {
       handleClientConnection(socket, session);
@@ -76,16 +85,16 @@ module.exports = function(io) {
     const userId = session.user_id;
     const userName = session.nickname || 'User';
     const userCode = session.code;
-    
-    console.log(`👤 Client connected: ${userName} (ID: ${userId}, Code: ${userCode})`);
-    
+
+    Logger.info(`👤 Client connected: ${userName} (ID: ${userId}, Code: ${userCode})`);
+
     // Enregistrer le client web
     connectedClients.set(socket.id, {
       socket,
       userId,
       userName,
       userCode,
-      connectedAt: new Date()
+      connectedAt: new Date(),
     });
 
     // Ajouter au registre par code
@@ -95,16 +104,16 @@ module.exports = function(io) {
     // 🔄 NOUVEAU: Récupérer les modules depuis la base de données
     try {
       const userModules = await databaseManager.modules.findByUserId(userId);
-      console.log(`📋 User ${userName} has ${userModules.length} modules in database`);
-      
+      Logger.info(`📋 User ${userName} has ${userModules.length} modules in database`);
+
       // Auto-claim tous les modules de l'utilisateur
       for (const module of userModules) {
         const moduleId = module.module_id;
         codeByModuleId.set(moduleId, userCode);
-        console.log(`🔗 Auto-claimed module: ${moduleId} for user ${userCode}`);
+        Logger.info(`🔗 Auto-claimed module: ${moduleId} for user ${userCode}`);
       }
     } catch (error) {
-      console.error('Error loading user modules:', error);
+      Logger.error('Error loading user modules:', error);
     }
 
     // Renvoyer la présence connue des modules déjà "claimés" par ce code
@@ -116,35 +125,35 @@ module.exports = function(io) {
         socket.emit('module_presence', { moduleId: mid, online });
       }
     }
-    
+
     socket.emit('modules_state', moduleStates);
     logTx(socket, 'modules_state', moduleStates, session);
 
     // ===== WEB → CLAIM ===== (automatique pour tous les modules visibles)
-    socket.on('module_claim', (data) => {
+    socket.on('module_claim', data => {
       logRx(socket, 'module_claim', data, session);
-      const mid = String(data.moduleId || "").trim();
+      const mid = String(data.moduleId || '').trim();
       if (!mid) return socket.emit('error', { message: 'missing_moduleId' });
 
       codeByModuleId.set(mid, userCode);
       socket.emit('claim_ack', { moduleId: mid, code: userCode });
-      
+
       // Push présence immédiate
       const online = espById.has(mid);
       broadcastToWeb(userCode, 'module_presence', { moduleId: mid, online });
     });
 
     // ===== WEB → COMMAND ===== (gestion des commandes vers les modules)
-    socket.on('module_command', (data) => {
+    socket.on('module_command', data => {
       logRx(socket, 'module_command', data, session);
       handleModuleCommand(socket, data, session);
     });
 
     // Nettoyage à la déconnexion
     socket.on('disconnect', () => {
-      console.log(`👤 Client disconnected: ${userName}`);
+      Logger.info(`👤 Client disconnected: ${userName}`);
       connectedClients.delete(socket.id);
-      
+
       // Supprimer du registre par code
       const set = webByCode.get(userCode);
       if (set) {
@@ -156,26 +165,30 @@ module.exports = function(io) {
 
   // Gestionnaire pour les modules ESP32
   function handleModuleConnection(socket) {
-    console.log(`🤖 Module attempting connection: ${socket.id}`);
-    
+    Logger.info(`🤖 Module attempting connection: ${socket.id}`);
+
     // ===== ESP → REGISTER ===== (le module doit s'identifier)
-    socket.on('module_identify', (data) => {
+    socket.on('module_identify', data => {
       logRx(socket, 'module_identify', data);
       const { moduleId, type } = data;
-      
+
       if (!moduleId) {
         socket.emit('error', { message: 'Module ID required' });
         return socket.disconnect();
       }
 
-      console.log(`🤖 Module identified: ${moduleId} (${type || 'Unknown'})`);
-      
+      Logger.info(`🤖 Module identified: ${moduleId} (${type || 'Unknown'})`);
+
       // Remplacer ancienne session si reconnect
       const prev = espById.get(moduleId);
       if (prev && prev !== socket) {
-        try { prev.disconnect(); } catch {}
+        try {
+          prev.disconnect();
+        } catch (error) {
+          Logger.error('Erreur lors de la déconnexion du socket précédent:', error);
+        }
       }
-      
+
       // Enregistrer le module
       socket.moduleId = moduleId;
       socket.moduleType = type || 'Unknown';
@@ -183,20 +196,20 @@ module.exports = function(io) {
         socket,
         moduleId,
         type: type || 'Unknown',
-        connectedAt: new Date()
+        connectedAt: new Date(),
       });
       espById.set(moduleId, socket);
 
       // Mettre à jour le statut en cache
-      databaseManager.modules.updateStatus(moduleId, 'online').catch(console.error);
+      databaseManager.modules.updateStatus(moduleId, 'online').catch(Logger.error);
 
       // Si déjà claimé par un dashboard, annoncer présence
       const c = codeByModuleId.get(moduleId);
       if (c) {
-        broadcastToWeb(c, 'module_online', { 
-          moduleId, 
+        broadcastToWeb(c, 'module_online', {
+          moduleId,
           type,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
@@ -205,35 +218,35 @@ module.exports = function(io) {
     });
 
     // ===== ESP → TELEMETRY ===== (télémétrie depuis les modules)
-    socket.on('telemetry', (data) => {
+    socket.on('telemetry', data => {
       if (!socket.moduleId) return;
       const c = codeByModuleId.get(socket.moduleId);
       if (!c) return; // pas encore claimé par un web → on ignore
-      
+
       logRx(socket, 'telemetry', data);
       broadcastToWeb(c, 'module_telemetry', {
         moduleId: socket.moduleId,
-        ...data
+        ...data,
       });
     });
 
     // Nettoyage à la déconnexion
     socket.on('disconnect', () => {
       if (socket.moduleId) {
-        console.log(`🤖 Module disconnected: ${socket.moduleId}`);
-        
+        Logger.info(`🤖 Module disconnected: ${socket.moduleId}`);
+
         espById.delete(socket.moduleId);
         connectedModules.delete(socket.id);
-        
+
         // Mettre à jour le statut en cache
-        databaseManager.modules.updateStatus(socket.moduleId, 'offline').catch(console.error);
-        
+        databaseManager.modules.updateStatus(socket.moduleId, 'offline').catch(Logger.error);
+
         // Notifier les clients web
         const c = codeByModuleId.get(socket.moduleId);
         if (c) {
-          broadcastToWeb(c, 'module_offline', { 
+          broadcastToWeb(c, 'module_offline', {
             moduleId: socket.moduleId,
-            timestamp: new Date()
+            timestamp: new Date(),
           });
         }
       }
@@ -243,51 +256,53 @@ module.exports = function(io) {
   // ===== WEB → COMMAND ===== (gestion des commandes vers les modules)
   function handleModuleCommand(clientSocket, data, session) {
     const { moduleId, command, params } = data;
-    
+
     if (!moduleId || !command) {
-      return clientSocket.emit('command_error', { 
-        message: 'Module ID and command required' 
+      return clientSocket.emit('command_error', {
+        message: 'Module ID and command required',
       });
     }
 
-    console.log(`📡 Command from user ${session.user_id}: ${command} -> ${moduleId}`, params);
+    Logger.info(`📡 Command from user ${session.user_id}: ${command} -> ${moduleId}`, params);
 
     // Trouver le module cible dans le registre ESP
     const targetSocket = espById.get(moduleId);
     if (!targetSocket) {
-      return clientSocket.emit('command_error', { 
-        message: `Module ${moduleId} not online` 
+      return clientSocket.emit('command_error', {
+        message: `Module ${moduleId} not online`,
       });
     }
 
     // Vérifier les permissions (si le module a déjà un code associé)
     const targetCode = codeByModuleId.get(moduleId);
     if (targetCode && targetCode !== session.code) {
-      return clientSocket.emit('command_error', { 
-        message: 'Forbidden for this access code' 
+      return clientSocket.emit('command_error', {
+        message: 'Forbidden for this access code',
       });
     }
 
     // Envoyer la commande au module ESP32
     const commandPayload = {
       type: 'command',
-      payload: { command, params: params || {} }
+      payload: { command, params: params || {} },
     };
-    
+
     logTx(targetSocket, 'command', commandPayload);
     targetSocket.emit('command', commandPayload);
 
     // Confirmer au client web
-    clientSocket.emit('command_sent', { 
-      moduleId, 
+    clientSocket.emit('command_sent', {
+      moduleId,
       command,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
     logTx(clientSocket, 'command_sent', { moduleId, command });
   }
 
   // Debug endpoint pour voir les connexions actives
   setInterval(() => {
-    console.log(`📊 Connected - Clients: ${connectedClients.size}, Modules: ${connectedModules.size}, ESP: ${espById.size}`);
+    Logger.info(
+      `📊 Connected - Clients: ${connectedClients.size}, Modules: ${connectedModules.size}, ESP: ${espById.size}`
+    );
   }, 30000); // Toutes les 30 secondes
 };

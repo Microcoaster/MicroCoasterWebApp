@@ -2,6 +2,7 @@
 require('dotenv').config();
 
 const express = require('express');
+const Logger = require('./utils/logger');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const session = require('express-session');
@@ -26,13 +27,13 @@ const app = express();
 const server = createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: process.env.WS_CORS_ORIGIN || "*",
-    methods: ["GET", "POST"]
+    origin: process.env.WS_CORS_ORIGIN || '*',
+    methods: ['GET', 'POST'],
   },
   // 🔧 AUGMENTER LES TIMEOUTS
-  pingTimeout: 60000,      // 60 secondes avant timeout
-  pingInterval: 25000,     // Ping toutes les 25 secondes  
-  connectTimeout: 45000    // 45 secondes pour se connecter
+  pingTimeout: 60000, // 60 secondes avant timeout
+  pingInterval: 25000, // Ping toutes les 25 secondes
+  connectTimeout: 45000, // 45 secondes pour se connecter
 });
 
 // Configuration Express
@@ -41,13 +42,14 @@ app.set('views', path.join(__dirname, 'views'));
 
 // Middleware de sécurité CSP
 app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', 
+  res.setHeader(
+    'Content-Security-Policy',
     "default-src 'self'; " +
-    "script-src 'self' 'unsafe-inline'; " +
-    "style-src 'self' 'unsafe-inline'; " +
-    "img-src 'self' data:; " +
-    "connect-src 'self' ws: wss:; " +
-    "font-src 'self';"
+      "script-src 'self' 'unsafe-inline'; " +
+      "style-src 'self' 'unsafe-inline'; " +
+      "img-src 'self' data:; " +
+      "connect-src 'self' ws: wss:; " +
+      "font-src 'self';"
   );
   next();
 });
@@ -63,8 +65,8 @@ const sessionMiddleware = session({
   saveUninitialized: false,
   cookie: {
     secure: process.env.COOKIE_SECURE === 'true', // true en HTTPS
-    maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 24 * 60 * 60 * 1000 // 24 heures
-  }
+    maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 24 * 60 * 60 * 1000, // 24 heures
+  },
 });
 
 app.use(sessionMiddleware);
@@ -101,22 +103,22 @@ async function startServer() {
   try {
     // Initialiser le gestionnaire de base de données
     await databaseManager.initialize();
-    
+
     // Initialiser la base de données si nécessaire
     await databaseManager.initializeDatabase();
-    
+
     // Démarrer le nettoyage automatique des statuts des modules
     databaseManager.startModuleStatusCleanup(1, 5); // Chaque minute, max 5 min
-    
+
     // Démarrer le serveur
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
-      console.log(`🚀 MicroCoaster Server running on port ${PORT}`);
-      console.log(`📱 Web interface: http://localhost:${PORT}`);
-      console.log(`🔌 WebSocket: ws://localhost:${PORT}`);
+      Logger.info(`🚀 MicroCoaster Server running on port ${PORT}`);
+      Logger.info(`📱 Web interface: http://localhost:${PORT}`);
+      Logger.info(`🔌 WebSocket: ws://localhost:${PORT}`);
     });
   } catch (error) {
-    console.error('❌ Failed to start server:', error);
+    Logger.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }

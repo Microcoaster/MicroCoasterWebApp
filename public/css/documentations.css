@@ -103,7 +103,8 @@
   margin-bottom: 15px;
 }
 
-.docs-section ul, .docs-section ol {
+.docs-section ul,
+.docs-section ol {
   color: var(--text-muted);
   line-height: 1.6;
   margin-bottom: 15px;
@@ -313,25 +314,25 @@
   .docs-container {
     padding: 15px;
   }
-  
+
   .docs-section {
     padding: 20px;
     margin-bottom: 20px;
   }
-  
+
   .docs-section h2 {
     font-size: 20px;
   }
-  
+
   .api-table {
     font-size: 14px;
   }
-  
+
   .api-table th,
   .api-table td {
     padding: 8px 10px;
   }
-  
+
   .docs-nav {
     position: relative;
     top: auto;

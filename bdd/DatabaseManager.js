@@ -1,6 +1,7 @@
 const mysql = require('mysql2/promise');
 const fs = require('fs').promises;
 const path = require('path');
+const Logger = require('../utils/logger');
 
 const UserDAO = require('./UserDAO');
 const ModuleDAO = require('./ModuleDAO');
@@ -30,7 +31,7 @@ class DatabaseManager {
         password: process.env.DB_PASSWORD,
         database: process.env.DB_NAME,
         charset: process.env.DB_CHARSET,
-        connectTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT)
+        connectTimeout: parseInt(process.env.DB_CONNECTION_TIMEOUT),
       };
 
       // Créer le pool de connexions
@@ -38,7 +39,7 @@ class DatabaseManager {
         ...dbConfig,
         waitForConnections: true,
         connectionLimit: parseInt(process.env.DB_CONNECTION_LIMIT) || 10,
-        queueLimit: 0
+        queueLimit: 0,
       });
 
       // Tester la connexion
@@ -49,11 +50,11 @@ class DatabaseManager {
       this.moduleDAO = new ModuleDAO(this.pool);
 
       this.isInitialized = true;
-      console.log('✅ Database Manager initialized successfully');
+      Logger.info('✅ Database Manager initialized successfully');
 
       return true;
     } catch (error) {
-      console.error('❌ Database Manager initialization failed:', error);
+      Logger.error('❌ Database Manager initialization failed:', error);
       throw error;
     }
   }
@@ -65,13 +66,13 @@ class DatabaseManager {
     try {
       const [rows] = await this.pool.execute('SELECT 1 as test');
       if (rows[0]?.test === 1) {
-        console.log('✅ Database connection successful');
+        Logger.info('✅ Database connection successful');
         return true;
       } else {
         throw new Error('Test query failed');
       }
     } catch (error) {
-      console.error('❌ Database connection failed:', error);
+      Logger.error('❌ Database connection failed:', error);
       throw error;
     }
   }
@@ -85,25 +86,25 @@ class DatabaseManager {
     try {
       const sqlPath = path.join(__dirname, '..', 'sql', filename);
       let sql = await fs.readFile(sqlPath, 'utf8');
-      
+
       // Remplacer les variables si nécessaire
       for (const [key, value] of Object.entries(variables)) {
         sql = sql.replace(new RegExp(`{{${key}}}`, 'g'), value);
       }
-      
+
       // Séparer les requêtes par point-virgule et les exécuter une par une
       const queries = sql.split(';').filter(query => query.trim().length > 0);
-      
+
       for (const query of queries) {
         if (query.trim()) {
           await this.pool.execute(query);
         }
       }
-      
-      console.log(`✅ SQL file executed: ${filename}`);
+
+      Logger.info(`✅ SQL file executed: ${filename}`);
       return true;
     } catch (error) {
-      console.error(`❌ Error executing SQL file ${filename}:`, error);
+      Logger.error(`❌ Error executing SQL file ${filename}:`, error);
       throw error;
     }
   }
@@ -113,18 +114,18 @@ class DatabaseManager {
    */
   async initializeDatabase() {
     try {
-      console.log('🔄 Initializing database...');
-      
+      Logger.info('🔄 Initializing database...');
+
       // Créer les tables
       await this.executeSQLFile('001_create_tables.sql');
-      
+
       // Insérer les données par défaut
       await this.executeSQLFile('002_default_data.sql');
-      
-      console.log('✅ Database initialized successfully');
+
+      Logger.info('✅ Database initialized successfully');
       return true;
     } catch (error) {
-      console.error('❌ Database initialization failed:', error);
+      Logger.error('❌ Database initialization failed:', error);
       throw error;
     }
   }
@@ -136,19 +137,24 @@ class DatabaseManager {
    */
   startModuleStatusCleanup(intervalMinutes = 1, maxAgeMinutes = 5) {
     if (!this.moduleDAO) {
-      console.error('❌ ModuleDAO not initialized');
+      Logger.error('❌ ModuleDAO not initialized');
       return;
     }
 
-    setInterval(() => {
-      try {
-        this.moduleDAO.cleanupStatus(maxAgeMinutes);
-      } catch (error) {
-        console.error('❌ Error during module status cleanup:', error);
-      }
-    }, intervalMinutes * 60 * 1000);
+    setInterval(
+      () => {
+        try {
+          this.moduleDAO.cleanupStatus(maxAgeMinutes);
+        } catch (error) {
+          Logger.error('❌ Error during module status cleanup:', error);
+        }
+      },
+      intervalMinutes * 60 * 1000
+    );
 
-    console.log(`🧹 Module status cleanup started (every ${intervalMinutes}min, max age ${maxAgeMinutes}min)`);
+    Logger.info(
+      `🧹 Module status cleanup started (every ${intervalMinutes}min, max age ${maxAgeMinutes}min)`
+    );
   }
 
   /**
@@ -164,7 +170,7 @@ class DatabaseManager {
       const [totalUsers, totalModules, adminUsers] = await Promise.all([
         this.userDAO.count(),
         this.moduleDAO.count(),
-        this.userDAO.countAdmins()
+        this.userDAO.countAdmins(),
       ]);
 
       const onlineModules = this.moduleDAO.countOnline();
@@ -174,10 +180,10 @@ class DatabaseManager {
         totalModules,
         onlineModules,
         adminUsers,
-        regularUsers: totalUsers - adminUsers
+        regularUsers: totalUsers - adminUsers,
       };
     } catch (error) {
-      console.error('Error getting global stats:', error);
+      Logger.error('Error getting global stats:', error);
       throw error;
     }
   }
@@ -189,10 +195,10 @@ class DatabaseManager {
     try {
       if (this.pool) {
         await this.pool.end();
-        console.log('✅ Database connections closed');
+        Logger.info('✅ Database connections closed');
       }
     } catch (error) {
-      console.error('❌ Error closing database connections:', error);
+      Logger.error('❌ Error closing database connections:', error);
       throw error;
     }
   }
@@ -223,23 +229,26 @@ const databaseManager = new DatabaseManager();
  * Fonctions de compatibilité - Utilisateurs
  */
 const verifyLogin = async (email, password) => databaseManager.users.verifyLogin(email, password);
-const createUser = async (email, password, name) => databaseManager.users.createUser(email, password, name);
-const getUserById = async (userId) => databaseManager.users.findById(userId);
-const getAllUsers = async (options) => databaseManager.users.findAll(options);
-const updateUserProfile = async (userId, updates) => databaseManager.users.updateProfile(userId, updates);
-const updateLastLogin = async (userId) => databaseManager.users.updateLastLogin(userId);
+const createUser = async (email, password, name) =>
+  databaseManager.users.createUser(email, password, name);
+const getUserById = async userId => databaseManager.users.findById(userId);
+const getAllUsers = async options => databaseManager.users.findAll(options);
+const updateUserProfile = async (userId, updates) =>
+  databaseManager.users.updateProfile(userId, updates);
+const updateLastLogin = async userId => databaseManager.users.updateLastLogin(userId);
 
 /**
  * Fonctions de compatibilité - Modules
  */
-const getUserModules = async (userId) => databaseManager.modules.findByUserId(userId);
-const getAllModules = async (options) => databaseManager.modules.findAll(options);
+const getUserModules = async userId => databaseManager.modules.findByUserId(userId);
+const getAllModules = async options => databaseManager.modules.findAll(options);
 const getAvailableModules = async () => databaseManager.modules.findAvailable();
 const claimModule = async (moduleId, userId) => databaseManager.modules.claim(moduleId, userId);
 const releaseModule = async (moduleId, userId) => databaseManager.modules.release(moduleId, userId);
-const getModuleById = async (moduleId) => databaseManager.modules.findById(moduleId);
-const updateModuleStatus = async (moduleId, status, userId) => databaseManager.modules.updateStatus(moduleId, status, userId);
-const cleanupModuleStatus = (maxAgeMinutes) => databaseManager.modules.cleanupStatus(maxAgeMinutes);
+const getModuleById = async moduleId => databaseManager.modules.findById(moduleId);
+const updateModuleStatus = async (moduleId, status, userId) =>
+  databaseManager.modules.updateStatus(moduleId, status, userId);
+const cleanupModuleStatus = maxAgeMinutes => databaseManager.modules.cleanupStatus(maxAgeMinutes);
 
 /**
  * Fonctions de compatibilité - Base de données

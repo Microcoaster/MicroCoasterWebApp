@@ -44,6 +44,7 @@ MicroCoaster WebApp is a comprehensive web-based control system for managing ESP
 ## ✨ Features
 
 ### 🎮 **Module Control**
+
 - **Station Management**: Gates, harness locks, dispatch systems, emergency stops
 - **Launch Track**: Variable speed control, direction switching, duration settings
 - **Switch Track**: Automated track switching with position feedback
@@ -52,18 +53,21 @@ MicroCoaster WebApp is a comprehensive web-based control system for managing ESP
 - **Audio Player**: Multi-track audio playback with playlist management
 
 ### 🔄 **Real-time Communication**
+
 - **Socket.io Integration**: Bi-directional real-time communication
 - **Live Telemetry**: Real-time status updates from ESP32 modules
 - **Presence Detection**: Online/offline module status monitoring
 - **Command Feedback**: Instant confirmation of control actions
 
 ### 🛡️ **Security & Authentication**
+
 - **Session-based Auth**: Secure user authentication system
 - **Access Control**: User-specific module permissions
 - **Environment Variables**: Secure configuration management
 - **CORS Protection**: Configurable cross-origin resource sharing
 
 ### 📱 **Modern UI/UX**
+
 - **Responsive Design**: Works on desktop, tablet, and mobile
 - **Real-time Updates**: Live status indicators and animations
 - **Interactive Controls**: Touch-friendly interface elements
@@ -80,32 +84,37 @@ MicroCoaster WebApp is a comprehensive web-based control system for managing ESP
 ### Quick Start
 
 1. **Clone the repository**
+
    ```bash
    git clone https://github.com/CyberSpaceRS/MicroCoasterWebApp.git
    cd MicroCoasterWebApp
    ```
 
 2. **Install dependencies**
+
    ```bash
    npm install
    ```
 
 3. **Configure environment**
+
    ```bash
    cp .env.example .env
    # Edit .env with your database credentials
    ```
 
 4. **Setup database**
+
    ```sql
    CREATE DATABASE s37_MicroCoaster_WebApp;
-   
+
    -- Import your database schema
    -- CREATE TABLE access_codes (id, code, name);
    -- CREATE TABLE modules (id, name, type, user_id);
    ```
 
 5. **Start the server**
+
    ```bash
    npm start
    # or for development
@@ -191,7 +200,7 @@ SocketIoClient webSocket;
 void setup() {
     // Connect to WiFi
     WiFi.begin("your-wifi", "password");
-    
+
     // Connect to server
     webSocket.begin("your-server-ip", 3000);
     webSocket.on("module_command", handleCommand);
@@ -216,28 +225,28 @@ node sim-esp-socketio.cjs
 
 #### Client → Server
 
-| Event | Description | Payload |
-|-------|-------------|---------|
-| `module_command` | Send command to ESP32 | `{moduleId, command, params}` |
-| `register` | Register as ESP32 module | `{role: "esp32", moduleId, moduleType}` |
+| Event            | Description              | Payload                                 |
+| ---------------- | ------------------------ | --------------------------------------- |
+| `module_command` | Send command to ESP32    | `{moduleId, command, params}`           |
+| `register`       | Register as ESP32 module | `{role: "esp32", moduleId, moduleType}` |
 
 #### Server → Client
 
-| Event | Description | Payload |
-|-------|-------------|---------|
-| `modules_state` | Current modules status | `[{moduleId, online}]` |
-| `module_online` | Module came online | `{moduleId}` |
-| `module_offline` | Module went offline | `{moduleId}` |
-| `module_telemetry` | Module status update | `{moduleId, ...telemetryData}` |
+| Event              | Description            | Payload                        |
+| ------------------ | ---------------------- | ------------------------------ |
+| `modules_state`    | Current modules status | `[{moduleId, online}]`         |
+| `module_online`    | Module came online     | `{moduleId}`                   |
+| `module_offline`   | Module went offline    | `{moduleId}`                   |
+| `module_telemetry` | Module status update   | `{moduleId, ...telemetryData}` |
 
 ### HTTP Routes
 
-| Method | Route | Description |
-|--------|-------|-------------|
-| `GET` | `/` | Login page |
-| `POST` | `/login` | Authenticate user |
-| `GET` | `/modules` | Modules dashboard |
-| `POST` | `/logout` | Logout user |
+| Method | Route      | Description       |
+| ------ | ---------- | ----------------- |
+| `GET`  | `/`        | Login page        |
+| `POST` | `/login`   | Authenticate user |
+| `GET`  | `/modules` | Modules dashboard |
+| `POST` | `/logout`  | Logout user       |
 
 ## 🗂️ Project Structure
 
@@ -298,6 +307,7 @@ npm run lint       # Code linting
 ### Common Issues
 
 **Database Connection Failed**
+
 ```bash
 # Check your .env configuration
 # Verify MySQL is running
@@ -305,6 +315,7 @@ npm run lint       # Code linting
 ```
 
 **WebSocket Connection Failed**
+
 ```bash
 # Check firewall settings
 # Verify port 3000 is available
@@ -312,6 +323,7 @@ npm run lint       # Code linting
 ```
 
 **ESP32 Not Connecting**
+
 ```bash
 # Verify WiFi credentials
 # Check server IP address
@@ -321,11 +333,13 @@ npm run lint       # Code linting
 ## 📋 Requirements
 
 ### Hardware
+
 - ESP32 development boards
 - Various sensors and actuators (LEDs, servos, sensors)
 - WiFi network connectivity
 
 ### Software
+
 - Node.js 18+
 - MySQL 8.0+
 - Modern web browser (Chrome, Firefox, Safari, Edge)

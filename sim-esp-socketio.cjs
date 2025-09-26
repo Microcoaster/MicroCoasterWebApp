@@ -6,20 +6,20 @@ const SERVER_URL = process.env.SERVER_URL || 'http://127.0.0.1:3000';
 const MODULE_ID = process.env.MODULE_ID || 'MC-0001-AP';
 
 let socket;
-let uptimeStart = Date.now();
+const uptimeStart = Date.now();
 let tmHandle = null;
 
 // -------- Helpers --------
-const log  = (...a) => console.log('[SIM ESP]', ...a);
+const log = (...a) => console.log('[SIM ESP]', ...a);
 
-const typeFromId = (mid) => {
+const typeFromId = mid => {
   const up = String(mid).toUpperCase();
   if (up.endsWith('-STN')) return 'Station';
-  if (up.endsWith('-ST'))  return 'Switch Track';
+  if (up.endsWith('-ST')) return 'Switch Track';
   if (up.endsWith('-LFX')) return 'Light FX';
-  if (up.endsWith('-LT'))  return 'Launch Track';
-  if (up.endsWith('-SM'))  return 'Smoke Machine';
-  if (up.endsWith('-AP'))  return 'Audio Player';
+  if (up.endsWith('-LT')) return 'Launch Track';
+  if (up.endsWith('-SM')) return 'Smoke Machine';
+  if (up.endsWith('-AP')) return 'Audio Player';
   return 'Unknown';
 };
 
@@ -30,42 +30,42 @@ const state = {
   common: { uptime_ms: 0 },
 
   // Station
-  station: { gates:false, harness:false, nsf:true, estop:false, inDispatch:false },
+  station: { gates: false, harness: false, nsf: true, estop: false, inDispatch: false },
 
   // Switch Track
-  swt: { transfer:false, left:false, right:false },
+  swt: { transfer: false, left: false, right: false },
 
   // Light FX
-  lfx: { on:false },
+  lfx: { on: false },
 
   // Launch Track
-  lt: { ready:true, speed:60, duration:5, dir:1, running:false },
+  lt: { ready: true, speed: 60, duration: 5, dir: 1, running: false },
 
   // Smoke Machine
-  sm: { ready:true, duration:8, running:false },
+  sm: { ready: true, duration: 8, running: false },
 
   // Audio Player
   ap: {
     playlist: [
-      { file:'001.mp3', title:'Taron'  },
-      { file:'002.mp3', title:'Klugheim Ambience' },
-      { file:'003.mp3', title:'Baron 1898' },
-      { file:'004.mp3', title:'The Smiler' },
-      { file:'005.mp3', title:'Voltron' }
+      { file: '001.mp3', title: 'Taron' },
+      { file: '002.mp3', title: 'Klugheim Ambience' },
+      { file: '003.mp3', title: 'Baron 1898' },
+      { file: '004.mp3', title: 'The Smiler' },
+      { file: '005.mp3', title: 'Voltron' },
     ],
-    current: 0
-  }
+    current: 0,
+  },
 };
 
 // -------- Télémétrie --------
 function sendTelemetry() {
   if (!socket || !socket.connected) return;
-  
+
   state.common.uptime_ms = Date.now() - uptimeStart;
-  
+
   let payload = { ...state.common };
-  
-  switch(TYPE) {
+
+  switch (TYPE) {
     case 'Station':
       payload = { ...payload, ...state.station };
       break;
@@ -85,15 +85,15 @@ function sendTelemetry() {
       payload = { ...payload, ...state.ap };
       break;
   }
-  
+
   socket.emit('telemetry', payload);
 }
 
 // -------- Commandes par type --------
 function handleCommand(cmd, params = {}) {
   log(`Received command: ${cmd}`, params);
-  
-  switch(TYPE) {
+
+  switch (TYPE) {
     case 'Station':
       handleStationCommand(cmd, params);
       break;
@@ -113,13 +113,13 @@ function handleCommand(cmd, params = {}) {
       handleAudioCommand(cmd, params);
       break;
   }
-  
+
   // Envoyer immédiatement la télémétrie mise à jour
   sendTelemetry();
 }
 
-function handleStationCommand(cmd, params) {
-  switch(cmd) {
+function handleStationCommand(cmd) {
+  switch (cmd) {
     case 'gates_open':
       state.station.gates = false;
       log('Gates opened');
@@ -147,8 +147,8 @@ function handleStationCommand(cmd, params) {
   }
 }
 
-function handleSwitchTrackCommand(cmd, params) {
-  switch(cmd) {
+function handleSwitchTrackCommand(cmd) {
+  switch (cmd) {
     case 'left':
       state.swt.transfer = true;
       state.swt.left = true;
@@ -172,17 +172,20 @@ function handleLightFXCommand(cmd, params) {
 }
 
 function handleLaunchTrackCommand(cmd, params) {
-  switch(cmd) {
+  switch (cmd) {
     case 'forward':
     case 'backward':
       state.lt.dir = cmd === 'forward' ? 1 : -1;
       if (params.speed) state.lt.speed = params.speed;
       state.lt.running = true;
       log(`Launch ${cmd} at ${state.lt.speed}% speed`);
-      setTimeout(() => {
-        state.lt.running = false;
-        sendTelemetry();
-      }, (params.duration || state.lt.duration) * 1000);
+      setTimeout(
+        () => {
+          state.lt.running = false;
+          sendTelemetry();
+        },
+        (params.duration || state.lt.duration) * 1000
+      );
       break;
     case 'speed':
       state.lt.speed = params.value || 60;
@@ -216,41 +219,41 @@ function handleAudioCommand(cmd, params) {
 // -------- Connexion Socket.io --------
 function connect() {
   log(`Connecting ESP32 simulator ${MODULE_ID} (${TYPE}) to ${SERVER_URL}...`);
-  
+
   socket = io(SERVER_URL, {
     transports: ['websocket'], // Force WebSocket
     timeout: 20000,
     reconnection: true,
     reconnectionDelay: 2000,
-    reconnectionAttempts: 5
+    reconnectionAttempts: 5,
   });
-  
+
   socket.on('connect', () => {
     log('🟢 Connected to server');
-    
+
     // S'identifier comme module ESP32
     socket.emit('module_identify', {
       moduleId: MODULE_ID,
-      type: TYPE
+      type: TYPE,
     });
   });
-  
-  socket.on('connected', (data) => {
+
+  socket.on('connected', data => {
     log('✅ Module registered:', data.message);
-    
+
     // Démarrer l'envoi de télémétrie périodique
     tmHandle = setInterval(sendTelemetry, 2000);
-    
+
     // Envoyer immédiatement la télémétrie initiale
     sendTelemetry();
   });
-  
-  socket.on('command', (data) => {
+
+  socket.on('command', data => {
     if (data.payload && data.payload.command) {
       handleCommand(data.payload.command, data.payload.params);
     }
   });
-  
+
   socket.on('disconnect', () => {
     log('🔴 Disconnected from server');
     if (tmHandle) {
@@ -258,8 +261,8 @@ function connect() {
       tmHandle = null;
     }
   });
-  
-  socket.on('error', (error) => {
+
+  socket.on('error', error => {
     log('❌ Socket error:', error);
   });
 }
@@ -267,7 +270,7 @@ function connect() {
 // -------- Simulation de variations d'état --------
 function simulateRandomChanges() {
   // Simuler des changements d'état aléatoires pour rendre la démo plus vivante
-  switch(TYPE) {
+  switch (TYPE) {
     case 'Station':
       // Simuler Next Section Free qui change aléatoirement
       if (Math.random() > 0.8) {
@@ -289,7 +292,7 @@ function simulateRandomChanges() {
 }
 
 // -------- Démarrage --------
-log(`🤖 ESP32 Simulator starting...`);
+log('🤖 ESP32 Simulator starting...');
 log(`Module ID: ${MODULE_ID}`);
 log(`Type: ${TYPE}`);
 log(`Server: ${SERVER_URL}`);
