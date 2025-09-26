@@ -53,7 +53,7 @@
             </svg>
           </div>
           <div class="stat-content">
-            <h3><%= stats.totalUsers %></h3>
+            <h3 class="stat-total-users"><%= stats.totalUsers %></h3>
             <p>Utilisateurs</p>
           </div>
         </div>
@@ -73,7 +73,7 @@
             </svg>
           </div>
           <div class="stat-content">
-            <h3><%= stats.totalModules %></h3>
+            <h3 class="stat-total-modules"><%= stats.totalModules %></h3>
             <p>Modules</p>
           </div>
         </div>
@@ -85,7 +85,7 @@
             </svg>
           </div>
           <div class="stat-content">
-            <h3><%= stats.onlineModules %></h3>
+            <h3 class="stat-online-modules"><%= stats.onlineModules %></h3>
             <p>En ligne</p>
           </div>
         </div>
@@ -96,7 +96,7 @@
             </svg>
           </div>
           <div class="stat-content">
-            <h3><%= stats.adminUsers %></h3>
+            <h3 class="stat-admin-users"><%= stats.adminUsers %></h3>
             <p>Admins</p>
           </div>
         </div>
@@ -186,12 +186,12 @@
                 </tr>
                 <% } else { %>
                 <% users.forEach(user => { %>
-                <tr>
-                  <td><%= user.name %></td>
-                  <td><%= user.email %></td>
+                <tr data-user-id="<%= user.id %>">
+                  <td class="user-name"><%= user.name %></td>
+                  <td class="user-email"><%= user.email %></td>
                   <td>
-                    <span class="<%= user.is_admin ? 'badge badge-admin' : 'badge badge-user' %>">
-                      <%= user.is_admin ? 'Administrateur' : 'Utilisateur' %>
+                    <span class="<%= user.is_admin ? 'badge badge-admin' : 'badge badge-user' %> user-role">
+                      <%= user.is_admin ? 'ADMINISTRATEUR' : 'UTILISATEUR' %>
                     </span>
                   </td>
                   <td><%= user.module_count %></td>
@@ -327,7 +327,7 @@
                 </tr>
                 <% } else { %>
                 <% modules.forEach(module => { %>
-                <tr>
+                <tr data-module-id="<%= module.module_id %>">
                   <td><code><%= module.module_id %></code></td>
                   <td><%= module.name || 'Sans nom' %></td>
                   <td>
@@ -394,6 +394,8 @@
 </div>
 
   <!-- Scripts -->
+  <!-- Socket.io client -->
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/global.js"></script>
   <script src="/js/admin.js"></script>
 </body>

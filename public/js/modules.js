@@ -1256,12 +1256,62 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     });
   }
 
+  // Gestionnaire de reconnexion automatique
+  let reconnectionManager;
+
   function connectSocket() {
     try {
+      console.log('🔌 [DEBUG] Initializing Socket.io connection...');
+      console.log('🔌 [DEBUG] io available:', typeof io !== 'undefined');
+      console.log('🔌 [DEBUG] ReconnectionManager available:', typeof ReconnectionManager !== 'undefined');
+      
       // Socket.io se connecte automatiquement avec les sessions
       socket = io();
+      console.log('🔌 [DEBUG] Socket.io instance created:', socket);
+
+      // Initialiser le gestionnaire de reconnexion si pas déjà fait et si disponible
+      if (!reconnectionManager && typeof ReconnectionManager !== 'undefined') {
+        reconnectionManager = new ReconnectionManager(() => {
+          return new Promise((resolve) => {
+            const newSocket = io();
+            newSocket.on('connect', () => resolve(newSocket));
+            newSocket.on('connect_error', () => resolve(null));
+          });
+        }, {
+          maxReconnectAttempts: 15,
+          reconnectDelay: 1000,
+          maxReconnectDelay: 15000
+        });
+
+        // Callbacks de reconnexion
+        reconnectionManager.onReconnect((newSocket) => {
+          socket = newSocket;
+          setupSocketEvents(socket);
+          
+          // 📡 NOUVEAU: S'enregistrer à nouveau après reconnexion
+          socket.emit('register_page', { page: 'modules' });
+          console.log('📡 [DEBUG] Re-registered with server after reconnection for page: modules');
+          
+          setServerBanner(false);
+          window.applyOnlineFilter?.();
+        });
+
+        reconnectionManager.onDisconnect(() => {
+          markAllOffline();
+          setServerBanner(true);
+        });
+      }
+
+      setupSocketEvents(socket);
 
       socket.on('connect', () => {
+        console.log('✅ [DEBUG] Socket.io connected successfully!');
+        
+        // 📡 NOUVEAU: S'enregistrer auprès du serveur pour les événements temps réel
+        socket.emit('register_page', { page: 'modules' });
+        console.log('📡 [DEBUG] Registered with server for page: modules');
+        
+        reconnectionManager.reset(); // Réinitialiser les tentatives
         setServerBanner(false);
         // Plus besoin d'authentification, les sessions sont partagées !
         window.applyOnlineFilter?.();
@@ -1270,49 +1320,116 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       socket.on('disconnect', () => {
         markAllOffline();
         setServerBanner(true);
-      });
-
-      // Réception des états de modules
-      socket.on('modules_state', states => {
-        states.forEach(state => {
-          setPresence(state.moduleId, state.online);
-        });
-      });
-
-      // Module en ligne
-      socket.on('module_online', data => {
-        setPresence(data.moduleId, true);
-      });
-
-      // Module hors ligne
-      socket.on('module_offline', data => {
-        setPresence(data.moduleId, false);
-      });
-
-      // Télémétrie des modules
-      socket.on('module_telemetry', data => {
-        updateTelemetry(data.moduleId, data);
-      });
-
-      // Confirmation de commande
-      socket.on('command_sent', () => {
-        // Commande envoyée avec succès
-      });
-
-      // Erreur de commande
-      socket.on('command_error', error => {
-        console.error('❌ Command error:', error);
-        window.showToast?.(error.message || 'Command failed', 'error', 3000);
-      });
-
-      socket.on('error', error => {
-        console.error('🔌 Socket.io error:', error);
+        // Démarrer la reconnexion automatique
+        if (reconnectionManager) {
+          reconnectionManager.onDisconnection();
+        }
       });
     } catch (e) {
       console.error('🔌 Socket.io connection failed:', e);
       scheduleDownBanner();
-      setTimeout(connectSocket, 2000);
+      if (reconnectionManager) {
+        reconnectionManager.startReconnection();
+      } else {
+        setTimeout(connectSocket, 2000);
+      }
     }
+  }
+
+  // Fonction pour configurer tous les événements Socket.io
+  function setupSocketEvents(socket) {
+    console.log('🔌 [DEBUG] Setting up socket events...');
+    
+    // Réception des états de modules
+    socket.on('modules_state', states => {
+      console.log('📡 [DEBUG] Received modules_state:', states);
+      states.forEach(state => {
+        setPresence(state.moduleId, state.online);
+      });
+    });
+
+    // Module en ligne
+    socket.on('module_online', data => {
+      setPresence(data.moduleId, true);
+    });
+
+    // Module hors ligne
+    socket.on('module_offline', data => {
+      setPresence(data.moduleId, false);
+    });
+
+    // Télémétrie des modules
+    socket.on('module_telemetry', data => {
+      updateTelemetry(data.moduleId, data);
+    });
+
+    // Confirmation de commande
+    socket.on('command_sent', () => {
+      // Commande envoyée avec succès
+    });
+
+    // Erreur de commande
+    socket.on('command_error', error => {
+      console.error('❌ Command error:', error);
+      window.showToast?.(error.message || 'Command failed', 'error', 3000);
+    });
+
+    socket.on('error', error => {
+      console.error('🔌 Socket.io error:', error);
+    });
+
+    // === ÉVÉNEMENTS TEMPS RÉEL ===
+    
+    // Module ajouté en temps réel
+    socket.on('rt_module_added', data => {
+      console.log('📡 [DEBUG] Real-time: Module added', data);
+      // Rafraîchir la liste des modules si nécessaire
+      window.location.reload(); // Solution simple, pourrait être optimisée
+    });
+
+    // Module supprimé en temps réel
+    socket.on('rt_module_removed', data => {
+      console.log('📡 Real-time: Module removed', data);
+      // Retirer le module de l'interface
+      const panel = document.querySelector(`.panel[data-mid="${data.moduleId}"]`);
+      if (panel) {
+        panel.remove();
+        controllersByMid.delete(data.moduleId);
+      }
+    });
+
+    // Module mis à jour en temps réel
+    socket.on('rt_module_updated', data => {
+      console.log('📡 Real-time: Module updated', data);
+      // Mettre à jour le nom/type du module dans l'interface
+      const panel = document.querySelector(`.panel[data-mid="${data.moduleId}"]`);
+      if (panel) {
+        const nameElement = panel.querySelector('.module-name');
+        const typeElement = panel.querySelector('.module-type');
+        if (nameElement && data.name) nameElement.textContent = data.name;
+        if (typeElement && data.type) typeElement.textContent = data.type;
+      }
+    });
+
+    // Module en ligne en temps réel
+    socket.on('rt_module_online', data => {
+      console.log('📡 [RT-DEBUG] Real-time: Module online received!', data);
+      setPresence(data.moduleId, true);
+      console.log('📡 [RT-DEBUG] setPresence called with:', data.moduleId, true);
+    });
+
+    // Module hors ligne en temps réel
+    socket.on('rt_module_offline', data => {
+      console.log('📡 [RT-DEBUG] Real-time: Module offline received!', data);
+      setPresence(data.moduleId, false);
+      console.log('📡 [RT-DEBUG] setPresence called with:', data.moduleId, false);
+    });
+
+    // Télémétrie mise à jour en temps réel
+    socket.on('rt_telemetry_updated', data => {
+      console.log('📡 Real-time: Telemetry updated', data);
+      updateTelemetry(data.moduleId, data.telemetry);
+    });
   }
 
   // Fonction pour envoyer des commandes (remplace l'ancienne ws_sendCommand)
@@ -1347,8 +1464,12 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     });
   };
 
-  // Connexion automatique
-  connectSocket();
+  // Initialisation après chargement du DOM
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', connectSocket);
+  } else {
+    connectSocket();
+  }
 
   // expose reconnect pour debug
   window.mc_socketReconnect = () => {

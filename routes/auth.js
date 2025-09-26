@@ -54,11 +54,26 @@ router.post('/login', async (req, res) => {
       if (user) {
         // Mettre à jour la dernière connexion
         await databaseManager.users.updateLastLogin(user.id);
+        
+        // Récupérer l'utilisateur avec la dernière connexion mise à jour
+        const updatedUser = await databaseManager.users.findById(user.id);
 
-        req.session.user_id = user.id;
-        req.session.email = user.email;
-        req.session.nickname = user.name;
-        req.session.is_admin = user.is_admin;
+        req.session.user_id = updatedUser.id;
+        req.session.email = updatedUser.email;
+        req.session.nickname = updatedUser.name;
+        req.session.is_admin = updatedUser.is_admin;
+        
+        // Émettre événement temps réel : utilisateur connecté
+        if (req.app.locals.realTimeAPI) {
+          req.app.locals.realTimeAPI.emitUserLoggedIn({
+            id: updatedUser.id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            is_admin: updatedUser.is_admin,
+            last_login: updatedUser.last_login // Utiliser la vraie valeur de la BDD
+          }, req.sessionID);
+        }
+        
         Logger.info('User authenticated:', user.name, user.is_admin ? '(admin)' : '');
         return res.redirect('/dashboard');
       } else {
@@ -93,10 +108,31 @@ router.post('/register', async (req, res) => {
     } else {
       // Créer le compte
       const user = await databaseManager.users.createUser(email, password, name);
-      req.session.user_id = user.id;
-      req.session.email = user.email;
-      req.session.nickname = user.name;
-      req.session.is_admin = user.is_admin;
+      
+      // Mettre à jour la dernière connexion pour le nouvel utilisateur
+      await databaseManager.users.updateLastLogin(user.id);
+      
+      // Récupérer l'utilisateur avec la dernière connexion mise à jour
+      const updatedUser = await databaseManager.users.findById(user.id);
+      
+      req.session.user_id = updatedUser.id;
+      req.session.email = updatedUser.email;
+      req.session.nickname = updatedUser.name;
+      req.session.is_admin = updatedUser.is_admin;
+      
+      // Émettre événement temps réel : nouvel utilisateur enregistré
+      if (req.app.locals.realTimeAPI) {
+        req.app.locals.realTimeAPI.emitUserLoggedIn({
+          id: updatedUser.id,
+          name: updatedUser.name,
+          email: updatedUser.email,
+          is_admin: updatedUser.is_admin,
+          last_login: updatedUser.last_login,
+          isNewUser: true,
+          registrationDate: new Date()
+        }, req.sessionID);
+      }
+      
       Logger.info('New user registered:', user.name);
       return res.redirect('/dashboard');
     }
@@ -114,6 +150,17 @@ router.post('/register', async (req, res) => {
 
 router.get('/logout', (req, res) => {
   const userName = req.session.nickname || 'User';
+  const userId = req.session.user_id;
+  
+  // Émettre événement temps réel : utilisateur déconnecté
+  if (req.app.locals.realTimeAPI && userId) {
+    req.app.locals.realTimeAPI.emitUserLoggedOut({
+      id: userId,
+      name: userName,
+      logoutTime: new Date()
+    }, req.sessionID);
+  }
+  
   req.session.destroy(err => {
     if (err) {
       Logger.error('Session destroy error:', err);
@@ -163,15 +210,35 @@ router.post('/profile', requireAuth, async (req, res) => {
       error = 'Un compte avec cet email existe déjà.';
     } else {
       // Mise à jour
-      const updatedUser = await databaseManager.users.updateProfile(req.session.user_id, {
+      const updateSuccess = await databaseManager.users.updateProfile(req.session.user_id, {
         name,
         email,
       });
-      req.session.nickname = updatedUser.name;
-      req.session.email = updatedUser.email;
-      success = 'Profil mis à jour avec succès.';
-      user.name = updatedUser.name;
-      user.email = updatedUser.email;
+      
+      if (updateSuccess) {
+        // Récupérer l'utilisateur mis à jour
+        const updatedUser = await databaseManager.users.findById(req.session.user_id);
+        
+        req.session.nickname = updatedUser.name;
+        req.session.email = updatedUser.email;
+        
+        // Émettre événement temps réel : profil utilisateur mis à jour
+        if (req.app.locals.realTimeAPI) {
+          req.app.locals.realTimeAPI.emitUserProfileUpdated({
+            id: updatedUser.id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            is_admin: updatedUser.is_admin,
+            updatedAt: new Date()
+          }, req.sessionID);
+          
+          success = 'Profil mis à jour avec succès.';
+          user.name = updatedUser.name;
+          user.email = updatedUser.email;
+        }
+      } else {
+        error = 'Erreur lors de la mise à jour du profil.';
+      }
     }
   } catch (err) {
     Logger.error('Profile update error:', err);

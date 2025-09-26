@@ -3,16 +3,7 @@
  * Gestion des fonctionnalités de la page d'administration
  */
 
-document.addEventListener('DOMContentLoaded', function () {
-  // Initialiser les badges de types pour tous les modules affichés
-  initializeModuleTypeBadges();
-
-  // Initialiser les fonctionnalités de pagination si présentes
-  initializePagination();
-
-  // Initialiser les filtres si présents
-  initializeFilters();
-});
+// Ce code a été déplacé dans initializeAll() pour éviter la duplication
 
 /**
  * Génère le badge HTML pour un type de module
@@ -188,6 +179,10 @@ function applyFilters() {
   // Filtrer les modules
   filterTable('modules');
 
+  // Réappliquer le tri après filtrage
+  applySorting('users');
+  applySorting('modules');
+
   // Réinitialiser la pagination après filtrage
   paginationState.users.page = 1;
   paginationState.modules.page = 1;
@@ -336,6 +331,168 @@ function showNoResultsMessage(table, visibleCount) {
 }
 
 /**
+ * Initialise le système de tri par colonnes
+ */
+function initializeSorting() {
+  // Écouter les clics sur les en-têtes sortables
+  const sortableHeaders = document.querySelectorAll('.sortable-header');
+  
+  sortableHeaders.forEach(header => {
+    header.addEventListener('click', function() {
+      const column = this.getAttribute('data-sort');
+      const tableElement = this.closest('table');
+      const tableType = tableElement ? tableElement.getAttribute('data-table') : null;
+      
+      if (column && tableType) {
+        handleSort(tableType, column);
+      }
+    });
+  });
+
+  // Appliquer le tri initial par défaut
+  setTimeout(() => {
+    updateSortArrows('users', 'last_login', 'desc');
+    updateSortArrows('modules', 'last_seen', 'desc');
+    applySorting('users');
+    applySorting('modules');
+  }, 200);
+}
+
+/**
+ * Gère le clic sur un en-tête de tri
+ */
+function handleSort(tableType, column) {
+  const currentSort = sortingState[tableType];
+  
+  // Si même colonne, inverser l'ordre, sinon utiliser desc par défaut
+  let newOrder = 'desc';
+  if (currentSort.column === column) {
+    newOrder = currentSort.order === 'asc' ? 'desc' : 'asc';
+  }
+  
+  // Mettre à jour l'état
+  sortingState[tableType] = { column, order: newOrder };
+  
+  // Appliquer le tri
+  applySorting(tableType);
+  
+  // Mettre à jour les flèches
+  updateSortArrows(tableType, column, newOrder);
+  
+  // Réappliquer les filtres et la pagination
+  applyClientSidePagination(tableType);
+  updatePaginationControls(tableType);
+}
+
+/**
+ * Applique le tri sur une table
+ */
+function applySorting(tableType) {
+  const table = document.querySelector(`.admin-table[data-table="${tableType}"]`);
+  if (!table) return;
+
+  const tbody = table.querySelector('tbody');
+  const rows = Array.from(tbody.querySelectorAll('tr:not(.filter-row):not(.no-results-row)'));
+  const { column, order } = sortingState[tableType];
+
+  // Fonction pour obtenir la valeur de tri d'une cellule
+  const getSortValue = (row, column, tableType) => {
+    const cells = row.querySelectorAll('td');
+    let cellIndex = 0;
+    let cellValue = '';
+
+    if (tableType === 'users') {
+      switch (column) {
+        case 'name': cellIndex = 0; break;
+        case 'email': cellIndex = 1; break;
+        case 'is_admin': cellIndex = 2; break;
+        case 'module_count': cellIndex = 3; break;
+        case 'last_login': cellIndex = 4; break;
+        case 'created_at': cellIndex = 5; break;
+        default: cellIndex = 0;
+      }
+    } else if (tableType === 'modules') {
+      switch (column) {
+        case 'module_id': cellIndex = 0; break;
+        case 'name': cellIndex = 1; break;
+        case 'type': cellIndex = 2; break;
+        case 'user_name': cellIndex = 3; break;
+        case 'status': cellIndex = 4; break;
+        case 'last_seen': cellIndex = 5; break;
+        default: cellIndex = 0;
+      }
+    }
+
+    cellValue = cells[cellIndex] ? cells[cellIndex].textContent.trim() : '';
+    
+    // Traitement spécial pour certaines colonnes
+    if (column === 'module_count') {
+      return parseInt(cellValue) || 0;
+    } else if (column === 'last_login' || column === 'last_seen' || column === 'created_at') {
+      if (cellValue === 'Jamais') return new Date(0);
+      
+      // Parser les dates françaises (DD/MM/YYYY HH:mm:ss)
+      const dateMatch = cellValue.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
+      if (dateMatch) {
+        const [, day, month, year, hour, minute, second] = dateMatch;
+        return new Date(year, month - 1, day, hour, minute, second);
+      }
+      
+      // Fallback pour d'autres formats
+      const simpleMatch = cellValue.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+      if (simpleMatch) {
+        const [, day, month, year] = simpleMatch;
+        return new Date(year, month - 1, day);
+      }
+      
+      return new Date(cellValue);
+    } else if (column === 'is_admin') {
+      return cellValue.toLowerCase().includes('admin') ? 1 : 0;
+    } else if (column === 'status') {
+      // "En ligne" doit être trié avant "Hors ligne"
+      return cellValue.toLowerCase().includes('en ligne') ? 1 : 0;
+    }
+    
+    return cellValue.toLowerCase();
+  };
+
+  // Trier les lignes
+  rows.sort((a, b) => {
+    const valueA = getSortValue(a, column, tableType);
+    const valueB = getSortValue(b, column, tableType);
+    
+    let comparison = 0;
+    if (valueA < valueB) comparison = -1;
+    else if (valueA > valueB) comparison = 1;
+    
+    return order === 'asc' ? comparison : -comparison;
+  });
+
+  // Réorganiser les lignes dans le DOM
+  rows.forEach(row => tbody.appendChild(row));
+}
+
+/**
+ * Met à jour les flèches de tri
+ */
+function updateSortArrows(tableType, activeColumn, order) {
+  const table = document.querySelector(`.admin-table[data-table="${tableType}"]`);
+  if (!table) return;
+
+  // Réinitialiser toutes les flèches
+  const arrows = table.querySelectorAll('.sort-arrow');
+  arrows.forEach(arrow => {
+    arrow.className = 'sort-arrow';
+  });
+
+  // Mettre à jour la flèche active
+  const activeArrow = table.querySelector(`.sort-arrow[data-sort="${activeColumn}"]`);
+  if (activeArrow) {
+    activeArrow.className = `sort-arrow ${order}`;
+  }
+}
+
+/**
  * Met à jour un badge de type de module dynamiquement
  * @param {HTMLElement} element - L'élément à mettre à jour
  * @param {string} newType - Le nouveau type de module
@@ -384,9 +541,13 @@ function initializeAll() {
     convertLegacyBadges();
     initializePagination();
     initializeFilters();
+    initializeSorting();
 
     // Initialiser la pagination côté client
     initializeClientSidePagination();
+    
+    // Initialiser les événements temps réel pour les admins
+    initializeRealTimeEvents();
   }, 100);
 }
 
@@ -420,19 +581,19 @@ function initializeClientSidePagination() {
   updatePaginationControls('modules');
 }
 
-// Remplacer l'ancien event listener
-document.removeEventListener('DOMContentLoaded', function () {
-  initializeModuleTypeBadges();
-  initializePagination();
-  initializeFilters();
-});
-
+// Un seul event listener pour éviter les doublons
 document.addEventListener('DOMContentLoaded', initializeAll);
 
 // État de pagination côté client
 const paginationState = {
   users: { page: 1, itemsPerPage: 10 },
   modules: { page: 1, itemsPerPage: 10 },
+};
+
+// État de tri côté client
+const sortingState = {
+  users: { column: 'last_login', order: 'desc' },
+  modules: { column: 'last_seen', order: 'desc' },
 };
 
 /**
@@ -568,9 +729,220 @@ function updatePaginationControls(tableType) {
 }
 
 /**
+ * Initialisation des événements temps réel WebSocket pour les admins
+ */
+function initializeRealTimeEvents() {
+  if (typeof io === 'undefined') {
+    console.warn('❌ Socket.io non disponible pour les événements temps réel');
+    return;
+  }
+
+  try {
+    const socket = io();
+
+    socket.on('connect', () => {
+      // 📡 NOUVEAU: S'enregistrer auprès du serveur pour les événements temps réel
+      socket.emit('register_page', { page: 'admin' });
+    });
+
+    // Événements utilisateurs
+    socket.on('rt_user_logged_in', data => {
+      showRealTimeNotification(`👤 ${data.user.name} s'est connecté${data.user.isNewUser ? ' (nouveau compte)' : ''}`);
+      
+      // Utiliser la vraie date de dernière connexion de la BDD
+      const loginTime = data.user.lastLogin ? new Date(data.user.lastLogin) : 
+                       (data.session ? new Date(data.session.loginTime) : new Date());
+      updateUserLastLogin(data.user.id, loginTime);
+    });
+
+    socket.on('rt_user_logged_out', data => {
+      showRealTimeNotification(`👤 ${data.user.name} s'est déconnecté`);
+    });
+
+    socket.on('rt_user_profile_updated', data => {
+      showRealTimeNotification(`👤 ${data.user.name} a mis à jour son profil`);
+      updateUserInTable(data.user);
+    });
+
+    // Événements modules
+    socket.on('rt_module_added', data => {
+      const moduleId = data.module ? data.module.module_id : data.moduleId;
+      showRealTimeNotification(`📦 Module ${moduleId} ajouté par un utilisateur`);
+      // Optionnel : ajouter dynamiquement à la liste
+    });
+
+    socket.on('rt_module_removed', data => {
+      const moduleId = data.module ? data.module.module_id : data.moduleId;
+      showRealTimeNotification(`📦 Module ${moduleId} supprimé`);
+      // Optionnel : retirer de la liste
+    });
+
+    socket.on('rt_module_updated', data => {
+      const moduleId = data.module ? data.module.module_id : data.moduleId;
+      showRealTimeNotification(`📦 Module ${moduleId} mis à jour`);
+      // Optionnel : mettre à jour la liste
+    });
+
+    socket.on('rt_module_online', data => {
+      updateModuleStatus(data.moduleId, true);
+      if (data.lastSeen) {
+        updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
+      }
+    });
+
+    socket.on('rt_module_offline', data => {
+      updateModuleStatus(data.moduleId, false);
+      if (data.lastSeen) {
+        updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
+      }
+    });
+
+    // Événement spécifique pour les mises à jour de dernière activité
+    socket.on('rt_module_last_seen_updated', data => {
+      if (data.lastSeen) {
+        updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
+      }
+    });
+
+    // Événement télémétrie avec mise à jour de lastSeen
+    socket.on('rt_telemetry_updated', data => {
+      if (data.lastSeen) {
+        updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
+      }
+    });
+
+    // Statistiques globales
+    socket.on('rt_global_stats_updated', data => {
+      updateGlobalStats(data.stats);
+    });
+
+  } catch (error) {
+    console.error('Erreur initialisation temps réel admin:', error);
+  }
+}
+
+/**
+ * Affiche une notification temps réel pour les admins
+ */
+function showRealTimeNotification(message) {
+  // Utiliser window.showToast si disponible (défini dans global.js)
+  if (window.showToast) {
+    window.showToast(message, 'info', 3000);
+  }
+}
+
+/**
+ * Met à jour le statut d'un module en temps réel
+ */
+function updateModuleStatus(moduleId, isOnline) {
+  const moduleRows = document.querySelectorAll(`tr[data-module-id="${moduleId}"]`);
+  
+  moduleRows.forEach(row => {
+    const statusSpan = row.querySelector('.status');
+    if (statusSpan) {
+      statusSpan.textContent = isOnline ? 'En ligne' : 'Hors ligne';
+      statusSpan.className = `status ${isOnline ? 'status-online' : 'status-offline'}`;
+    }
+  });
+}
+
+/**
+ * Met à jour la dernière activité d'un module en temps réel
+ */
+function updateModuleLastSeen(moduleId, lastSeen, lastSeenFormatted) {
+  const moduleRows = document.querySelectorAll(`tr[data-module-id="${moduleId}"]`);
+  
+  moduleRows.forEach(row => {
+    // La colonne "Dernière activité" est la 6ème colonne (index 5)
+    const lastSeenCell = row.children[5]; // 0: ID, 1: Nom, 2: Type, 3: Propriétaire, 4: Statut, 5: Dernière activité
+    if (lastSeenCell) {
+      // Utiliser le format déjà formaté ou formater la date
+      const displayText = lastSeenFormatted || (lastSeen ? new Date(lastSeen).toLocaleString('fr-FR') : 'Jamais');
+      lastSeenCell.textContent = displayText;
+    }
+  });
+}
+
+/**
+ * Met à jour les statistiques globales en temps réel
+ */
+function updateGlobalStats(stats) {
+  // Mettre à jour les compteurs de statistiques si présents
+  const statsElements = {
+    totalUsers: document.querySelector('.stat-total-users'),
+    totalModules: document.querySelector('.stat-total-modules'),
+    onlineModules: document.querySelector('.stat-online-modules'),
+    adminUsers: document.querySelector('.stat-admin-users')
+  };
+
+  // Les stats viennent sous forme: { users: {...}, modules: {...}, websocket: {...}, system: {...} }
+  if (stats.users && statsElements.totalUsers) {
+    statsElements.totalUsers.textContent = stats.users.total || 0;
+  }
+  if (stats.users && statsElements.adminUsers) {
+    statsElements.adminUsers.textContent = stats.users.admins || 0;
+  }
+  if (stats.modules && statsElements.totalModules) {
+    statsElements.totalModules.textContent = stats.modules.total || 0;
+  }
+  if (stats.modules && statsElements.onlineModules) {
+    statsElements.onlineModules.textContent = stats.modules.online || 0;
+  }
+}
+
+/**
+ * Met à jour les données d'un utilisateur dans le tableau en temps réel
+ */
+function updateUserInTable(user) {
+  // Chercher la ligne utilisateur par ID
+  const userRows = document.querySelectorAll(`tr[data-user-id="${user.id}"]`);
+  
+  userRows.forEach(row => {
+    // Mettre à jour le nom
+    const nameCell = row.querySelector('.user-name');
+    if (nameCell) {
+      nameCell.textContent = user.name;
+    }
+    
+    // Mettre à jour l'email
+    const emailCell = row.querySelector('.user-email');
+    if (emailCell) {
+      emailCell.textContent = user.email;
+    }
+    
+    // Mettre à jour le badge de rôle si nécessaire
+    const roleCell = row.querySelector('.user-role');
+    if (roleCell) {
+      const roleText = user.isAdmin ? 'ADMINISTRATEUR' : 'UTILISATEUR';
+      const badgeClass = user.isAdmin ? 'badge badge-admin' : 'badge badge-user';
+      
+      roleCell.textContent = roleText;
+      roleCell.className = `${badgeClass} user-role`;
+    }
+  });
+}
+
+/**
+ * Met à jour la dernière connexion d'un utilisateur dans le tableau
+ */
+function updateUserLastLogin(userId, loginTime) {
+  // Chercher la ligne utilisateur par ID
+  const userRows = document.querySelectorAll(`tr[data-user-id="${userId}"]`);
+  
+  userRows.forEach(row => {
+    // Mettre à jour la colonne "Dernière connexion" (5ème td = index 4)
+    const loginCell = row.children[4]; // 0: name, 1: email, 2: role, 3: modules, 4: last_login
+    if (loginCell) {
+      loginCell.textContent = loginTime.toLocaleString('fr-FR');
+    }
+  });
+}
+
+/**
  * Exporte les fonctions principales pour utilisation externe
  */
 window.getTypeBadge = getTypeBadge;
 window.updateModuleTypeBadge = updateModuleTypeBadge;
 window.convertLegacyBadges = convertLegacyBadges;
 window.initializeModuleTypeBadges = initializeModuleTypeBadges;
+window.initializeRealTimeEvents = initializeRealTimeEvents;
