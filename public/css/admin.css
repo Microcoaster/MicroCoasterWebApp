@@ -195,15 +195,15 @@
 }
 
 .badge-admin {
-  background: linear-gradient(135deg, #00c6ff , #0072ff);
+  background: linear-gradient(135deg, #00c6ff, #0072ff);
   color: white;
-  box-shadow: 0 2px 8px rgba(0,198,255,.3);
+  box-shadow: 0 2px 8px rgba(0, 198, 255, 0.3);
 }
 
 .badge-user {
   background: linear-gradient(135deg, #8799ae, #a7bdd7);
   color: white;
-  box-shadow: 0 2px 8px rgba(255,140,0,.3);
+  box-shadow: 0 2px 8px rgba(255, 140, 0, 0.3);
 }
 
 .badge-utilisateur {
@@ -226,7 +226,7 @@
 /* Station */
 .type-badge.station,
 .badge-station {
-  background: linear-gradient(135deg, #32f579, #2dce68) !important; 
+  background: linear-gradient(135deg, #32f579, #2dce68) !important;
   color: #0f172a !important;
   box-shadow: 0 2px 8px rgba(74, 222, 128, 0.25) !important;
 }
@@ -234,7 +234,7 @@
 /* Launch Track */
 .type-badge.launch-track,
 .badge-launch-track {
-  background: linear-gradient(135deg, #b63245, #BC3D35) !important;
+  background: linear-gradient(135deg, #b63245, #bc3d35) !important;
   color: #ffffff !important;
   box-shadow: 0 2px 8px rgba(255, 77, 103, 0.28) !important;
 }
@@ -250,7 +250,7 @@
 /* Light FX */
 .type-badge.light-fx,
 .badge-light-fx {
-  background: linear-gradient(135deg, #f4c430, #FFAC46) !important;
+  background: linear-gradient(135deg, #f4c430, #ffac46) !important;
   color: #0b1220 !important;
   box-shadow: 0 2px 8px rgba(244, 196, 48, 0.22) !important;
 }
@@ -268,7 +268,7 @@
 .badge-smoke-machine {
   background: linear-gradient(135deg, #a7b4c0, #c0c9d2) !important;
   color: #0f172a !important;
-  box-shadow: 0 2px 8px rgba(167, 180, 192, 0.20) !important;
+  box-shadow: 0 2px 8px rgba(167, 180, 192, 0.2) !important;
 }
 
 /* Unknown */

@@ -68,14 +68,14 @@
 
 /* =============== CARTES DE DOCUMENTATION =============== */
 .docs-card {
-  background: linear-gradient(135deg, rgba(45,47,51,.9), rgba(35,37,41,.95));
+  background: linear-gradient(135deg, rgba(45, 47, 51, 0.9), rgba(35, 37, 41, 0.95));
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255,255,255,.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: 16px;
   padding: 32px;
-  box-shadow: 
-    0 8px 32px rgba(0,0,0,.3),
-    inset 0 1px 0 rgba(255,255,255,.05);
+  box-shadow:
+    0 8px 32px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
   overflow: hidden;
@@ -95,9 +95,9 @@
 
 .docs-card:hover {
   transform: translateY(-8px);
-  box-shadow: 
-    0 20px 40px rgba(0,0,0,.4),
-    inset 0 1px 0 rgba(255,255,255,.08);
+  box-shadow:
+    0 20px 40px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.08);
   border-color: rgba(32, 194, 106, 0.3);
 }
 
@@ -199,11 +199,11 @@
     gap: 30px;
     justify-content: center;
   }
-  
+
   .docs-container-wrapper {
     padding: 0 20px;
   }
-  
+
   .docs-modern-container {
     padding: 40px 80px;
   }
@@ -213,7 +213,7 @@
   .docs-modern-container {
     padding: 35px 60px;
   }
-  
+
   .docs-title {
     font-size: 32px;
   }
@@ -223,34 +223,34 @@
   .docs-container-wrapper {
     padding: 0 15px;
   }
-  
+
   .docs-modern-container {
     padding: 30px 40px;
   }
-  
+
   .docs-cards-grid {
     grid-template-columns: 1fr;
     gap: 20px;
     justify-content: center;
   }
-  
+
   .docs-card {
     padding: 24px;
   }
-  
+
   .docs-title {
     font-size: 28px;
   }
-  
+
   .docs-subtitle {
     font-size: 15px;
   }
-  
+
   .docs-header {
     margin-bottom: 30px;
     padding: 15px 0;
   }
-  
+
   .docs-header-icon {
     width: 50px;
     height: 50px;
@@ -262,21 +262,21 @@
   .docs-modern-container {
     padding: 20px 20px;
   }
-  
+
   .docs-header-icon {
     width: 60px;
     height: 60px;
   }
-  
+
   .docs-title {
     font-size: 28px;
   }
-  
+
   .docs-card-icon {
     width: 40px;
     height: 40px;
   }
-  
+
   .docs-card h3 {
     font-size: 18px;
   }
@@ -370,7 +370,8 @@
   margin-bottom: 15px;
 }
 
-.docs-section ul, .docs-section ol {
+.docs-section ul,
+.docs-section ol {
   color: var(--text-muted);
   line-height: 1.6;
   margin-bottom: 15px;
@@ -580,25 +581,25 @@
   .docs-container {
     padding: 15px;
   }
-  
+
   .docs-section {
     padding: 20px;
     margin-bottom: 20px;
   }
-  
+
   .docs-section h2 {
     font-size: 20px;
   }
-  
+
   .api-table {
     font-size: 14px;
   }
-  
+
   .api-table th,
   .api-table td {
     padding: 8px 10px;
   }
-  
+
   .docs-nav {
     position: relative;
     top: auto;
