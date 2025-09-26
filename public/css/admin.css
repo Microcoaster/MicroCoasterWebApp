@@ -195,15 +195,15 @@
 }
 
 .badge-admin {
-  background: linear-gradient(135deg, #00c6ff, #0072ff);
+  background: linear-gradient(135deg, #00c6ff , #0072ff);
   color: white;
-  box-shadow: 0 2px 8px rgba(0, 198, 255, 0.3);
+  box-shadow: 0 2px 8px rgba(0,198,255,.3);
 }
 
 .badge-user {
-  background: linear-gradient(135deg, #ff8c00, #ff4500);
+  background: linear-gradient(135deg, #8799ae, #a7bdd7);
   color: white;
-  box-shadow: 0 2px 8px rgba(255, 140, 0, 0.3);
+  box-shadow: 0 2px 8px rgba(255,140,0,.3);
 }
 
 .badge-utilisateur {
@@ -223,61 +223,60 @@
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
-
-/* Station (violet) */
+/* Station */
 .type-badge.station,
 .badge-station {
-  background: linear-gradient(135deg, #8b5cf6, #7c3aed);
-  color: white;
-  box-shadow: 0 2px 8px rgba(139, 92, 246, 0.3);
+  background: linear-gradient(135deg, #32f579, #2dce68) !important; 
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(74, 222, 128, 0.25) !important;
 }
 
-/* Launch Track (rouge) */
+/* Launch Track */
 .type-badge.launch-track,
 .badge-launch-track {
-  background: linear-gradient(135deg, #ef4444, #dc2626);
-  color: white;
-  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.3);
+  background: linear-gradient(135deg, #b63245, #BC3D35) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(255, 77, 103, 0.28) !important;
 }
 
-/* Switch Track (orange) */
+/* Switch Track */
 .type-badge.switch-track,
 .badge-switch-track {
-  background: linear-gradient(135deg, #f97316, #ea580c);
-  color: white;
-  box-shadow: 0 2px 8px rgba(249, 115, 22, 0.3);
+  background: linear-gradient(135deg, #ff8a2a, #ffb14a) !important;
+  color: #111827 !important;
+  box-shadow: 0 2px 8px rgba(255, 138, 42, 0.26) !important;
 }
 
-/* Light FX (jaune) */
+/* Light FX */
 .type-badge.light-fx,
 .badge-light-fx {
-  background: linear-gradient(135deg, #eab308, #ca8a04);
-  color: #1f2937;
-  box-shadow: 0 2px 8px rgba(234, 179, 8, 0.3);
+  background: linear-gradient(135deg, #f4c430, #FFAC46) !important;
+  color: #0b1220 !important;
+  box-shadow: 0 2px 8px rgba(244, 196, 48, 0.22) !important;
 }
 
-/* Audio Player (bleu cyan) */
+/* Audio Player */
 .type-badge.audio-player,
 .badge-audio-player {
-  background: linear-gradient(135deg, #06b6d4, #0891b2);
-  color: white;
-  box-shadow: 0 2px 8px rgba(6, 182, 212, 0.3);
+  background: linear-gradient(135deg, #2563eb, #3b82f6) !important;
+  color: #ffffff !important;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.26) !important;
 }
 
-/* Smoke Machine (gris) */
+/* Smoke Machine */
 .type-badge.smoke-machine,
 .badge-smoke-machine {
-  background: linear-gradient(135deg, #6b7280, #4b5563);
-  color: white;
-  box-shadow: 0 2px 8px rgba(107, 114, 128, 0.3);
+  background: linear-gradient(135deg, #a7b4c0, #c0c9d2) !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(167, 180, 192, 0.20) !important;
 }
 
-/* Unknown (gris foncé) */
+/* Unknown */
 .type-badge.unknown,
 .badge-unknown {
-  background: linear-gradient(135deg, #374151, #1f2937);
-  color: #9ca3af;
-  box-shadow: 0 2px 8px rgba(55, 65, 81, 0.3);
+  background: linear-gradient(135deg, #7c8a99, #aab6c4) !important;
+  color: #0f172a !important;
+  box-shadow: 0 2px 8px rgba(122, 138, 153, 0.22) !important;
 }
 
 /* Status indicators avec animations */
