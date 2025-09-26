@@ -23,6 +23,9 @@ const websocketHandler = require('./websocket/handlers');
 // Database
 const databaseManager = require('./bdd/DatabaseManager');
 
+// Real-time Events API
+const RealTimeAPI = require('./api');
+
 const app = express();
 const server = createServer(app);
 const io = new Server(server, {
@@ -90,6 +93,9 @@ app.use('/modules', moduleRoutes);
 app.use('/timelines', timelinesRoutes);
 app.use('/documentations', documentationsRoutes);
 
+// Attacher l'app Express au serveur Socket.io pour l'accès aux locals
+io.app = app;
+
 // Gestion WebSocket
 websocketHandler(io);
 
@@ -106,6 +112,15 @@ async function startServer() {
 
     // Initialiser la base de données si nécessaire
     await databaseManager.initializeDatabase();
+
+    // Initialiser l'API des événements temps réel
+    const realTimeAPI = new RealTimeAPI(io, databaseManager);
+    realTimeAPI.initialize();
+    
+    // Rendre l'API disponible globalement
+    app.locals.realTimeAPI = realTimeAPI;
+    
+    Logger.info('🔄 Real-time Events API initialized');
 
     // Démarrer le nettoyage automatique des statuts des modules
     databaseManager.startModuleStatusCleanup(1, 5); // Chaque minute, max 5 min

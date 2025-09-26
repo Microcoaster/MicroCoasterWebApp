@@ -1,6 +1,25 @@
 const databaseManager = require('../bdd/DatabaseManager');
 const Logger = require('../utils/logger');
 
+// Helper pour accéder à l'API RealTime
+function getRealTimeAPI(socket) {
+  // Essayer socket.server.app.locals puis socket.nsp.server.app.locals
+  const api = socket.server?.app?.locals?.realTimeAPI || socket.nsp?.server?.app?.locals?.realTimeAPI;
+  if (!api) {
+    console.warn('⚠️ [DEBUG] RealTimeAPI not found. Checking paths:', {
+      hasServer: !!socket.server,
+      hasServerApp: !!socket.server?.app,
+      hasServerAppLocals: !!socket.server?.app?.locals,
+      hasNsp: !!socket.nsp,
+      hasNspServer: !!socket.nsp?.server,
+      hasNspServerApp: !!socket.nsp?.server?.app,
+      serverAppKeys: socket.server?.app ? Object.keys(socket.server.app) : 'no server.app',
+      nspServerKeys: socket.nsp?.server ? Object.keys(socket.nsp.server) : 'no nsp.server'
+    });
+  }
+  return api;
+}
+
 // Maps pour stocker les connexions actives (adaptées du serveur WebSocket original)
 const connectedClients = new Map(); // socket.id -> client info
 const connectedModules = new Map(); // socket.id -> module info
@@ -101,6 +120,25 @@ module.exports = function (io) {
     if (!webByCode.has(userCode)) webByCode.set(userCode, new Set());
     webByCode.get(userCode).add(socket);
 
+    // 📡 NOUVEAU: Enregistrer avec l'EventsManager pour les événements temps réel
+    const realTimeAPI = getRealTimeAPI(socket);
+    const userType = session.is_admin ? 'admin' : 'user'; // Détecter si l'utilisateur est admin
+    if (realTimeAPI) {
+      // Par défaut on ne connaît pas la page, on va attendre que le client nous le dise
+      realTimeAPI.events.registerClient(socket, userId, userType, 'unknown');
+      console.log('📡 [DEBUG] Client registered with EventsManager:', socket.id, 'Type:', userType);
+    }
+
+    // Écouter l'enregistrement de page par le client
+    socket.on('register_page', (data) => {
+      const page = data?.page || 'unknown';
+      console.log('📡 [DEBUG] Client registering page:', page, 'for socket:', socket.id);
+      
+      if (realTimeAPI) {
+        realTimeAPI.events.registerClient(socket, userId, userType, page);
+      }
+    });
+
     // 🔄 NOUVEAU: Récupérer les modules depuis la base de données
     try {
       const userModules = await databaseManager.modules.findByUserId(userId);
@@ -154,6 +192,12 @@ module.exports = function (io) {
       Logger.info(`👤 Client disconnected: ${userName}`);
       connectedClients.delete(socket.id);
 
+      // 📡 NOUVEAU: Désinscrire de l'EventsManager
+      if (realTimeAPI) {
+        realTimeAPI.events.unregisterClient(socket.id);
+        console.log('📡 [DEBUG] Client unregistered from EventsManager:', socket.id);
+      }
+
       // Supprimer du registre par code
       const set = webByCode.get(userCode);
       if (set) {
@@ -203,7 +247,17 @@ module.exports = function (io) {
       // Mettre à jour le statut en cache
       databaseManager.modules.updateStatus(moduleId, 'online').catch(Logger.error);
 
-      // Si déjà claimé par un dashboard, annoncer présence
+  // Émettre événement temps réel : module en ligne
+  const realTimeAPI = getRealTimeAPI(socket);
+  if (realTimeAPI) {
+    console.log('📡 [DEBUG] Emitting module online event for:', socket.moduleId);
+    realTimeAPI.emitModuleOnline(socket.moduleId, {
+      type: socket.moduleType,
+      lastSeen: new Date()
+    });
+  } else {
+    console.warn('⚠️ [DEBUG] RealTimeAPI not available for module online event');
+  }      // Si déjà claimé par un dashboard, annoncer présence
       const c = codeByModuleId.get(moduleId);
       if (c) {
         broadcastToWeb(c, 'module_online', {
@@ -224,6 +278,13 @@ module.exports = function (io) {
       if (!c) return; // pas encore claimé par un web -> on ignore
 
       logRx(socket, 'telemetry', data);
+      
+      // Émettre événement temps réel : télémétrie mise à jour
+      const realTimeAPI = getRealTimeAPI(socket);
+      if (realTimeAPI) {
+        realTimeAPI.emitTelemetryUpdate(socket.moduleId, data);
+      }
+      
       broadcastToWeb(c, 'module_telemetry', {
         moduleId: socket.moduleId,
         ...data,
@@ -240,6 +301,18 @@ module.exports = function (io) {
 
         // Mettre à jour le statut en cache
         databaseManager.modules.updateStatus(socket.moduleId, 'offline').catch(Logger.error);
+
+        // Émettre événement temps réel : module offline
+        const realTimeAPI = getRealTimeAPI(socket);
+        if (realTimeAPI) {
+          console.log('📡 [DEBUG] Emitting module offline event for:', socket.moduleId);
+          realTimeAPI.emitModuleOffline(socket.moduleId, {
+            moduleType: socket.moduleType || 'Unknown',
+            timestamp: new Date(),
+          });
+        } else {
+          console.warn('⚠️ [DEBUG] RealTimeAPI not available for module offline event');
+        }
 
         // Notifier les clients web
         const c = codeByModuleId.get(socket.moduleId);

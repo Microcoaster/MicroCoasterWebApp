@@ -174,6 +174,18 @@ router.post('/claim', requireAuth, async (req, res) => {
       [userId, nameTrim, type, existingModule.id]
     );
 
+    // Émettre événement temps réel : module ajouté
+    if (req.app.locals.realTimeAPI) {
+      req.app.locals.realTimeAPI.emitModuleAdded({
+        module_id: moduleIdTrim,
+        name: nameTrim,
+        type: type,
+        userId: userId,
+        claimed: true,
+        updatedAt: new Date()
+      });
+    }
+
     Logger.info(`✅ Module claimed: ${moduleIdTrim} (${type}) by user ${userId}`);
     res.redirect('/modules?flash=' + encodeURIComponent('Module added successfully'));
   } catch (error) {
@@ -204,6 +216,18 @@ router.post('/add', requireAuth, async (req, res) => {
     `,
       [userId, module_id.trim(), name?.trim() || null, type]
     );
+
+    // Émettre événement temps réel : module ajouté
+    if (req.app.locals.realTimeAPI) {
+      req.app.locals.realTimeAPI.emitModuleAdded({
+        module_id: module_id.trim(),
+        name: name?.trim() || null,
+        type: type,
+        userId: userId,
+        claimed: true,
+        createdAt: new Date()
+      });
+    }
 
     Logger.info(`➕ Module added: ${module_id} (${type}) by user ${userId}`);
     res.redirect('/modules?flash=' + encodeURIComponent('Module added successfully'));
@@ -244,6 +268,16 @@ router.post('/delete/:moduleId', requireAuth, async (req, res) => {
       [moduleId, userId]
     );
 
+    // Émettre événement temps réel : module supprimé
+    if (req.app.locals.realTimeAPI) {
+      req.app.locals.realTimeAPI.emitModuleRemoved({
+        module_id: moduleId,
+        userId: userId,
+        claimed: false,
+        updatedAt: new Date()
+      });
+    }
+
     Logger.info(`🗑️ Module unclaimed: ${moduleId} by user ${userId}`);
     res.json({ success: true, message: 'Module deleted successfully' });
   } catch (error) {
@@ -270,14 +304,26 @@ router.post('/update/:moduleId', requireAuth, async (req, res) => {
 
     // Mettre à jour le module
     const databaseManager = require('../bdd/DatabaseManager');
+    const finalType = type || mcInferType(moduleId, name);
     await databaseManager.execute(
       `
       UPDATE modules 
       SET name = ?, type = ?, updated_at = NOW()
       WHERE module_id = ? AND user_id = ?
     `,
-      [name?.trim() || null, type || mcInferType(moduleId, name), moduleId, userId]
+      [name?.trim() || null, finalType, moduleId, userId]
     );
+
+    // Émettre événement temps réel : module mis à jour
+    if (req.app.locals.realTimeAPI) {
+      req.app.locals.realTimeAPI.emitModuleUpdated({
+        module_id: moduleId,
+        name: name?.trim() || null,
+        type: finalType,
+        userId: userId,
+        updatedAt: new Date()
+      });
+    }
 
     Logger.info(`📝 Module updated: ${moduleId} by user ${userId}`);
     res.json({ success: true, message: 'Module updated successfully' });
