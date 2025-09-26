@@ -31,7 +31,7 @@ ON DUPLICATE KEY UPDATE
 -- Modules assignés à Tristan Admin (tristanjoncour29@gmail.com)
 INSERT INTO modules (user_id, module_id, module_code, name, type, claimed) VALUES 
 ((SELECT id FROM users WHERE email = 'tristanjoncour29@gmail.com'), 'MC-1803-STN', '1803-1803', 'Station Tristan', 'Station', TRUE),
-((SELECT id FROM users WHERE email = 'tristanjoncour29@gmail.com'), 'MC-2308-LT', '2803-2803', 'Launch Track Beta', 'Launch Track', TRUE),
+((SELECT id FROM users WHERE email = 'tristanjoncour29@gmail.com'), 'MC-0001-ST', '0000-0001', 'Switch Track', 'Switch Track', TRUE),
 ((SELECT id FROM users WHERE email = 'tristanjoncour29@gmail.com'), 'MC-0012-SM', '123456', 'Smoke Machine Alpha', 'Smoke Machine', TRUE)
 ON DUPLICATE KEY UPDATE 
   user_id = VALUES(user_id),
