@@ -9,59 +9,27 @@ router.use(requireAdmin);
 // Routes API supprimées - les données sont maintenant intégrées directement dans la page
 
 /**
- * Page principale d'administration
+ * Gestion des actions POST (supprimé - tout est maintenant côté client)
+ */
+// POST supprimé - pas de navigation par URL
+
+/**
+ * Page principale d'administration - Version simplifiée sans paramètres URL
  */
 router.get("/", async (req, res) => {
   try {
-    // Paramètres de pagination et recherche
-    const usersPage = parseInt(req.query.usersPage) || 1;
-    const modulesPage = parseInt(req.query.modulesPage) || 1;
-    const usersSearch = req.query.usersSearch || '';
-    const modulesSearch = req.query.modulesSearch || '';
-    const usersSort = req.query.usersSort || 'last_login';
-    const modulesSort = req.query.modulesSort || 'last_seen';
-    const usersSortOrder = req.query.usersSortOrder || 'DESC';
-    const modulesSortOrder = req.query.modulesSortOrder || 'DESC';
-    
-    // Filtres par colonne
-    const usersFilters = {
-      name: req.query['users.name'] || '',
-      email: req.query['users.email'] || '',
-      role: req.query['users.role'] || '',
-      module_count: req.query['users.module_count'] || '',
-      last_login: req.query['users.last_login'] || '',
-      created_at: req.query['users.created_at'] || ''
-    };
-    
-    const modulesFilters = {
-      module_id: req.query['modules.module_id'] || '',
-      name: req.query['modules.name'] || '',
-      type: req.query['modules.type'] || '',
-      user_name: req.query['modules.user_name'] || '',
-      status: req.query['modules.status'] || '',
-      last_seen: req.query['modules.last_seen'] || ''
-    };
-    
-    const limit = 10;
-    const usersOffset = (usersPage - 1) * limit;
-    const modulesOffset = (modulesPage - 1) * limit;
-    
-    const [usersResult, modulesResult, user] = await Promise.all([
-      databaseManager.users.findAll({ limit, offset: usersOffset, sortBy: usersSort, sortOrder: usersSortOrder, search: usersSearch, filters: usersFilters }),
-      databaseManager.modules.findAll({ limit, offset: modulesOffset, sortBy: modulesSort, sortOrder: modulesSortOrder, search: modulesSearch, filters: modulesFilters }),
-      databaseManager.users.findById(req.session.user_id)
-    ]);
-    
-    // Récupérer toutes les données pour le cache côté client ET les statistiques
-    // IMPORTANT: Pas de filtres pour les stats - on veut TOUS les utilisateurs et modules
+    // Récupérer TOUTES les données côté serveur - la pagination sera côté client
     const [allUsersResult, allModulesResult] = await Promise.all([
-      databaseManager.users.findAll({ limit: 999999, offset: 0, sortBy: 'created_at', sortOrder: 'DESC', filters: {} }),
-      databaseManager.modules.findAll({ limit: 999999, offset: 0, sortBy: 'created_at', sortOrder: 'DESC', filters: {} })
+      databaseManager.users.findAll({ limit: 999999, offset: 0, sortBy: 'created_at', sortOrder: 'DESC' }),
+      databaseManager.modules.findAll({ limit: 999999, offset: 0, sortBy: 'created_at', sortOrder: 'DESC' })
     ]);
+    
+    // Récupérer l'utilisateur connecté
+    const user = await databaseManager.users.findById(req.session.user_id);
     
     const stats = {
-      totalUsers: allUsersResult.users.length, // Utiliser .length au lieu de .total
-      totalModules: allModulesResult.modules.length, // Utiliser .length au lieu de .total
+      totalUsers: allUsersResult.users.length,
+      totalModules: allModulesResult.modules.length,
       onlineModules: allModulesResult.modules.filter(m => m.status === 'online').length,
       adminUsers: allUsersResult.users.filter(u => u.is_admin).length
     };
@@ -69,31 +37,9 @@ router.get("/", async (req, res) => {
     res.render("admin", { 
       title: "MicroCoaster WebApp - Administration",
       currentPage: 'admin',
-      users: usersResult.users,
-      modules: modulesResult.modules,
-      allUsers: allUsersResult.users, // Toutes les données pour le cache
-      allModules: allModulesResult.modules, // Toutes les données pour le cache
+      users: allUsersResult.users, // Tous les utilisateurs
+      modules: allModulesResult.modules, // Tous les modules
       stats,
-      pagination: {
-        users: {
-          page: usersPage,
-          totalPages: Math.ceil(usersResult.total / limit),
-          total: usersResult.total,
-          search: usersSearch,
-          sort: usersSort,
-          sortOrder: usersSortOrder,
-          filters: usersFilters
-        },
-        modules: {
-          page: modulesPage,
-          totalPages: Math.ceil(modulesResult.total / limit),
-          total: modulesResult.total,
-          search: modulesSearch,
-          sort: modulesSort,
-          sortOrder: modulesSortOrder,
-          filters: modulesFilters
-        }
-      },
       error: null,
       success: null,
       user: user,

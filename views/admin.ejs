@@ -9,21 +9,13 @@
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
   <!-- CSS global -->
   <link rel="stylesheet" href="/css/global.css">
-  <!-- CSS pour le style d'encadré -->
-  <link rel="stylesheet" href="/css/modules.css">
   <!-- CSS spécifique au dashboard (pour la navbar) -->
   <link rel="stylesheet" href="/css/dashboard.css">
   <!-- CSS spécifique à l'admin -->
   <link rel="stylesheet" href="/css/admin.css">
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
-<body class="compact" 
-      data-all-users="<%- encodeURIComponent(JSON.stringify(allUsers)) %>"
-      data-all-modules="<%- encodeURIComponent(JSON.stringify(allModules)) %>"
-      data-users-sort="<%= pagination.users.sort %>"
-      data-users-sort-order="<%= pagination.users.sortOrder %>"
-      data-modules-sort="<%= pagination.modules.sort %>"
-      data-modules-sort-order="<%= pagination.modules.sortOrder %>">
+<body class="compact">
   <!-- Navbar -->
   <%- include('partials/navbar', { 
     currentPage: 'admin', 
@@ -37,7 +29,6 @@
           <div class="row">
             <div class="col-12">
               <div class="admin-container">
-      
       <% if (error) { %>
         <div class="alert alert-error">
           <%= error %>
@@ -135,47 +126,47 @@
             </button>
           </div>
           <div class="table-container">
-            <table class="admin-table">
+            <table class="admin-table" data-table="users">
               <thead>
                 <tr>
                   <th class="sortable-header" data-sort="name">
                     <span>Nom</span>
-                    <span class="sort-arrow <%= pagination.users.sort === 'name' ? (pagination.users.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="name"></span>
+                    <span class="sort-arrow" data-sort="name"></span>
                   </th>
                   <th class="sortable-header" data-sort="email">
                     <span>Email</span>
-                    <span class="sort-arrow <%= pagination.users.sort === 'email' ? (pagination.users.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="email"></span>
+                    <span class="sort-arrow" data-sort="email"></span>
                   </th>
                   <th class="sortable-header" data-sort="is_admin">
                     <span>Rôle</span>
-                    <span class="sort-arrow <%= pagination.users.sort === 'is_admin' ? (pagination.users.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="is_admin"></span>
+                    <span class="sort-arrow" data-sort="is_admin"></span>
                   </th>
                   <th class="sortable-header" data-sort="module_count">
                     <span>Modules</span>
-                    <span class="sort-arrow <%= pagination.users.sort === 'module_count' ? (pagination.users.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="module_count"></span>
+                    <span class="sort-arrow" data-sort="module_count"></span>
                   </th>
                   <th class="sortable-header" data-sort="last_login">
                     <span>Dernière connexion</span>
-                    <span class="sort-arrow <%= pagination.users.sort === 'last_login' ? (pagination.users.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="last_login"></span>
+                    <span class="sort-arrow" data-sort="last_login"></span>
                   </th>
                   <th class="sortable-header" data-sort="created_at">
                     <span>Inscription</span>
-                    <span class="sort-arrow <%= pagination.users.sort === 'created_at' ? (pagination.users.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="created_at"></span>
+                    <span class="sort-arrow" data-sort="created_at"></span>
                   </th>
                 </tr>
                 <tr class="filter-row">
-                  <td><input type="text" id="filter-user-name" name="filter-user-name" class="column-filter" data-column="name" placeholder="Filtrer nom..." value="<%= pagination.users.filters && pagination.users.filters.name || '' %>" aria-label="Filtrer par nom d'utilisateur" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-user-email" name="filter-user-email" class="column-filter" data-column="email" placeholder="Filtrer email..." value="<%= pagination.users.filters && pagination.users.filters.email || '' %>" aria-label="Filtrer par adresse email" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-name" name="filter-user-name" class="column-filter" data-column="name" placeholder="Filtrer nom..." aria-label="Filtrer par nom d'utilisateur" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-email" name="filter-user-email" class="column-filter" data-column="email" placeholder="Filtrer email..." aria-label="Filtrer par adresse email" autocomplete="off" /></td>
                   <td>
                     <select id="filter-user-role" name="filter-user-role" class="column-filter" data-column="role" aria-label="Filtrer par rôle utilisateur">
                       <option value="">Tous les rôles</option>
-                      <option value="admin" <%= pagination.users.filters && pagination.users.filters.role === 'admin' ? 'selected' : '' %>>Admin</option>
-                      <option value="user" <%= pagination.users.filters && pagination.users.filters.role === 'user' ? 'selected' : '' %>>Utilisateur</option>
+                      <option value="Admin">Admin</option>
+                      <option value="Utilisateur">Utilisateur</option>
                     </select>
                   </td>
-                  <td><input type="number" id="filter-user-modules" name="filter-user-modules" class="column-filter" data-column="module_count" placeholder="Nb modules..." value="<%= pagination.users.filters && pagination.users.filters.module_count || '' %>" aria-label="Filtrer par nombre de modules" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-user-lastlogin" name="filter-user-lastlogin" class="column-filter" data-column="last_login" placeholder="Filtrer date..." value="<%= pagination.users.filters && pagination.users.filters.last_login || '' %>" aria-label="Filtrer par date de dernière connexion" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-user-created" name="filter-user-created" class="column-filter" data-column="created_at" placeholder="Filtrer date..." value="<%= pagination.users.filters && pagination.users.filters.created_at || '' %>" aria-label="Filtrer par date de création" autocomplete="off" /></td>
+                  <td><input type="number" id="filter-user-modules" name="filter-user-modules" class="column-filter" data-column="module_count" placeholder="Nb modules..." aria-label="Filtrer par nombre de modules" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-lastlogin" name="filter-user-lastlogin" class="column-filter" data-column="last_login" placeholder="Filtrer date..." aria-label="Filtrer par date de dernière connexion" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-created" name="filter-user-created" class="column-filter" data-column="created_at" placeholder="Filtrer date..." aria-label="Filtrer par date de création" autocomplete="off" /></td>
                 </tr>
               </thead>
               <tbody>
@@ -213,26 +204,36 @@
             </table>
           </div>
           
-          <!-- Pagination utilisateurs -->
+          <!-- Contrôles de pagination utilisateurs -->
           <div class="pagination-container">
-            <div class="pagination-info">
-              Page <%= pagination.users.page %> sur <%= pagination.users.totalPages %> 
-              (<%= pagination.users.total %> utilisateurs au total)
+            <div class="items-per-page">
+              <label for="usersItemsPerPage">Afficher :</label>
+              <select id="usersItemsPerPage" data-table="users" onchange="window.changeItemsPerPage(this)">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>éléments</span>
             </div>
             <div class="pagination-controls">
-              <% if (pagination.users.page > 1) { %>
-                <button data-table="users" data-page="<%= pagination.users.page - 1 %>" class="pagination-btn">← Précédent</button>
-              <% } %>
+              <button 
+                class="pagination-prev" 
+                data-table="users" 
+                onclick="window.navigatePage('users', 'prev', event)">
+                ← Précédent
+              </button>
               
-              <% for (let i = Math.max(1, pagination.users.page - 2); i <= Math.min(pagination.users.totalPages, pagination.users.page + 2); i++) { %>
-                <button data-table="users" data-page="<%= i %>" class="pagination-btn <%= i === pagination.users.page ? 'active' : '' %>">
-                  <%= i %>
-                </button>
-              <% } %>
+              <span class="pagination-info" data-table="users">
+                Chargement...
+              </span>
               
-              <% if (pagination.users.page < pagination.users.totalPages) { %>
-                <button data-table="users" data-page="<%= pagination.users.page + 1 %>" class="pagination-btn">Suivant →</button>
-              <% } %>
+              <button 
+                class="pagination-next" 
+                data-table="users" 
+                onclick="window.navigatePage('users', 'next', event)">
+                Suivant →
+              </button>
             </div>
           </div>
         </div>
@@ -266,47 +267,47 @@
             </button>
           </div>
           <div class="table-container">
-            <table class="admin-table">
+            <table class="admin-table" data-table="modules">
               <thead>
                 <tr>
                   <th class="sortable-header" data-sort="module_id">
                     <span>ID Module</span>
-                    <span class="sort-arrow <%= pagination.modules.sort === 'module_id' ? (pagination.modules.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="module_id"></span>
+                    <span class="sort-arrow" data-sort="module_id"></span>
                   </th>
                   <th class="sortable-header" data-sort="name">
                     <span>Nom</span>
-                    <span class="sort-arrow <%= pagination.modules.sort === 'name' ? (pagination.modules.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="name"></span>
+                    <span class="sort-arrow" data-sort="name"></span>
                   </th>
                   <th class="sortable-header" data-sort="type">
                     <span>Type</span>
-                    <span class="sort-arrow <%= pagination.modules.sort === 'type' ? (pagination.modules.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="type"></span>
+                    <span class="sort-arrow" data-sort="type"></span>
                   </th>
                   <th class="sortable-header" data-sort="user_name">
                     <span>Propriétaire</span>
-                    <span class="sort-arrow <%= pagination.modules.sort === 'user_name' ? (pagination.modules.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="user_name"></span>
+                    <span class="sort-arrow" data-sort="user_name"></span>
                   </th>
                   <th class="sortable-header" data-sort="status">
                     <span>Statut</span>
-                    <span class="sort-arrow <%= pagination.modules.sort === 'status' ? (pagination.modules.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="status"></span>
+                    <span class="sort-arrow" data-sort="status"></span>
                   </th>
                   <th class="sortable-header" data-sort="last_seen">
                     <span>Dernière activité</span>
-                    <span class="sort-arrow <%= pagination.modules.sort === 'last_seen' ? (pagination.modules.sortOrder === 'ASC' ? 'asc' : 'desc') : '' %>" data-sort="last_seen"></span>
+                    <span class="sort-arrow" data-sort="last_seen"></span>
                   </th>
                 </tr>
                 <tr class="filter-row">
-                  <td><input type="text" id="filter-module-id" name="filter-module-id" class="column-filter" data-column="module_id" placeholder="Filtrer ID..." value="<%= pagination.modules.filters && pagination.modules.filters.module_id || '' %>" aria-label="Filtrer par ID de module" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-module-name" name="filter-module-name" class="column-filter" data-column="name" placeholder="Filtrer nom..." value="<%= pagination.modules.filters && pagination.modules.filters.name || '' %>" aria-label="Filtrer par nom de module" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-module-type" name="filter-module-type" class="column-filter" data-column="type" placeholder="Filtrer type..." value="<%= pagination.modules.filters && pagination.modules.filters.type || '' %>" aria-label="Filtrer par type de module" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-module-owner" name="filter-module-owner" class="column-filter" data-column="user_name" placeholder="Filtrer propriétaire..." value="<%= pagination.modules.filters && pagination.modules.filters.user_name || '' %>" aria-label="Filtrer par propriétaire du module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-id" name="filter-module-id" class="column-filter" data-column="module_id" placeholder="Filtrer ID..." aria-label="Filtrer par ID de module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-name" name="filter-module-name" class="column-filter" data-column="name" placeholder="Filtrer nom..." aria-label="Filtrer par nom de module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-type" name="filter-module-type" class="column-filter" data-column="type" placeholder="Filtrer type..." aria-label="Filtrer par type de module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-owner" name="filter-module-owner" class="column-filter" data-column="user_name" placeholder="Filtrer propriétaire..." aria-label="Filtrer par propriétaire du module" autocomplete="off" /></td>
                   <td>
                     <select id="filter-module-status" name="filter-module-status" class="column-filter" data-column="status" aria-label="Filtrer par statut de module">
                       <option value="">Tous les statuts</option>
-                      <option value="online" <%= pagination.modules.filters && pagination.modules.filters.status === 'online' ? 'selected' : '' %>>En ligne</option>
-                      <option value="offline" <%= pagination.modules.filters && pagination.modules.filters.status === 'offline' ? 'selected' : '' %>>Hors ligne</option>
+                      <option value="En ligne">En ligne</option>
+                      <option value="Hors ligne">Hors ligne</option>
                     </select>
                   </td>
-                  <td><input type="text" id="filter-module-last-seen" name="filter-module-last-seen" class="column-filter" data-column="last_seen" placeholder="Filtrer date..." value="<%= pagination.modules.filters && pagination.modules.filters.last_seen || '' %>" aria-label="Filtrer par dernière activité" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-last-seen" name="filter-module-last-seen" class="column-filter" data-column="last_seen" placeholder="Filtrer date..." aria-label="Filtrer par dernière activité" autocomplete="off" /></td>
                 </tr>
               </thead>
               <tbody>
@@ -329,7 +330,11 @@
                 <tr>
                   <td><code><%= module.module_id %></code></td>
                   <td><%= module.name || 'Sans nom' %></td>
-                  <td><%= module.type || 'Inconnu' %></td>
+                  <td>
+                    <span data-module-type="<%= module.type || 'Unknown' %>" class="type-badge-container">
+                      <%= module.type || 'Inconnu' %>
+                    </span>
+                  </td>
                   <td><%= module.user_name %></td>
                   <td>
                     <span class="status <%= module.status === 'online' ? 'status-online' : 'status-offline' %>">
@@ -346,26 +351,36 @@
             </table>
           </div>
           
-          <!-- Pagination modules -->
+          <!-- Contrôles de pagination modules -->
           <div class="pagination-container">
-            <div class="pagination-info">
-              Page <%= pagination.modules.page %> sur <%= pagination.modules.totalPages %> 
-              (<%= pagination.modules.total %> modules au total)
+            <div class="items-per-page">
+              <label for="modulesItemsPerPage">Afficher :</label>
+              <select id="modulesItemsPerPage" data-table="modules" onchange="window.changeItemsPerPage(this)">
+                <option value="10">10</option>
+                <option value="25">25</option>
+                <option value="50">50</option>
+                <option value="100">100</option>
+              </select>
+              <span>éléments</span>
             </div>
             <div class="pagination-controls">
-              <% if (pagination.modules.page > 1) { %>
-                <button data-table="modules" data-page="<%= pagination.modules.page - 1 %>" class="pagination-btn">← Précédent</button>
-              <% } %>
+              <button 
+                class="pagination-prev" 
+                data-table="modules" 
+                onclick="window.navigatePage('modules', 'prev', event)">
+                ← Précédent
+              </button>
               
-              <% for (let i = Math.max(1, pagination.modules.page - 2); i <= Math.min(pagination.modules.totalPages, pagination.modules.page + 2); i++) { %>
-                <button data-table="modules" data-page="<%= i %>" class="pagination-btn <%= i === pagination.modules.page ? 'active' : '' %>">
-                  <%= i %>
-                </button>
-              <% } %>
+              <span class="pagination-info" data-table="modules">
+                Chargement...
+              </span>
               
-              <% if (pagination.modules.page < pagination.modules.totalPages) { %>
-                <button data-table="modules" data-page="<%= pagination.modules.page + 1 %>" class="pagination-btn">Suivant →</button>
-              <% } %>
+              <button 
+                class="pagination-next" 
+                data-table="modules" 
+                onclick="window.navigatePage('modules', 'next', event)">
+                Suivant →
+              </button>
             </div>
           </div>
         </div>

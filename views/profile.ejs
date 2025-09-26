@@ -109,14 +109,14 @@
           </h2>
           <dl class="info-grid">
             <div class="info-item">
-              <dt>Statut</dt>
-              <dd class="<%= user.is_admin ? 'status-admin' : 'status-user' %>">
+              <span class="info-label">Statut</span>
+              <span class="info-value <%= user.is_admin ? 'status-admin' : 'status-user' %>">
                 <%= user.is_admin ? 'Administrateur' : 'Utilisateur' %>
-              </dd>
+              </span>
             </div>
             <div class="info-item">
-              <dt>Membre depuis</dt>
-              <dd><%= new Date(user.created_at).toLocaleDateString('fr-FR') %></dd>
+              <span class="info-label">Membre depuis</span>
+              <span class="info-value"><%= new Date(user.created_at).toLocaleDateString('fr-FR') %></span>
             </div>
           </dl>
                 </div>

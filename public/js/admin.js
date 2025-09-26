@@ -1,552 +1,582 @@
-// Admin page functionality avec cache côté client
-let allUsers = [];
-let allModules = [];
-let filteredUsers = [];
-let filteredModules = [];
+/**
+ * Admin Page JavaScript
+ * Gestion des fonctionnalités de la page d'administration
+ */
 
-let currentUsersSort = '';
-let currentUsersSortOrder = '';
-let currentModulesSort = '';
-let currentModulesSortOrder = '';
-let usersFilters = {};
-let modulesFilters = {};
-let currentUsersPage = 1;
-let currentModulesPage = 1;
-
-const ITEMS_PER_PAGE = 10;
-
-// Fonction d'initialisation avec les données depuis les attributs data-
-function initializeAdminPage() {
-  const body = document.body;
-  
-  // Lire les paramètres de pagination depuis les attributs data-
-  currentUsersSort = body.getAttribute('data-users-sort') || '';
-  currentUsersSortOrder = body.getAttribute('data-users-sort-order') || '';
-  currentModulesSort = body.getAttribute('data-modules-sort') || '';
-  currentModulesSortOrder = body.getAttribute('data-modules-sort-order') || '';
-  
-  // Charger les données depuis les attributs data-
-  loadDataFromPage();
-}
-
-// Charger les données depuis les attributs data- de body
-function loadDataFromPage() {
-  const body = document.body;
-  
-  try {
-    // Lire les données depuis les attributs data-
-    const usersData = body.getAttribute('data-all-users');
-    const modulesData = body.getAttribute('data-all-modules');
-    
-    if (usersData && modulesData) {
-      allUsers = JSON.parse(decodeURIComponent(usersData));
-      allModules = JSON.parse(decodeURIComponent(modulesData));
-          
-      // Initialiser les données filtrées
-      filteredUsers = [...allUsers];
-      filteredModules = [...allModules];
-      
-      console.log(`Données chargées depuis les attributs data-: ${allUsers.length} utilisateurs, ${allModules.length} modules`);
-      
-      // Appliquer les filtres initiaux et rendre les tables
-      applyClientSideFilters('users');
-      applyClientSideFilters('modules');
-      
-      // S'assurer que les flèches de tri sont à jour au démarrage
-      updateSortArrows('users');
-      updateSortArrows('modules');
-      
-      return true;
-    } else {
-      console.error('Aucune donnée trouvée dans les attributs data-');
-      return false;
-    }
-  } catch (error) {
-    console.error('Erreur lors du parsing des données:', error);
-    return false;
-  }
-}
-
-// Nouveau système de filtrage côté client
-function applyClientSideFilters(tableType) {
-  // Collecter les filtres actifs
-  const filters = {};
-  const filtersSection = tableType === 'users' ? 
-    document.querySelector('#usersSection') : 
-    document.querySelector('#modulesSection');
-    
-  if (filtersSection) {
-    const filterInputs = filtersSection.querySelectorAll('.column-filter');
-    
-    filterInputs.forEach(filter => {
-      const column = filter.dataset.column;
-      const value = filter.value.trim();
-      
-      if (value) {
-        filters[column] = value.toLowerCase();
-      }
-    });
-  }
-
-  // Stocker les filtres
-  if (tableType === 'users') {
-    usersFilters = filters;
-  } else {
-    modulesFilters = filters;
-  }
-
-  // Filtrer les données
-  const sourceData = tableType === 'users' ? allUsers : allModules;
-  const currentFilters = tableType === 'users' ? usersFilters : modulesFilters;
-  
-
-  
-  let filtered = sourceData.filter(item => {
-    return Object.keys(currentFilters).every(column => {
-      const filterValue = currentFilters[column];
-      const itemValue = getNestedValue(item, column);
-      
-      if (itemValue === null || itemValue === undefined) return false;
-      
-      // Gestion spéciale pour certains champs
-      if (column === 'role' && tableType === 'users') {
-        if (filterValue === 'admin') return item.is_admin === 1;
-        if (filterValue === 'user' || filterValue === 'utilisateur') return item.is_admin === 0;
-        // Si "Tous les rôles" est sélectionné, on ne filtre pas
-        if (filterValue === 'tous' || filterValue === '') return true;
-        // Si on arrive ici, c'est que la valeur ne correspond à rien
-        return false;
-      }
-      
-      if (column === 'status' && tableType === 'modules') {
-        const status = getModuleStatus(item).toLowerCase();
-        
-        if (filterValue === 'online') {
-          return !status.includes('hors'); // Online = NOT offline (ne contient pas "hors")
-        }
-        if (filterValue === 'offline') {
-          return status.includes('hors'); // Offline = contient "hors"
-        }
-        // Si "Tous les statuts" est sélectionné, on ne filtre pas
-        if (filterValue === 'tous' || filterValue === '') {
-          console.log('Tous les statuts -> return true');
-          return true;
-        }
-        const result = status.includes(filterValue);
-        console.log(`General status check: "${status}".includes("${filterValue}") = ${result}`);
-        return result;
-      }
-      
-      return String(itemValue).toLowerCase().includes(filterValue);
-    });
-  });
-
-  // Appliquer le tri
-  const currentSort = tableType === 'users' ? currentUsersSort : currentModulesSort;
-  const currentOrder = tableType === 'users' ? currentUsersSortOrder : currentModulesSortOrder;
-  
-  if (currentSort) {
-    filtered.sort((a, b) => {
-      let aVal = getNestedValue(a, currentSort);
-      let bVal = getNestedValue(b, currentSort);
-      
-      // Gestion des valeurs nulles
-      if (aVal === null || aVal === undefined) aVal = '';
-      if (bVal === null || bVal === undefined) bVal = '';
-      
-      // Gestion spéciale pour le tri par statut des modules (calculé dynamiquement)
-      if (currentSort === 'status' && tableType === 'modules') {
-        aVal = getModuleStatus(a);
-        bVal = getModuleStatus(b);
-      }
-      
-      // Gestion des dates
-      if (currentSort.includes('_at') || currentSort.includes('_login') || currentSort.includes('_seen')) {
-        aVal = new Date(aVal);
-        bVal = new Date(bVal);
-      }
-      
-      let result = 0;
-      if (aVal < bVal) result = -1;
-      if (aVal > bVal) result = 1;
-      
-      return currentOrder === 'DESC' ? -result : result;
-    });
-  }
-
-  // Stocker les données filtrées
-  if (tableType === 'users') {
-    filteredUsers = filtered;
-    currentUsersPage = 1; // Reset à la première page
-  } else {
-    filteredModules = filtered;
-    currentModulesPage = 1; // Reset à la première page
-  }
-
-  // Rendre les données
-  renderTable(tableType);
-  updateClearButtonVisibility(tableType);
-  updateSortArrows(tableType);
-}
-
-// Fonction de tri par colonne (client-side)
-function sortByColumn(tableType, column) {
-  const currentSort = tableType === 'users' ? currentUsersSort : currentModulesSort;
-  const currentOrder = tableType === 'users' ? currentUsersSortOrder : currentModulesSortOrder;
-  
-  let newOrder = 'ASC';
-  if (currentSort === column) {
-    newOrder = currentOrder === 'ASC' ? 'DESC' : 'ASC';
-  }
-  
-  // Mettre à jour les variables globales
-  if (tableType === 'users') {
-    currentUsersSort = column;
-    currentUsersSortOrder = newOrder;
-  } else {
-    currentModulesSort = column;
-    currentModulesSortOrder = newOrder;
-  }
-  
-  // Réappliquer les filtres avec le nouveau tri
-  applyClientSideFilters(tableType);
-  
-  // Mettre à jour les flèches de tri
-  updateSortArrows(tableType);
-}
-
-// Fonction pour effacer tous les filtres (client-side)
-function clearAllFilters(tableType) {
-  // Vider tous les champs de filtre
-  const filtersSection = tableType === 'users' ? 
-    document.querySelector('#usersSection') : 
-    document.querySelector('#modulesSection');
-    
-  if (filtersSection) {
-    const filterInputs = filtersSection.querySelectorAll('.column-filter');
-    filterInputs.forEach(filter => {
-      filter.value = '';
-    });
-  }
-  
-  // Reset des variables
-  if (tableType === 'users') {
-    usersFilters = {};
-    currentUsersSort = '';
-    currentUsersSortOrder = '';
-    currentUsersPage = 1;
-  } else {
-    modulesFilters = {};
-    currentModulesSort = '';
-    currentModulesSortOrder = '';
-    currentModulesPage = 1;
-  }
-  
-  // Réappliquer les filtres (vides)
-  applyClientSideFilters(tableType);
-}
-
-
-
-
-
-// Initialisation des event listeners
-function setupEventListeners() {
-  // Event listeners pour les en-têtes de tri cliquables
-  document.querySelectorAll('.sortable-header:not([data-listener-added])').forEach(header => {
-    header.addEventListener('click', function() {
-      const sortField = this.dataset.sort;
-      const tableType = this.closest('.admin-section').querySelector('h2').textContent.includes('Utilisateurs') ? 'users' : 'modules';
-      sortByColumn(tableType, sortField);
-    });
-    header.setAttribute('data-listener-added', 'true');
-  });
-
-  // Event listeners pour les filtres par colonne (client-side)
-  document.querySelectorAll('.column-filter:not([data-listener-added])').forEach(filter => {
-    const tableType = filter.closest('.admin-section').querySelector('h2').textContent.includes('Utilisateurs') ? 'users' : 'modules';
-    
-    // Filtrage en temps réel immédiat (pas de délai car côté client)
-    filter.addEventListener('input', function() {
-      applyClientSideFilters(tableType);
-    });
-    
-    filter.addEventListener('change', function() {
-      applyClientSideFilters(tableType);
-    });
-    
-    // Filtrage au press Enter
-    filter.addEventListener('keypress', function(e) {
-      if (e.key === 'Enter') {
-        applyClientSideFilters(tableType);
-      }
-    });
-    
-    filter.setAttribute('data-listener-added', 'true');
-  });
-
-
-
-
-
-  // Boutons pour effacer les filtres
-  setupClearButtonsListeners();
-}
-
-// Gérer la visibilité des boutons d'effacement
-function updateClearButtonVisibility(tableType) {
-  const buttonId = tableType === 'users' ? 'clearUsersFilters' : 'clearModulesFilters';
-  const clearButton = document.getElementById(buttonId);
-  
-  if (clearButton) {
-    // Vérifier s'il y a des filtres actifs
-    const filtersSection = tableType === 'users' ? 
-      document.querySelector('#usersSection') : 
-      document.querySelector('#modulesSection');
-      
-    if (filtersSection) {
-      const filterInputs = filtersSection.querySelectorAll('.column-filter');
-      let hasActiveFilters = false;
-      
-      filterInputs.forEach(filter => {
-        if (filter.value.trim() !== '') {
-          hasActiveFilters = true;
-        }
-      });
-      
-      // Vérifier aussi le tri actuel
-      const hasActiveSort = (tableType === 'users' && currentUsersSort) || 
-                          (tableType === 'modules' && currentModulesSort);
-      
-      clearButton.style.display = (hasActiveFilters || hasActiveSort) ? 'flex' : 'none';
-    }
-  }
-}
-
-// Ajouter les event listeners pour les boutons d'effacement du header
-function setupClearButtonsListeners() {
-  const clearUsersBtn = document.getElementById('clearUsersFilters');
-  const clearModulesBtn = document.getElementById('clearModulesFilters');
-  
-  if (clearUsersBtn && !clearUsersBtn.dataset.listenerAdded) {
-    clearUsersBtn.addEventListener('click', () => clearAllFilters('users'));
-    clearUsersBtn.dataset.listenerAdded = 'true';
-  }
-  
-  if (clearModulesBtn && !clearModulesBtn.dataset.listenerAdded) {
-    clearModulesBtn.addEventListener('click', () => clearAllFilters('modules'));
-    clearModulesBtn.dataset.listenerAdded = 'true';
-  }
-}
-
-// Charger les données avec filtres (client-side)
-function loadUsers() {
-  applyClientSideFilters('users');
-}
-
-function loadModules() {
-  applyClientSideFilters('modules');
-}
-
-// Changer de page (client-side)
-function changePage(tableType, page) {
-  if (tableType === 'users') {
-    currentUsersPage = parseInt(page);
-  } else {
-    currentModulesPage = parseInt(page);
-  }
-  renderTable(tableType);
-}
-
-// Fonctions utilitaires
-function getNestedValue(obj, path) {
-  if (path === 'user_name') return obj.user_name || '';
-  if (path === 'role') return obj.is_admin; // Retourne 1 pour admin, 0 pour user
-  if (path === 'status') return getModuleStatus(obj); // Retourne "En ligne" ou "Hors ligne"
-  return path.split('.').reduce((o, p) => o && o[p], obj);
-}
-
-function getModuleStatus(module) {
-  if (!module.last_seen) return 'Hors ligne';
-  const lastSeen = new Date(module.last_seen);
-  const now = new Date();
-  const diffMinutes = (now - lastSeen) / (1000 * 60);
-  return diffMinutes <= 5 ? 'En ligne' : 'Hors ligne';
-}
-
-function formatDate(dateStr) {
-  if (!dateStr) return 'Jamais';
-  const date = new Date(dateStr);
-  return date.toLocaleDateString('fr-FR') + ' à ' + date.toLocaleTimeString('fr-FR');
-}
-
-function getRoleBadge(isAdmin) {
-  if (isAdmin) {
-    return '<span class="badge badge-admin">Admin</span>';
-  }
-  return '<span class="badge badge-user">Utilisateur</span>';
-}
-
-function getStatusBadge(status) {
-  const statusLower = status.toLowerCase();
-  if (statusLower.includes('ligne')) {
-    return `<span class="status status-${statusLower.replace(' ', '-')}">${status}</span>`;
-  }
-  return `<span class="status">${status}</span>`;
-}
-
-function getTypeBadge(type) {
-  if (!type) return '<span class="badge badge-user">Inconnu</span>';
-  
-  const typeLower = type.toLowerCase().replace(/\s+/g, '-');
-  
-  if (typeLower.includes('switch') || typeLower.includes('track')) {
-    return `<span class="badge badge-switch-track">${type}</span>`;
-  }
-  if (typeLower.includes('station')) {
-    return `<span class="badge badge-station">${type}</span>`;
-  }
-  if (typeLower.includes('smoke') || typeLower.includes('machine')) {
-    return `<span class="badge badge-smoke-machine">${type}</span>`;
-  }
-  
-  return `<span class="badge badge-user">${type}</span>`;
-}
-
-// Fonction pour mettre à jour les flèches de tri
-function updateSortArrows(tableType) {
-  const section = tableType === 'users' ? 
-    document.querySelector('#usersSection') : 
-    document.querySelector('#modulesSection');
-    
-  if (!section) return;
-  
-  const currentSort = tableType === 'users' ? currentUsersSort : currentModulesSort;
-  const currentOrder = tableType === 'users' ? currentUsersSortOrder : currentModulesSortOrder;
-  
-  // Reset toutes les flèches
-  section.querySelectorAll('.sort-arrow').forEach(arrow => {
-    arrow.className = 'sort-arrow';
-  });
-  
-  // Mettre à jour la flèche active
-  if (currentSort) {
-    const activeHeader = section.querySelector(`[data-sort="${currentSort}"] .sort-arrow`);
-    if (activeHeader) {
-      activeHeader.className = `sort-arrow ${currentOrder.toLowerCase()}`;
-    }
-  }
-}
-
-// Fonction de rendu des tables
-function renderTable(tableType) {
-  const data = tableType === 'users' ? filteredUsers : filteredModules;
-  const currentPage = tableType === 'users' ? currentUsersPage : currentModulesPage;
-  
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
-  const endIndex = startIndex + ITEMS_PER_PAGE;
-  const pageData = data.slice(startIndex, endIndex);
-  
-  const tableContainer = tableType === 'users' ? 
-    document.querySelector('#usersSection .table-container tbody') :
-    document.querySelector('#modulesSection .table-container tbody');
-  
-  if (!tableContainer) return;
-  
-  if (pageData.length === 0) {
-    // Afficher le message empty state
-    tableContainer.innerHTML = `
-      <tr class="empty-state-row">
-        <td colspan="6" class="empty-state-cell">
-          <div class="empty-state-message">
-            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-            </svg>
-            <h4>Aucun ${tableType === 'users' ? 'utilisateur' : 'module'} trouvé</h4>
-            <p>Essayez de modifier vos filtres de recherche</p>
-          </div>
-        </td>
-      </tr>
-    `;
-  } else {
-    let html = '';
-    
-    if (tableType === 'users') {
-      pageData.forEach(user => {
-        html += `
-          <tr>
-            <td>${user.name || ''}</td>
-            <td><code>${user.email || ''}</code></td>
-            <td>${getRoleBadge(user.is_admin)}</td>
-            <td>${user.module_count || 0}</td>
-            <td>${formatDate(user.last_login)}</td>
-            <td>${formatDate(user.created_at)}</td>
-          </tr>
-        `;
-      });
-    } else {
-      pageData.forEach(module => {
-        html += `
-          <tr>
-            <td><code>${module.module_id || ''}</code></td>
-            <td>${module.name || 'Module sans nom'}</td>
-            <td>${getTypeBadge(module.type)}</td>
-            <td>${module.user_name || ''}</td>
-            <td>${getStatusBadge(getModuleStatus(module))}</td>
-            <td>${formatDate(module.last_seen)}</td>
-          </tr>
-        `;
-      });
-    }
-    
-    tableContainer.innerHTML = html;
-  }
-  
-  // Mettre à jour la pagination
-  renderPagination(tableType, data.length);
-}
-
-// Fonction de rendu de la pagination
-function renderPagination(tableType, totalItems) {
-  const currentPage = tableType === 'users' ? currentUsersPage : currentModulesPage;
-  const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
-  
-  const paginationContainer = tableType === 'users' ?
-    document.querySelector('#usersSection .pagination-container') :
-    document.querySelector('#modulesSection .pagination-container');
-    
-  if (!paginationContainer) return;
-  
-  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE + 1;
-  const endIndex = Math.min(currentPage * ITEMS_PER_PAGE, totalItems);
-  
-  paginationContainer.innerHTML = `
-    <div class="pagination-info">
-      Page ${currentPage} sur ${totalPages} (${startIndex}-${endIndex} sur ${totalItems})
-    </div>
-    <div class="pagination-controls">
-      <button class="pagination-prev" data-table="${tableType}" ${currentPage === 1 ? 'disabled' : ''}>‹ Précédent</button>
-      <button class="pagination-next" data-table="${tableType}" ${currentPage === totalPages || totalPages === 0 ? 'disabled' : ''}>Suivant ›</button>
-    </div>
-  `;
-  
-  // Ajouter les event listeners après avoir créé les boutons
-  const prevBtn = paginationContainer.querySelector('.pagination-prev');
-  const nextBtn = paginationContainer.querySelector('.pagination-next');
-  
-  if (prevBtn && !prevBtn.disabled) {
-    prevBtn.addEventListener('click', () => changePage(tableType, currentPage - 1));
-  }
-  
-  if (nextBtn && !nextBtn.disabled) {
-    nextBtn.addEventListener('click', () => changePage(tableType, currentPage + 1));
-  }
-}
-
-// Initialisation quand le DOM est chargé
 document.addEventListener('DOMContentLoaded', function() {
-  // Initialiser la page admin avec les données depuis les attributs data-
-  initializeAdminPage();
-  
-  setupEventListeners();
+    // Initialiser les badges de types pour tous les modules affichés
+    initializeModuleTypeBadges();
+    
+    // Initialiser les fonctionnalités de pagination si présentes
+    initializePagination();
+    
+    // Initialiser les filtres si présents
+    initializeFilters();
 });
+
+/**
+ * Génère le badge HTML pour un type de module
+ * @param {string} moduleType - Le type du module
+ * @returns {string} HTML du badge
+ */
+function getTypeBadge(moduleType) {
+    if (!moduleType) return getTypeBadge('unknown');
+    
+    const type = moduleType.toLowerCase().trim();
+    
+    // Mapping des types vers les classes CSS et icônes
+    const typeConfig = {
+        'station': {
+            class: 'station',
+            icon: '🟣',
+            label: 'Station'
+        },
+        'launch track': {
+            class: 'launch-track',
+            icon: '🔴', 
+            label: 'Launch Track'
+        },
+        'launch-track': {
+            class: 'launch-track',
+            icon: '🔴',
+            label: 'Launch Track'
+        },
+        'switch track': {
+            class: 'switch-track',
+            icon: '🟠',
+            label: 'Switch Track'
+        },
+        'switch-track': {
+            class: 'switch-track',
+            icon: '🟠',
+            label: 'Switch Track'
+        },
+        'light fx': {
+            class: 'light-fx',
+            icon: '🟡',
+            label: 'Light FX'
+        },
+        'light-fx': {
+            class: 'light-fx',
+            icon: '🟡',
+            label: 'Light FX'
+        },
+        'audio player': {
+            class: 'audio-player',
+            icon: '🔵',
+            label: 'Audio Player'
+        },
+        'audio-player': {
+            class: 'audio-player',
+            icon: '🔵',
+            label: 'Audio Player'
+        },
+        'smoke machine': {
+            class: 'smoke-machine',
+            icon: '⚫',
+            label: 'Smoke Machine'
+        },
+        'smoke-machine': {
+            class: 'smoke-machine',
+            icon: '⚫',
+            label: 'Smoke Machine'
+        }
+    };
+    
+    const config = typeConfig[type] || {
+        class: 'unknown',
+        icon: '⚫',
+        label: 'Unknown'
+    };
+    
+    return `<span class="type-badge ${config.class}" title="${config.label}">
+        ${config.label}
+    </span>`;
+}
+
+/**
+ * Initialise les badges de types pour tous les modules visibles
+ */
+function initializeModuleTypeBadges() {
+    // Chercher tous les éléments qui ont besoin d'un badge de type
+    const typeElements = document.querySelectorAll('[data-module-type]');
+    
+    typeElements.forEach((element, index) => {
+        const moduleType = element.getAttribute('data-module-type');
+        const badge = getTypeBadge(moduleType);
+        
+        // Remplacer le contenu
+        element.innerHTML = badge;
+    });
+}
+
+/**
+ * Initialise les fonctionnalités de pagination
+ */
+function initializePagination() {
+    // Restaurer les préférences depuis le localStorage
+    const modulesItemsPerPage = document.getElementById('modulesItemsPerPage');
+    if (modulesItemsPerPage) {
+        const savedLimit = localStorage.getItem('admin_modules_itemsPerPage');
+        if (savedLimit && savedLimit !== modulesItemsPerPage.value) {
+            modulesItemsPerPage.value = savedLimit;
+        }
+    }
+    
+    const usersItemsPerPage = document.getElementById('usersItemsPerPage');
+    if (usersItemsPerPage) {
+        const savedLimit = localStorage.getItem('admin_users_itemsPerPage');
+        if (savedLimit && savedLimit !== usersItemsPerPage.value) {
+            usersItemsPerPage.value = savedLimit;
+        }
+    }
+}
+
+/**
+ * Initialise les filtres de la page admin
+ */
+function initializeFilters() {
+    // Tous les filtres de colonnes (inputs et selects)
+    const columnFilters = document.querySelectorAll('.column-filter');
+    
+    columnFilters.forEach(filter => {
+        const eventType = filter.tagName.toLowerCase() === 'select' ? 'change' : 'input';
+        filter.addEventListener(eventType, function() {
+            applyFilters();
+        });
+    });
+    
+    // Boutons de réinitialisation des filtres
+    const clearUsersBtn = document.getElementById('clearUsersFilters');
+    const clearModulesBtn = document.getElementById('clearModulesFilters');
+    
+    if (clearUsersBtn) {
+        clearUsersBtn.addEventListener('click', function() {
+            clearFilters('users');
+        });
+    }
+    
+    if (clearModulesBtn) {
+        clearModulesBtn.addEventListener('click', function() {
+            clearFilters('modules');
+        });
+    }
+}
+
+/**
+ * Efface tous les filtres d'une table
+ */
+function clearFilters(tableType) {
+    const prefix = tableType === 'users' ? 'user' : 'module';
+    
+    // Réinitialiser tous les filtres de cette table
+    const filters = document.querySelectorAll(`[id^="filter-${prefix}-"]`);
+    filters.forEach(filter => {
+        filter.value = '';
+    });
+    
+    applyFilters();
+}
+
+/**
+ * Applique les filtres sélectionnés (côté client uniquement)
+ */
+function applyFilters() {
+    // Filtrer les utilisateurs
+    filterTable('users');
+    
+    // Filtrer les modules
+    filterTable('modules');
+    
+    // Réinitialiser la pagination après filtrage
+    paginationState.users.page = 1;
+    paginationState.modules.page = 1;
+    
+    // Réappliquer la pagination avec les nouveaux résultats
+    applyClientSidePagination('users');
+    applyClientSidePagination('modules');
+    updatePaginationControls('users');
+    updatePaginationControls('modules');
+}
+
+/**
+ * Filtre une table spécifique basée sur ses filtres de colonnes
+ */
+function filterTable(tableType) {
+    const table = document.querySelector(`.admin-table[data-table="${tableType}"]`);
+    if (!table) {
+        return;
+    }
+    
+    const rows = table.querySelectorAll('tbody tr:not(.filter-row)');
+    let visibleCount = 0;
+    
+    // Récupérer tous les filtres pour cette table
+    const prefix = tableType === 'users' ? 'user' : 'module';
+    const filters = {};
+    
+    document.querySelectorAll(`[id^="filter-${prefix}-"]`).forEach(filterElement => {
+        const column = filterElement.getAttribute('data-column');
+        const value = filterElement.value.toLowerCase().trim();
+        if (value) {
+            filters[column] = value;
+        }
+    });
+    
+    rows.forEach(row => {
+        let isVisible = true;
+        
+        // Appliquer chaque filtre
+        Object.entries(filters).forEach(([column, filterValue]) => {
+            if (!isVisible) return; // Déjà masqué
+            
+            let cellValue = '';
+            
+            // Récupérer la valeur de la cellule selon la colonne
+            const cells = row.querySelectorAll('td');
+            
+            switch (column) {
+                case 'name':
+                    cellValue = tableType === 'users' ? 
+                        (cells[0] ? cells[0].textContent.toLowerCase() : '') :
+                        (cells[1] ? cells[1].textContent.toLowerCase() : '');
+                    break;
+                case 'email':
+                    cellValue = cells[1] ? cells[1].textContent.toLowerCase() : '';
+                    break;
+                case 'role':
+                    cellValue = cells[2] ? cells[2].textContent.toLowerCase() : '';
+                    break;
+                case 'module_count':
+                    cellValue = cells[3] ? cells[3].textContent.toLowerCase() : '';
+                    break;
+                case 'last_login':
+                    cellValue = cells[4] ? cells[4].textContent.toLowerCase() : '';
+                    break;
+                case 'created_at':
+                    cellValue = cells[5] ? cells[5].textContent.toLowerCase() : '';
+                    break;
+                case 'module_id':
+                    cellValue = cells[0] ? cells[0].textContent.toLowerCase() : '';
+                    break;
+                case 'type':
+                    cellValue = cells[2] ? cells[2].textContent.toLowerCase() : '';
+                    break;
+                case 'user_name':
+                    cellValue = cells[3] ? cells[3].textContent.toLowerCase() : '';
+                    break;
+                case 'status':
+                    cellValue = cells[4] ? cells[4].textContent.toLowerCase() : '';
+                    break;
+                case 'last_seen':
+                    cellValue = cells[5] ? cells[5].textContent.toLowerCase() : '';
+                    break;
+                default:
+                    // Recherche dans toute la ligne si colonne non spécifiée
+                    cellValue = row.textContent.toLowerCase();
+            }
+            
+            if (!cellValue.includes(filterValue)) {
+                isVisible = false;
+            }
+        });
+        
+        // Appliquer la visibilité
+        if (isVisible) {
+            row.style.display = '';
+            row.classList.remove('filtered-hidden');
+            visibleCount++;
+        } else {
+            row.style.display = 'none';
+            row.classList.add('filtered-hidden');
+        }
+    });
+    
+    // Afficher un message si aucun résultat
+    showNoResultsMessage(table, visibleCount);
+}
+
+
+
+/**
+ * Affiche un message si aucun résultat n'est trouvé
+ * @param {HTMLElement} table - L'élément table
+ * @param {number} visibleCount - Nombre d'éléments visibles
+ */
+function showNoResultsMessage(table, visibleCount) {
+    // Supprimer l'ancien message s'il existe
+    const existingMessage = table.querySelector('.no-results-row');
+    if (existingMessage) {
+        existingMessage.remove();
+    }
+    
+    if (visibleCount === 0) {
+        const tbody = table.querySelector('tbody');
+        const colCount = table.querySelectorAll('thead th').length;
+        
+        const messageRow = document.createElement('tr');
+        messageRow.className = 'no-results-row';
+        messageRow.innerHTML = `
+            <td colspan="${colCount}" class="empty-state-cell">
+                <div class="empty-state-message">
+                    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                    <h4>Aucun résultat trouvé</h4>
+                    <p>Aucun élément ne correspond aux filtres sélectionnés. Essayez d'ajuster vos critères de recherche.</p>
+                </div>
+            </td>
+        `;
+        
+        tbody.appendChild(messageRow);
+    }
+}
+
+
+
+/**
+ * Met à jour un badge de type de module dynamiquement
+ * @param {HTMLElement} element - L'élément à mettre à jour
+ * @param {string} newType - Le nouveau type de module
+ */
+function updateModuleTypeBadge(element, newType) {
+    if (!element) return;
+    
+    const badge = getTypeBadge(newType);
+    element.innerHTML = badge;
+    element.setAttribute('data-module-type', newType);
+}
+
+/**
+ * Convertit les anciens badges en nouveaux badges avec icônes
+ */
+function convertLegacyBadges() {
+    const legacyBadges = document.querySelectorAll('.badge-station, .badge-launch-track, .badge-switch-track, .badge-light-fx, .badge-audio-player, .badge-smoke-machine, .badge-unknown');
+    
+    legacyBadges.forEach(badge => {
+        const text = badge.textContent.trim();
+        let moduleType = 'unknown';
+        
+        // Déterminer le type basé sur le texte du badge
+        if (text.toLowerCase().includes('station')) moduleType = 'station';
+        else if (text.toLowerCase().includes('launch')) moduleType = 'launch-track';
+        else if (text.toLowerCase().includes('switch')) moduleType = 'switch-track';
+        else if (text.toLowerCase().includes('light')) moduleType = 'light-fx';
+        else if (text.toLowerCase().includes('audio')) moduleType = 'audio-player';
+        else if (text.toLowerCase().includes('smoke')) moduleType = 'smoke-machine';
+        
+        // Remplacer par le nouveau badge
+        const newBadge = getTypeBadge(moduleType);
+        badge.outerHTML = newBadge;
+    });
+}
+
+/**
+ * Initialise tout après le chargement de la page
+ */
+function initializeAll() {
+    // Attendre un peu pour s'assurer que le DOM est complètement chargé
+    setTimeout(() => {
+        // Vérifier que les tables existent
+        const usersTable = document.querySelector('.admin-table[data-table="users"]');
+        const modulesTable = document.querySelector('.admin-table[data-table="modules"]');
+        
+        initializeModuleTypeBadges();
+        convertLegacyBadges();
+        initializePagination();
+        initializeFilters();
+        
+        // Initialiser la pagination côté client
+        initializeClientSidePagination();
+        
+
+    }, 100);
+}
+
+/**
+ * Initialise la pagination côté client
+ */
+function initializeClientSidePagination() {
+    // Restaurer les préférences depuis le localStorage
+    const modulesSelect = document.getElementById('modulesItemsPerPage');
+    if (modulesSelect) {
+        const savedLimit = localStorage.getItem('admin_modules_itemsPerPage');
+        if (savedLimit) {
+            modulesSelect.value = savedLimit;
+            paginationState.modules.itemsPerPage = parseInt(savedLimit);
+        }
+    }
+    
+    const usersSelect = document.getElementById('usersItemsPerPage');
+    if (usersSelect) {
+        const savedLimit = localStorage.getItem('admin_users_itemsPerPage');
+        if (savedLimit) {
+            usersSelect.value = savedLimit;
+            paginationState.users.itemsPerPage = parseInt(savedLimit);
+        }
+    }
+    
+    // Appliquer la pagination initiale
+    applyClientSidePagination('users');
+    applyClientSidePagination('modules');
+    updatePaginationControls('users');
+    updatePaginationControls('modules');
+}
+
+
+
+// Remplacer l'ancien event listener
+document.removeEventListener('DOMContentLoaded', function() {
+    initializeModuleTypeBadges();
+    initializePagination();
+    initializeFilters();
+});
+
+document.addEventListener('DOMContentLoaded', initializeAll);
+
+
+
+// État de pagination côté client
+const paginationState = {
+    users: { page: 1, itemsPerPage: 10 },
+    modules: { page: 1, itemsPerPage: 10 }
+};
+
+/**
+ * Fonctions de pagination côté client (sans URL)
+ */
+window.changeItemsPerPage = function(select) {
+    const itemsPerPage = parseInt(select.value);
+    const table = select.getAttribute('data-table');
+    
+    // Sauvegarder la préférence
+    localStorage.setItem(`admin_${table}_itemsPerPage`, itemsPerPage);
+    
+    // Mettre à jour l'état local
+    paginationState[table].itemsPerPage = itemsPerPage;
+    paginationState[table].page = 1; // Retour à la première page
+    
+    // Réappliquer les filtres et la pagination
+    applyClientSidePagination(table);
+    updatePaginationControls(table);
+};
+
+window.navigatePage = function(table, direction, event) {
+    // Vérifier si le bouton est désactivé
+    if (event && event.target && event.target.disabled) {
+        return false;
+    }
+    
+    const currentPage = paginationState[table].page;
+    let newPage = currentPage;
+    
+    if (direction === 'prev') {
+        newPage = Math.max(1, currentPage - 1);
+    } else if (direction === 'next') {
+        // Calculer le nombre maximum de pages basé sur les éléments visibles
+        const tableElement = document.querySelector(`.admin-table[data-table="${table}"]`);
+        if (tableElement) {
+            const allRows = Array.from(tableElement.querySelectorAll('tbody tr:not(.filter-row):not(.no-results-row)'));
+            const visibleRows = allRows.filter(row => 
+                !row.classList.contains('filtered-hidden') && 
+                row.style.display !== 'none'
+            );
+            const maxPages = Math.ceil(visibleRows.length / paginationState[table].itemsPerPage);
+            newPage = Math.min(maxPages || 1, currentPage + 1);
+        }
+    }
+    
+    if (newPage !== currentPage) {
+        paginationState[table].page = newPage;
+        
+        // Appliquer la pagination
+        applyClientSidePagination(table);
+        updatePaginationControls(table);
+    }
+};
+
+/**
+ * Applique la pagination côté client
+ */
+function applyClientSidePagination(tableType) {
+    const table = document.querySelector(`.admin-table[data-table="${tableType}"]`);
+    if (!table) return;
+    
+    // Récupérer seulement les lignes visibles (non filtrées)
+    const allRows = Array.from(table.querySelectorAll('tbody tr:not(.filter-row):not(.no-results-row)'));
+    const visibleRows = allRows.filter(row => 
+        !row.classList.contains('filtered-hidden') && 
+        row.style.display !== 'none'
+    );
+    
+    const { page, itemsPerPage } = paginationState[tableType];
+    const startIndex = (page - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    // D'abord, masquer toutes les lignes paginées
+    allRows.forEach(row => {
+        row.classList.add('pagination-hidden');
+    });
+    
+    // Puis afficher seulement les lignes de la page courante
+    visibleRows.forEach((row, index) => {
+        if (index >= startIndex && index < endIndex) {
+            row.classList.remove('pagination-hidden');
+        }
+    });
+}
+
+/**
+ * Met à jour les contrôles de pagination
+ */
+function updatePaginationControls(tableType) {
+    const table = document.querySelector(`.admin-table[data-table="${tableType}"]`);
+    if (!table) return;
+    
+    // Compter seulement les lignes visibles (non filtrées)
+    const allRows = Array.from(table.querySelectorAll('tbody tr:not(.filter-row):not(.no-results-row)'));
+    const visibleRows = allRows.filter(row => 
+        !row.classList.contains('filtered-hidden') && 
+        row.style.display !== 'none'
+    );
+    
+    const { page, itemsPerPage } = paginationState[tableType];
+    const totalItems = visibleRows.length;
+    const totalPages = Math.ceil(totalItems / itemsPerPage);
+    const startItem = totalItems === 0 ? 0 : (page - 1) * itemsPerPage + 1;
+    const endItem = Math.min(page * itemsPerPage, totalItems);
+    
+    // Mettre à jour les boutons de navigation
+    const prevBtn = document.querySelector(`.pagination-prev[data-table="${tableType}"]`);
+    const nextBtn = document.querySelector(`.pagination-next[data-table="${tableType}"]`);
+    
+    if (prevBtn) {
+        prevBtn.disabled = (page <= 1);
+        prevBtn.style.opacity = prevBtn.disabled ? '0.5' : '1';
+    }
+    
+    if (nextBtn) {
+        nextBtn.disabled = (page >= totalPages || totalPages === 0);
+        nextBtn.style.opacity = nextBtn.disabled ? '0.5' : '1';
+    }
+    
+    // Mettre à jour l'info de pagination
+    const paginationInfo = document.querySelector(`.pagination-info[data-table="${tableType}"]`);
+    if (paginationInfo) {
+        if (totalItems === 0) {
+            paginationInfo.textContent = 'Aucun élément';
+        } else {
+            paginationInfo.textContent = `${startItem}-${endItem} sur ${totalItems}`;
+        }
+    }
+    
+
+}
+
+/**
+ * Exporte les fonctions principales pour utilisation externe
+ */
+window.getTypeBadge = getTypeBadge;
+window.updateModuleTypeBadge = updateModuleTypeBadge;
+window.convertLegacyBadges = convertLegacyBadges;
+window.initializeModuleTypeBadges = initializeModuleTypeBadges;

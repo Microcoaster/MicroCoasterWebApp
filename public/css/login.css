@@ -71,8 +71,8 @@ input[type="text"]:focus,
 input[type="email"]:focus, 
 input[type="password"]:focus {
   outline: none;
-  border-color: #4CAF50;
-  box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2);
+  border-color: #20c26a;
+  box-shadow: 0 0 0 2px rgba(32, 194, 106, 0.2);
 }
 
 input[type="text"]::placeholder, 
@@ -84,7 +84,7 @@ input[type="password"]::placeholder {
 button {
   width: 100%;
   padding: 15px;
-  background: linear-gradient(135deg, #4CAF50, #45a049);
+  background: linear-gradient(135deg, #20c26a, #1db660);
   color: white;
   border: none;
   border-radius: 8px;
@@ -97,9 +97,9 @@ button {
 }
 
 button:hover {
-  background: linear-gradient(135deg, #45a049, #4CAF50);
+  background: linear-gradient(135deg, #1db660, #20c26a);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.3);
+  box-shadow: 0 4px 12px rgba(32, 194, 106, 0.3);
 }
 
 button:active {
@@ -125,14 +125,14 @@ footer {
 }
 
 .register-link a {
-  color: #4CAF50;
+  color: #20c26a;
   text-decoration: none;
   font-weight: 500;
   transition: color 0.3s ease;
 }
 
 .register-link a:hover {
-  color: #45a049;
+  color: #1db660;
   text-decoration: underline;
 }
 
