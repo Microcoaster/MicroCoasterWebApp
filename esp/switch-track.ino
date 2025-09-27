@@ -1,364 +1,223 @@
 /*
- * ================================================================================
- * MICROCOASTER ESP32 - SWITCH TRACK FIRMWARE
- * ================================================================================
- * 
- * Purpose: Firmware pour module Switch Track (aiguillage)
- * Hardware: ESP32 + 2 LEDs + servomoteur/relais pour aiguillage
- * Author: MicroCoaster Development Team
- * Version: 1.0
- * 
- * Description:
- * Contrôle un aiguillage de train avec 2 positions exclusives (gauche/droite)
- * Communication sécurisée avec le serveur via WebSocket
- * Authentification par moduleId + password sur chaque message
- * 
- * Connexions hardware:
- * - LED_LEFT_PIN : LED indicatrice position gauche
- * - LED_RIGHT_PIN : LED indicatrice position droite  
- * - SERVO_PIN : Servo moteur pour l'aiguillage physique
- * 
- * ================================================================================
+ * MicroCoaster - Switch Track ESP32
+ * Aiguillage sécurisé avec authentification
  */
 
 #include <WiFi.h>
 #include <SocketIOclient.h>
 #include <ArduinoJson.h>
-#include <ESP32Servo.h>
-#include <Preferences.h>
 
-// ================================================================================
-// CONFIGURATION HARDWARE
-// ================================================================================
-
-// Pins des LEDs
-#define LED_LEFT_PIN    2
-#define LED_RIGHT_PIN   4
-#define SERVO_PIN      18
-
-// Angles du servomoteur (ajustez selon votre hardware)
-#define SERVO_LEFT_ANGLE   45
-#define SERVO_RIGHT_ANGLE  135
-
-// ================================================================================
-// CONFIGURATION RÉSEAU ET AUTHENTIFICATION
-// ================================================================================
-
-// Configuration WiFi (à modifier selon votre réseau)
-const char* WIFI_SSID = "VotreWiFi";
-const char* WIFI_PASSWORD = "VotreMotDePasseWiFi";
+// Configuration WiFi
+const char* ssid = "YOUR_WIFI_SSID";
+const char* password = "YOUR_WIFI_PASSWORD";
 
 // Configuration serveur
-const char* SERVER_HOST = "192.168.1.100";  // IP de votre serveur
-const int SERVER_PORT = 3000;
+const char* server_host = "192.168.1.100"; // IP du serveur
+const uint16_t server_port = 3000;
 
-// Authentification module (UNIQUE PAR MODULE - gravé en usine)
-const char* MODULE_ID = "MC-0001-ST";
-const char* MODULE_PASSWORD = "F674iaRftVsHGKOA8hq3TI93HQHUaYqZ";
+// Configuration module
+const String MODULE_ID = "MC-0001-ST";
+const String MODULE_PASSWORD = "F674iaRftVsHGKOA8hq3TI93HQHUaYqZ";
 
-// ================================================================================
-// VARIABLES GLOBALES
-// ================================================================================
-
+// Variables globales
 SocketIOclient socketIO;
-Servo switchServo;
-Preferences preferences;
-
-// État du module
-typedef enum {
-  POSITION_LEFT,
-  POSITION_RIGHT
-} SwitchPosition;
-
-SwitchPosition currentPosition = POSITION_LEFT;
+String currentPosition = "left"; // Position initiale
 unsigned long uptimeStart = 0;
-unsigned long lastHeartbeat = 0;
-const unsigned long HEARTBEAT_INTERVAL = 10000; // 10 secondes
+bool isAuthenticated = false;
 
-// États de connexion
-bool wifiConnected = false;
-bool serverConnected = false;
+// Pins hardware
+const int LED_LEFT_PIN  = 2;
+const int LED_RIGHT_PIN = 4;
 
-// ================================================================================
-// FONCTIONS UTILITAIRES
-// ================================================================================
-
-void log(String message) {
-  Serial.println("[SWITCH-TRACK] " + message);
-}
-
-void blinkLED(int pin, int times = 3) {
-  for(int i = 0; i < times; i++) {
-    digitalWrite(pin, HIGH);
-    delay(200);
-    digitalWrite(pin, LOW);
-    delay(200);
-  }
-}
-
-// ================================================================================
-// GESTION HARDWARE
-// ================================================================================
-
-void initHardware() {
-  log("Initialisation hardware...");
+void setup() {
+  Serial.begin(115200);
+  Serial.println("[SWITCH TRACK] 🚀 ESP32 Switch Track démarrant...");
   
-  // Configuration des LEDs
+  uptimeStart = millis();
+  
+  // Configuration pins LED
   pinMode(LED_LEFT_PIN, OUTPUT);
   pinMode(LED_RIGHT_PIN, OUTPUT);
   
-  // Test des LEDs
-  blinkLED(LED_LEFT_PIN);
-  blinkLED(LED_RIGHT_PIN);
+  // Position initiale - LED gauche allumée
+  updateLEDs();
+  Serial.println("[SWITCH TRACK] 📍 Position initiale: " + currentPosition);
   
-  // Configuration du servomoteur
-  switchServo.attach(SERVO_PIN);
+  // Connexion WiFi
+  connectWiFi();
   
-  // Lecture de la position sauvegardée
-  preferences.begin("switch-track", false);
-  int savedPosition = preferences.getInt("position", POSITION_LEFT);
-  currentPosition = (SwitchPosition)savedPosition;
-  
-  // Appliquer la position sauvegardée
-  applyPhysicalPosition();
-  
-  log("Hardware initialisé - Position: " + String(currentPosition == POSITION_LEFT ? "LEFT" : "RIGHT"));
+  // Connexion Socket.io
+  connectSocket();
 }
 
-void applyPhysicalPosition() {
-  // Contrôler le servomoteur
-  if(currentPosition == POSITION_LEFT) {
-    switchServo.write(SERVO_LEFT_ANGLE);
-    digitalWrite(LED_LEFT_PIN, HIGH);
-    digitalWrite(LED_RIGHT_PIN, LOW);
-  } else {
-    switchServo.write(SERVO_RIGHT_ANGLE);
-    digitalWrite(LED_LEFT_PIN, LOW);
-    digitalWrite(LED_RIGHT_PIN, HIGH);
+void loop() {
+  socketIO.loop();
+  
+  // Pas de heartbeat - Socket.io gère automatiquement les déconnexions
+  // L'ESP32 répond uniquement aux commandes et événements
+  
+  delay(100); // Petit délai pour éviter de surcharger le CPU
+}
+
+void connectWiFi() {
+  Serial.print("[SWITCH TRACK] 🌐 Connexion WiFi à ");
+  Serial.println(ssid);
+  
+  WiFi.begin(ssid, password);
+  
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
   }
   
-  // Sauvegarder en mémoire non-volatile
-  preferences.putInt("position", currentPosition);
-  
-  delay(500); // Laisser le temps au servo de bouger
+  Serial.println();
+  Serial.print("[SWITCH TRACK] ✅ WiFi connecté - IP: ");
+  Serial.println(WiFi.localIP());
 }
 
-void switchToPosition(SwitchPosition newPosition) {
-  if(newPosition == currentPosition) {
-    log("Position déjà correcte: " + String(currentPosition == POSITION_LEFT ? "LEFT" : "RIGHT"));
-    return;
-  }
+void connectSocket() {
+  Serial.println("[SWITCH TRACK] 🔗 Connexion au serveur WebSocket...");
+  Serial.println("[SWITCH TRACK] 📍 Module ID: " + MODULE_ID);
+  Serial.println("[SWITCH TRACK] 🔑 Password: " + MODULE_PASSWORD.substring(0, 8) + "...");
   
-  log("Basculement vers: " + String(newPosition == POSITION_LEFT ? "LEFT" : "RIGHT"));
+  // Configuration Socket.io
+  socketIO.begin(server_host, server_port, "/socket.io/?EIO=4");
   
-  currentPosition = newPosition;
-  applyPhysicalPosition();
+  // Événements Socket.io
+  socketIO.onEvent(socketIOEvent);
   
-  log("Basculement terminé");
-}
-
-// ================================================================================
-// GESTION WIFI
-// ================================================================================
-
-void initWiFi() {
-  log("Connexion WiFi...");
-  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
-  
-  int attempts = 0;
-  while(WiFi.status() != WL_CONNECTED && attempts < 20) {
-    delay(1000);
-    log("Tentative WiFi " + String(attempts + 1) + "/20");
-    attempts++;
-  }
-  
-  if(WiFi.status() == WL_CONNECTED) {
-    wifiConnected = true;
-    log("WiFi connecté - IP: " + WiFi.localIP().toString());
-  } else {
-    log("ERREUR: Impossible de se connecter au WiFi");
-  }
-}
-
-// ================================================================================
-// COMMUNICATION WEBSOCKET
-// ================================================================================
-
-String createAuthenticatedPayload() {
-  DynamicJsonDocument doc(512);
-  
-  doc["moduleId"] = MODULE_ID;
-  doc["password"] = MODULE_PASSWORD;
-  doc["uptime"] = millis() - uptimeStart;
-  doc["position"] = (currentPosition == POSITION_LEFT) ? "left" : "right";
-  
-  String payload;
-  serializeJson(doc, payload);
-  return payload;
-}
-
-void sendTelemetry() {
-  if(!serverConnected) return;
-  
-  String payload = createAuthenticatedPayload();
-  socketIO.sendEVENT("telemetry", payload);
-  
-  log("Télémétrie envoyée: " + String(currentPosition == POSITION_LEFT ? "LEFT" : "RIGHT"));
-}
-
-void handleCommand(String command) {
-  log("Commande reçue: " + command);
-  
-  if(command == "switch_left") {
-    switchToPosition(POSITION_LEFT);
-  } else if(command == "switch_right") {
-    switchToPosition(POSITION_RIGHT);
-  } else {
-    log("Commande inconnue: " + command);
-    return;
-  }
-  
-  // Envoyer immédiatement la télémétrie mise à jour
-  sendTelemetry();
+  Serial.println("[SWITCH TRACK] ✅ ESP32 Switch Track prêt!");
 }
 
 void socketIOEvent(socketIOmessageType_t type, uint8_t * payload, size_t length) {
   switch(type) {
-    case sIOtype_DISCONNECT:
-      log("Déconnecté du serveur");
-      serverConnected = false;
-      break;
-      
     case sIOtype_CONNECT:
-      log("Connecté au serveur WebSocket");
-      
-      // Authentification avec état initial
-      {
-        DynamicJsonDocument authDoc(512);
-        authDoc["moduleId"] = MODULE_ID;
-        authDoc["password"] = MODULE_PASSWORD;
-        authDoc["type"] = "Switch Track";
-        authDoc["uptime"] = millis() - uptimeStart;
-        authDoc["position"] = (currentPosition == POSITION_LEFT) ? "left" : "right";
-        
-        String authPayload;
-        serializeJson(authDoc, authPayload);
-        socketIO.sendEVENT("module_identify", authPayload);
-        
-        log("Authentification envoyée");
-      }
+      Serial.println("[SWITCH TRACK] 🟢 Connecté au serveur WebSocket");
+      authenticateModule();
       break;
       
-    case sIOtype_EVENT:
-      {
-        DynamicJsonDocument doc(512);
-        deserializeJson(doc, payload, length);
-        
-        String eventName = doc[0];
-        
-        if(eventName == "connected") {
-          log("Module authentifié avec succès");
-          serverConnected = true;
-          
-        } else if(eventName == "command") {
-          JsonObject commandData = doc[1];
-          String command = commandData["command"];
-          handleCommand(command);
-          
-        } else {
-          log("Événement inconnu: " + eventName);
-        }
-      }
+    case sIOtype_DISCONNECT:
+      Serial.println("[SWITCH TRACK] 🔴 Déconnexion du serveur");
+      isAuthenticated = false;
+      // Éteindre toutes les LEDs lors de la déconnexion
+      digitalWrite(LED_LEFT_PIN, LOW);
+      digitalWrite(LED_RIGHT_PIN, LOW);
       break;
       
+    case sIOtype_EVENT: {
+      String eventName = getEventName((char*)payload);
+      
+      if (eventName == "connected") {
+        handleConnected((char*)payload);
+      } else if (eventName == "command") {
+        handleCommand((char*)payload);
+      } else if (eventName == "error") {
+        handleError((char*)payload);
+      }
+      break;
+    }
+    
     default:
       break;
   }
 }
 
-void initWebSocket() {
-  log("Initialisation WebSocket...");
+void authenticateModule() {
+  Serial.println("[SWITCH TRACK] 📤 Authentification...");
   
-  socketIO.begin(SERVER_HOST, SERVER_PORT, "/socket.io/?EIO=4");
-  socketIO.onEvent(socketIOEvent);
+  // Création du payload d'authentification
+  DynamicJsonDocument doc(1024);
+  doc["moduleId"] = MODULE_ID;
+  doc["password"] = MODULE_PASSWORD;
+  doc["uptime"] = millis() - uptimeStart;
+  doc["position"] = currentPosition;
+  doc["type"] = "Switch Track";
   
-  log("WebSocket configuré");
+  String payload;
+  serializeJson(doc, payload);
+  
+  // Envoi de l'authentification
+  socketIO.sendEVENT("module_identify", payload);
+  
+  Serial.println("[SWITCH TRACK] 📤 Authentification envoyée avec état initial: " + currentPosition);
 }
 
-// ================================================================================
-// BOUCLE PRINCIPALE
-// ================================================================================
+void handleConnected(const char* payload) {
+  Serial.println("[SWITCH TRACK] ✅ Module authentifié");
+  
+  isAuthenticated = true;
+  updateLEDs(); // Mettre à jour les LEDs selon la position
+  
+  // Socket.io gère automatiquement la surveillance - pas de télémétrie nécessaire
+}
 
-void setup() {
-  Serial.begin(115200);
-  delay(1000);
-  
-  log("=== MICROCOASTER SWITCH TRACK v1.0 ===");
-  log("Module ID: " + String(MODULE_ID));
-  
-  uptimeStart = millis();
-  
-  // Initialisation
-  initHardware();
-  initWiFi();
-  
-  if(wifiConnected) {
-    initWebSocket();
+void handleCommand(const char* payload) {
+  if (!isAuthenticated) {
+    Serial.println("[SWITCH TRACK] ⚠️ Commande refusée - non authentifié");
+    return;
   }
   
-  log("Système prêt!");
-}
-
-void loop() {
-  // Maintenir la connexion WebSocket
-  if(wifiConnected) {
-    socketIO.loop();
+  // Parse du JSON
+  DynamicJsonDocument doc(512);
+  deserializeJson(doc, payload);
+  
+  String command = doc["command"];
+  Serial.println("[SWITCH TRACK] 📡 Commande reçue: " + command);
+  
+  // Traitement des commandes
+  if (command == "switch_left" || command == "left") {
+    currentPosition = "left";
+    Serial.println("[SWITCH TRACK] 🔄 Aiguillage basculé vers la GAUCHE");
+    updateLEDs(); // Allumer LED gauche
     
-    // Heartbeat toutes les 10 secondes
-    unsigned long now = millis();
-    if(serverConnected && (now - lastHeartbeat >= HEARTBEAT_INTERVAL)) {
-      sendTelemetry();
-      lastHeartbeat = now;
-    }
-  }
-  
-  // Vérification WiFi
-  if(WiFi.status() != WL_CONNECTED && wifiConnected) {
-    log("WiFi déconnecté - tentative de reconnexion");
-    wifiConnected = false;
-    serverConnected = false;
-    initWiFi();
-  }
-  
-  delay(100); // Éviter la surcharge CPU
-}
-
-// ================================================================================
-// FONCTIONS DE DEBUG (optionnelles)
-// ================================================================================
-
-void printStatus() {
-  log("=== STATUS ===");
-  log("WiFi: " + String(wifiConnected ? "OK" : "NOK"));
-  log("Serveur: " + String(serverConnected ? "OK" : "NOK"));
-  log("Position: " + String(currentPosition == POSITION_LEFT ? "LEFT" : "RIGHT"));
-  log("Uptime: " + String((millis() - uptimeStart) / 1000) + "s");
-}
-
-// Fonction appelable depuis le moniteur série pour debug
-void handleSerialCommands() {
-  if(Serial.available()) {
-    String cmd = Serial.readStringUntil('\n');
-    cmd.trim();
+  } else if (command == "switch_right" || command == "right") {
+    currentPosition = "right";
+    Serial.println("[SWITCH TRACK] 🔄 Aiguillage basculé vers la DROITE");
+    updateLEDs(); // Allumer LED droite
     
-    if(cmd == "status") {
-      printStatus();
-    } else if(cmd == "left") {
-      handleCommand("switch_left");
-    } else if(cmd == "right") {
-      handleCommand("switch_right");
-    } else if(cmd == "telemetry") {
-      sendTelemetry();
-    }
+  } else {
+    Serial.println("[SWITCH TRACK] ⚠️ Commande inconnue: " + command);
+    return;
   }
+  
+  // Pas besoin d'envoyer de télémétrie - Socket.io surveille automatiquement
+  Serial.println("[SWITCH TRACK] ✅ Commande exécutée: " + currentPosition);
+}
+
+void handleError(const char* payload) {
+  Serial.println("[SWITCH TRACK] ❌ Erreur reçue du serveur");
+  
+  isAuthenticated = false;
+  // Éteindre toutes les LEDs en cas d'erreur
+  digitalWrite(LED_LEFT_PIN, LOW);
+  digitalWrite(LED_RIGHT_PIN, LOW);
+}
+
+// Fonction sendTelemetry supprimée - pas nécessaire avec Socket.io
+// Socket.io gère automatiquement la détection de déconnexion
+
+void updateLEDs() {
+  if (currentPosition == "left") {
+    digitalWrite(LED_LEFT_PIN, HIGH);   // LED gauche ON
+    digitalWrite(LED_RIGHT_PIN, LOW);   // LED droite OFF
+    Serial.println("[SWITCH TRACK] 💡 LED GAUCHE allumée");
+  } else if (currentPosition == "right") {
+    digitalWrite(LED_LEFT_PIN, LOW);    // LED gauche OFF
+    digitalWrite(LED_RIGHT_PIN, HIGH);  // LED droite ON
+    Serial.println("[SWITCH TRACK] 💡 LED DROITE allumée");
+  }
+}
+
+// Utilitaires JSON
+String getEventName(const char* payload) {
+  // Extraction simple du nom d'événement depuis le payload Socket.io
+  String str = String(payload);
+  int start = str.indexOf('[') + 2; // Après ["
+  int end = str.indexOf('"', start);
+  
+  if (start > 1 && end > start) {
+    return str.substring(start, end);
+  }
+  
+  return "";
 }

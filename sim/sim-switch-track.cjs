@@ -1,4 +1,7 @@
-// sim-switch-track.cjs - Simulateur ESP32 Switch Track sécurisé
+// sim-switch-track.cjs - S// Fonction sendTelemetry supprimée - pas nécessaire avec Socket.io
+// Socket.io gère auto// -------- Pas de simulation d'activité physique --------
+// L'aiguillage ESP32 réel n'a pas de bouton physique
+// Il ne change de position que via les commandes WebSocket la détection de déconnexionur ESP32 Switch Track sécurisé
 /* eslint-disable no-console */
 const { io } = require('socket.io-client');
 
@@ -9,9 +12,7 @@ const MODULE_PASSWORD = process.env.MODULE_PASSWORD || 'F674iaRftVsHGKOA8hq3TI93
 
 let socket;
 const uptimeStart = Date.now();
-let heartbeatInterval = null;
 let currentPosition = "left"; // Position initiale
-let lastSentPosition = null; // Pour éviter le spam de télémétrie
 
 // -------- Helpers --------
 const log = (...args) => console.log('[SWITCH TRACK]', ...args);
@@ -27,18 +28,12 @@ function createAuthenticatedPayload(additionalData = {}) {
   };
 }
 
-function sendTelemetry(force = false) {
+function sendTelemetry() {
   if (!socket || !socket.connected) return;
-
-  // Éviter le spam - n'envoyer que si l'état a changé ou si c'est forcé
-  if (!force && lastSentPosition === currentPosition) {
-    return;
-  }
 
   const payload = createAuthenticatedPayload();
   socket.emit('telemetry', payload);
-  lastSentPosition = currentPosition;
-  log(`💓 Télémétrie envoyée: ${currentPosition}`);
+  log(`� Télémétrie envoyée: ${currentPosition}`);
 }
 
 // -------- Gestion des commandes --------
@@ -61,9 +56,8 @@ function handleCommand(cmd) {
       return;
   }
 
-  // Réponse immédiate avec authentification
-  sendTelemetry(true); // Forcer l'envoi
-  log(`✅ Nouvel état envoyé: ${currentPosition}`);
+  // Pas besoin d'envoyer de télémétrie - Socket.io surveille automatiquement
+  log(`✅ Commande exécutée: ${currentPosition}`);
 }
 
 // -------- Connexion Socket.io sécurisée --------
@@ -98,19 +92,8 @@ function connect() {
       log(`📍 État initial confirmé: ${data.initialState.position}`);
     }
     
-    // Envoyer la télémétrie initiale
-    sendTelemetry(true);
-    
-    // Démarrer le heartbeat toutes les 10 secondes
-    if (heartbeatInterval) clearInterval(heartbeatInterval);
-    heartbeatInterval = setInterval(() => {
-      // Heartbeat périodique - envoyer même si pas de changement
-      const payload = createAuthenticatedPayload();
-      socket.emit('telemetry', payload);
-      log(`💓 Heartbeat télémétrie: ${currentPosition}`);
-    }, 10000);
-    
-    log('💓 Heartbeat démarré (10s)');
+    // Socket.io gère automatiquement les déconnexions - pas de télémétrie nécessaire
+    log('🔗 Connexion établie - Socket.io surveille automatiquement');
   });
 
   socket.on('command', (data) => {
@@ -123,11 +106,7 @@ function connect() {
 
   socket.on('disconnect', (reason) => {
     // En réalité, l'ESP32 ne peut pas notifier sa déconnexion (coupure courant/wifi)
-    // On nettoie juste silencieusement les timers
-    if (heartbeatInterval) {
-      clearInterval(heartbeatInterval);
-      heartbeatInterval = null;
-    }
+    // Socket.io gère automatiquement la détection de déconnexion
   });
 
   socket.on('connect_error', (error) => {
@@ -137,21 +116,6 @@ function connect() {
   socket.on('error', (error) => {
     log('❌ Erreur socket:', error);
   });
-}
-
-// -------- Simulation d'activité physique --------
-function simulatePhysicalActivity() {
-  // Simulation légère d'activité pour les tests
-  if (Math.random() > 0.50) { // 50% de chance toutes les 30s
-    const newPosition = currentPosition === "left" ? "right" : "left";
-    log(`🔧 Simulation: Aiguillage manuel vers ${newPosition}`);
-    currentPosition = newPosition;
-    
-    // Envoyer la mise à jour
-    if (socket && socket.connected) {
-      sendTelemetry(true);
-    }
-  }
 }
 
 // -------- Démarrage --------
@@ -165,18 +129,13 @@ function main() {
   // Connexion au serveur
   connect();
   
-  // Simulation d'activité toutes les 30 secondes
-  setInterval(simulatePhysicalActivity, 30000);
+  // Pas de simulation d'activité - l'ESP32 réel n'a pas de bouton physique
 }
 
 // -------- Arrêt propre --------
 function shutdown(signal) {
   // En réalité, l'ESP32 s'arrête brutalement (coupure courant)
   // Pas de log de déconnexion - simulation réaliste
-  
-  if (heartbeatInterval) {
-    clearInterval(heartbeatInterval);
-  }
   
   if (socket) {
     socket.disconnect();
