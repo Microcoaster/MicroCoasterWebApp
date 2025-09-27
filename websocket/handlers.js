@@ -27,6 +27,47 @@ function getRealTimeAPI(socket) {
 // connectedModules/espById maintenant gérés par ModuleEvents pour éviter les doublons
 const codeByModuleId = new Map(); // moduleId -> code (après "claim" par le web)
 
+/* ===================== AUTHENTIFICATION ESP SÉCURISÉE ===================== */
+
+/**
+ * Valide l'authentification d'un message ESP
+ * @param {Object} socket - Socket ESP
+ * @param {Object} data - Données du message
+ * @returns {boolean} true si valide, false sinon
+ */
+async function validateESPMessage(socket, data) {
+  // Vérifier que le socket est authentifié
+  if (!socket.moduleAuth || !socket.moduleId) {
+    Logger.modules.warn('🚨 Message ESP depuis socket non authentifié');
+    return false;
+  }
+
+  // Vérifier que les credentials sont présents dans le message
+  if (!data.moduleId || !data.password) {
+    Logger.modules.warn(`🚨 Message ESP sans credentials depuis ${socket.moduleId}`);
+    return false;
+  }
+
+  // Vérifier que les credentials correspondent à ceux du socket
+  if (data.moduleId !== socket.moduleId) {
+    Logger.modules.warn(`🚨 Tentative d'usurpation: ${data.moduleId} depuis socket ${socket.moduleId}`);
+    return false;
+  }
+
+  // Valider le password à nouveau (sécurité renforcée)
+  try {
+    const moduleAuth = await databaseManager.modules.validateModuleAuth(data.moduleId, data.password);
+    if (!moduleAuth) {
+      Logger.modules.warn(`🚨 Password invalide pour module ${data.moduleId}`);
+      return false;
+    }
+    return true;
+  } catch (error) {
+    Logger.modules.error('Erreur validation message ESP:', error);
+    return false;
+  }
+}
+
 /* ===================== Helpers log (portés du serveur original) ===================== */
 function redact(val) {
   const secretKeys = new Set(['code', 'module_code', 'password', 'pwd', 'token']);
@@ -285,6 +326,41 @@ module.exports = function (io) {
       }
     }
 
+    // ===== WEB -> ESP COMMANDES SÉCURISÉES =====
+    socket.on('send_module_command', (data) => {
+      const { moduleId, command } = data;
+      
+      if (!moduleId || !command) {
+        socket.emit('error', { message: 'moduleId et command requis' });
+        return;
+      }
+
+      Logger.activity.info(`🎮 Commande reçue de ${userName}: ${command} -> ${moduleId}`);
+
+      const realTimeAPI = getRealTimeAPI(socket);
+      if (realTimeAPI?.modules) {
+        const result = realTimeAPI.modules.sendSecureCommand(moduleId, command, userId);
+        
+        if (!result.success) {
+          Logger.activity.warn(`🚫 Commande refusée pour ${userName}: ${result.error}`);
+          socket.emit('command_error', { 
+            moduleId, 
+            command, 
+            error: result.error 
+          });
+        } else {
+          Logger.activity.info(`✅ Commande envoyée: ${command} -> ${moduleId}`);
+          socket.emit('command_sent', { 
+            moduleId, 
+            command, 
+            timestamp: new Date() 
+          });
+        }
+      } else {
+        socket.emit('error', { message: 'Service modules indisponible' });
+      }
+    });
+
     socket.emit('modules_state', moduleStates);
     logTx(socket, 'modules_state', moduleStates, session);
 
@@ -303,11 +379,9 @@ module.exports = function (io) {
       broadcastToWebByCode(realTimeAPI, userCode, 'module_presence', { moduleId: mid, online });
     });
 
-    // ===== WEB -> COMMAND ===== (gestion des commandes vers les modules)
-    socket.on('module_command', data => {
-      logRx(socket, 'module_command', data, session);
-      handleModuleCommand(socket, data, session);
-    });
+    // ===== ANCIEN SYSTÈME SUPPRIMÉ =====
+    // L'ancien handler 'module_command' a été supprimé
+    // Toutes les commandes doivent maintenant utiliser 'send_module_command' (sécurisé)
 
     // Nettoyage à la déconnexion
     socket.on('disconnect', () => {
@@ -335,71 +409,112 @@ module.exports = function (io) {
     // Stocker le timeout sur le socket pour pouvoir l'annuler
     socket._moduleTimeout = identificationTimeout;
 
-    // ===== ESP -> REGISTER ===== (le module doit s'identifier)
-    socket.on('module_identify', data => {
+    // ===== ESP -> REGISTER ===== (le module doit s'identifier avec auth)
+    socket.on('module_identify', async (data) => {
       clearTimeout(identificationTimeout); // Annuler le timeout
 
       logRx(socket, 'module_identify', data);
-      const { moduleId, type } = data;
+      const { moduleId, password, type, uptime, position } = data;
 
-      if (!moduleId) {
-        socket.emit('error', { message: 'Module ID required' });
+      // Validation des données requises
+      if (!moduleId || !password) {
+        Logger.modules.warn(`🚨 Tentative d'identification sans credentials: ${moduleId || 'NO_ID'}`);
+        socket.emit('error', { message: 'Module ID et password requis' });
         return socket.disconnect();
       }
 
-      Logger.esp(`🤖 Module identified: ${moduleId} (${type || 'Unknown'})`);
+      try {
+        // AUTHENTIFICATION SÉCURISÉE
+        const moduleAuth = await databaseManager.modules.validateModuleAuth(moduleId, password);
+        
+        if (!moduleAuth) {
+          Logger.modules.warn(`🚨 SÉCURITÉ: Authentification échouée pour ${moduleId}`);
+          socket.emit('error', { message: 'Authentification échouée' });
+          return socket.disconnect();
+        }
 
-      // NOUVEAU: Utiliser ModuleEvents pour la gestion unifiée
-      const realTimeAPI = getRealTimeAPI(socket);
-      if (realTimeAPI?.modules) {
-        // Enregistrer via ModuleEvents (gestion unifiée)
-        const moduleInfo = realTimeAPI.modules.registerESP(socket, moduleId, type);
+        Logger.modules.info(`🔒 Module authentifié: ${moduleId} (${type || 'Unknown'})`);
 
-        // Stocker les infos sur le socket pour usage local
+        // Stocker les infos d'auth sur le socket pour validation future
         socket.moduleId = moduleId;
+        socket.moduleAuth = moduleAuth;
         socket.moduleType = type || 'Unknown';
 
-        // Mettre à jour le statut en cache
-        databaseManager.modules.updateStatus(moduleId, 'online').catch(Logger.modules.error);
-      } else {
-        Logger.modules.error('RealTimeAPI or ModuleEvents not available for ESP registration');
-        socket.emit('error', { message: 'Server not ready' });
-        return socket.disconnect();
-      }
-
-      // Si déjà claimé par un dashboard, annoncer présence
-      const c = codeByModuleId.get(moduleId);
-      if (c) {
+        // NOUVEAU: Utiliser ModuleEvents pour la gestion unifiée
         const realTimeAPI = getRealTimeAPI(socket);
-        broadcastToWebByCode(realTimeAPI, c, 'module_online', {
-          moduleId,
-          type,
-          timestamp: new Date(),
-        });
-      }
+        if (realTimeAPI?.modules) {
+          // Enregistrer via ModuleEvents avec données d'auth
+          const moduleInfo = realTimeAPI.modules.registerESP(socket, moduleId, type);
 
-      socket.emit('connected', { message: 'Module registered successfully' });
-      logTx(socket, 'connected', { message: 'Module registered successfully' });
+          // Mettre à jour le statut en cache
+          databaseManager.modules.updateStatus(moduleId, 'online').catch(Logger.modules.error);
+
+          // Confirmer l'authentification avec état initial
+          socket.emit('connected', { 
+            status: 'authenticated',
+            initialState: { uptime, position }
+          });
+
+          Logger.modules.info(`✅ Module ${moduleId} connecté avec état initial: ${position || 'unknown'}`);
+        } else {
+          Logger.modules.error('RealTimeAPI or ModuleEvents not available for ESP registration');
+          socket.emit('error', { message: 'Erreur serveur' });
+          socket.disconnect();
+        }
+        
+        // Si déjà claimé par un dashboard, annoncer présence
+        const c = codeByModuleId.get(moduleId);
+        if (c) {
+          broadcastToWebByCode(realTimeAPI, c, 'module_online', {
+            moduleId,
+            type,
+            timestamp: new Date(),
+          });
+        }
+      } catch (error) {
+        Logger.modules.error('Erreur lors de l\'authentification ESP:', error);
+        socket.emit('error', { message: 'Erreur authentification' });
+        socket.disconnect();
+      }
+      
+      // Connected event already sent in auth success block above
     });
 
-    // ===== ESP -> TELEMETRY ===== (télémétrie depuis les modules)
-    socket.on('telemetry', data => {
-      if (!socket.moduleId) return;
+    // ===== ESP -> TELEMETRY ===== (télémétrie sécurisée depuis les modules)
+    socket.on('telemetry', async (data) => {
+      // VALIDATION SÉCURISÉE
+      const isValid = await validateESPMessage(socket, data);
+      if (!isValid) {
+        Logger.modules.warn(`🚨 Message telemetry non autorisé depuis ${socket.id}`);
+        socket.disconnect();
+        return;
+      }
+
       const c = codeByModuleId.get(socket.moduleId);
       if (!c) return; // pas encore claimé par un web -> on ignore
 
       logRx(socket, 'telemetry', data);
 
+      // Extraire les données utiles (sécurisé)
+      const telemetryData = {
+        uptime: data.uptime,
+        position: data.position,
+        timestamp: new Date()
+      };
+
       // Émettre événement temps réel : télémétrie mise à jour
       const realTimeAPI = getRealTimeAPI(socket);
       if (realTimeAPI) {
-        realTimeAPI.emitTelemetryUpdate(socket.moduleId, data);
+        realTimeAPI.emitTelemetryUpdate(socket.moduleId, telemetryData);
       }
 
       broadcastToWebByCode(realTimeAPI, c, 'module_telemetry', {
         moduleId: socket.moduleId,
-        ...data,
+        ...telemetryData,
       });
+
+      // Mettre à jour le statut "last seen" en base
+      databaseManager.modules.updateStatus(socket.moduleId, 'online').catch(Logger.modules.error);
     });
 
     // Nettoyage à la déconnexion
@@ -438,52 +553,8 @@ module.exports = function (io) {
     });
   }
 
-  // ===== WEB -> COMMAND ===== (gestion des commandes vers les modules)
-  function handleModuleCommand(clientSocket, data, session) {
-    const { moduleId, command, params } = data;
-
-    if (!moduleId || !command) {
-      return clientSocket.emit('command_error', {
-        message: 'Module ID and command required',
-      });
-    }
-
-    Logger.modules.info(`📡 Command from user ${session.user_id}: ${command} -> ${moduleId}`, params);
-
-    // Trouver le module cible via ModuleEvents
-    const realTimeAPI = getRealTimeAPI(clientSocket);
-    const targetSocket = realTimeAPI?.modules?.getESPSocket(moduleId);
-    if (!targetSocket) {
-      return clientSocket.emit('command_error', {
-        message: `Module ${moduleId} not online`,
-      });
-    }
-
-    // Vérifier les permissions (si le module a déjà un code associé)
-    const targetCode = codeByModuleId.get(moduleId);
-    if (targetCode && targetCode !== session.code) {
-      return clientSocket.emit('command_error', {
-        message: 'Forbidden for this access code',
-      });
-    }
-
-    // Envoyer la commande au module ESP32
-    const commandPayload = {
-      type: 'command',
-      payload: { command, params: params || {} },
-    };
-
-    logTx(targetSocket, 'command', commandPayload);
-    targetSocket.emit('command', commandPayload);
-
-    // Confirmer au client web
-    clientSocket.emit('command_sent', {
-      moduleId,
-      command,
-      timestamp: new Date(),
-    });
-    logTx(clientSocket, 'command_sent', { moduleId, command });
-  }
+  // ===== ANCIENNE FONCTION SUPPRIMÉE =====
+  // handleModuleCommand() supprimée - remplacée par le système sécurisé sendSecureCommand()
 
   // Debug endpoint pour voir les connexions actives (uniquement pour les logs)
   setInterval(() => {

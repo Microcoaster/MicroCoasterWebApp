@@ -165,7 +165,7 @@ class UserEvents {
   // ================================================================================
 
   userActivity(userId, activity, metadata = {}) {
-    if (['module_command', 'module_added', 'module_removed'].includes(activity)) {
+    if (['send_module_command', 'module_added', 'module_removed'].includes(activity)) {
       const eventData = {
         userId,
         activity,

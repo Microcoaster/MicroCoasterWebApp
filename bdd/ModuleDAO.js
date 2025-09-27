@@ -498,6 +498,77 @@ class ModuleDAO extends BaseDAO {
       return 0;
     }
   }
+
+  // ================================================================================
+  // AUTHENTIFICATION ESP32 SÉCURISÉE
+  // ================================================================================
+
+  /**
+   * Récupère un module avec son hash de password pour authentification
+   * @param {string} moduleId - ID du module
+   * @returns {Object|null} Module avec hash de password
+   */
+  async findByModuleIdWithHash(moduleId) {
+    try {
+      const module = await this.findOne(
+        'SELECT id, user_id, module_id, module_password_hash, type, claimed FROM modules WHERE module_id = ?',
+        [moduleId]
+      );
+      return module;
+    } catch (error) {
+      Logger.modules.error('Erreur lors de la récupération du module avec hash:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Valide l'authentification d'un module ESP32
+   * @param {string} moduleId - ID du module
+   * @param {string} password - Mot de passe en clair
+   * @returns {Object|null} Module si authentification réussie, null sinon
+   */
+  async validateModuleAuth(moduleId, password) {
+    try {
+      // Récupérer le module avec son hash
+      const module = await this.findByModuleIdWithHash(moduleId);
+      
+      if (!module) {
+        Logger.modules.warn(`🚨 Tentative d'authentification avec module inexistant: ${moduleId}`);
+        return null;
+      }
+
+      if (!module.claimed) {
+        Logger.modules.warn(`🚨 Tentative d'authentification avec module non couplé: ${moduleId}`);
+        return null;
+      }
+
+      if (module.module_password_hash === 'À_DÉFINIR') {
+        Logger.modules.warn(`🚨 Module ${moduleId} n'a pas de password configuré`);
+        return null;
+      }
+
+      // Valider le password avec bcrypt
+      const bcrypt = require('bcrypt');
+      const isValid = await bcrypt.compare(password, module.module_password_hash);
+      
+      if (!isValid) {
+        Logger.modules.warn(`🚨 SÉCURITÉ: Échec authentification module ${moduleId} - Password invalide`);
+        return null;
+      }
+
+      Logger.modules.info(`✅ Authentification réussie pour module ${moduleId}`);
+      return {
+        id: module.id,
+        moduleId: module.module_id,
+        userId: module.user_id,
+        type: module.type,
+        claimed: module.claimed
+      };
+    } catch (error) {
+      Logger.modules.error('Erreur lors de la validation d\'authentification:', error);
+      return null;
+    }
+  }
 }
 
 module.exports = ModuleDAO;

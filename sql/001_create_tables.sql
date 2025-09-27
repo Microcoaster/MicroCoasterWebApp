@@ -26,7 +26,8 @@ CREATE TABLE modules (
   id INT AUTO_INCREMENT PRIMARY KEY,
   user_id INT NULL, -- NULL pour les modules non assignés
   module_id VARCHAR(50) NOT NULL UNIQUE,
-  module_code VARCHAR(50) NOT NULL,
+  module_code VARCHAR(50) NOT NULL, -- Code simple pour couplage (8 chiffres)
+  module_password_hash VARCHAR(255) NOT NULL, -- Hash du password pour authentification WebSocket
   name VARCHAR(255),
   type VARCHAR(50),
   claimed BOOLEAN DEFAULT FALSE,

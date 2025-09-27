@@ -224,14 +224,20 @@ class ModuleEvents {
   // ================================================================================
 
   /**
-   * Register ESP module connection
+   * Register ESP module connection (sécurisé)
    */
   registerESP(socket, moduleId, moduleType = 'Unknown') {
+    // Vérifier que le socket a une authentification valide
+    if (!socket.moduleAuth || socket.moduleId !== moduleId) {
+      Logger.modules.error(`🚨 Tentative d'enregistrement ESP sans auth valide: ${moduleId}`);
+      return null;
+    }
+
     // Gérer les reconnexions - déconnecter l'ancienne session
     const existingSocket = this.connectedESPs.get(moduleId);
     if (existingSocket && existingSocket !== socket) {
       Logger.modules.warn(
-        `⚠️ ESP ${moduleId} already connected on different socket. Disconnecting previous socket ${previousSocket.id}`
+        `⚠️ ESP ${moduleId} already connected on different socket. Disconnecting previous socket ${existingSocket.id}`
       );
 
       try {
@@ -248,14 +254,20 @@ class ModuleEvents {
       socket,
       moduleId,
       moduleType,
+      userId: socket.moduleAuth.userId, // Ajouter l'ownership
       connectedAt: new Date(),
+      authenticated: true
     };
 
     this.connectedESPs.set(moduleId, socket);
     this.modulesBySocket.set(socket.id, moduleInfo);
 
     // Mettre à jour l'état du module
-    this.moduleOnline(moduleId, { type: moduleType, lastSeen: new Date() });
+    this.moduleOnline(moduleId, { 
+      type: moduleType, 
+      lastSeen: new Date(), 
+      userId: socket.moduleAuth.userId 
+    });
 
     Logger.esp(`ESP registered: ${moduleId} (${moduleType}) on socket ${socket.id}`);
     return moduleInfo;
@@ -290,9 +302,10 @@ class ModuleEvents {
   }
 
   /**
-   * Get ESP socket by moduleId
+   * Get ESP socket by moduleId (DÉPRÉCIÉ - utiliser sendSecureCommand à la place)
    */
   getESPSocket(moduleId) {
+    // DÉPRÉCIÉ - pour compatibilité temporaire seulement
     return this.connectedESPs.get(moduleId);
   }
 
@@ -379,12 +392,48 @@ class ModuleEvents {
 
         this.events.emitToAdmins('simple_stats_update', simpleStats);
         Logger.system.debug(
-          `[ModuleEvents] Stats mises à jour émises: ${stats.users} utilisateurs, ${stats.modules} modules`
+          `[ModuleEvents] Stats mises à jour émises: ${clientStats.uniqueUsers} utilisateurs, ${moduleStats.connectedModules} modules`
         );
       } catch (error) {
         Logger.modules.error('[ModuleEvents] Erreur émission stats:', error);
       }
     }, 200); // Petit délai pour éviter les appels trop fréquents
+  }
+
+  // ================================================================================
+  // COMMANDES SÉCURISÉES
+  // ================================================================================
+
+  /**
+   * Envoie une commande à un module ESP en vérifiant l'ownership
+   */
+  sendSecureCommand(moduleId, command, userId) {
+    const socket = this.connectedESPs.get(moduleId);
+    if (!socket) {
+      Logger.modules.warn(`Tentative d'envoi de commande à module offline: ${moduleId}`);
+      return { success: false, error: 'Module offline' };
+    }
+
+    const moduleInfo = this.modulesBySocket.get(socket.id);
+    if (!moduleInfo || !moduleInfo.authenticated) {
+      Logger.modules.warn(`Tentative d'envoi de commande à module non authentifié: ${moduleId}`);
+      return { success: false, error: 'Module non authentifié' };
+    }
+
+    // Vérifier l'ownership
+    if (moduleInfo.userId !== userId) {
+      Logger.modules.warn(`🚨 Tentative d'accès non autorisé au module ${moduleId} par user ${userId}`);
+      return { success: false, error: 'Accès non autorisé' };
+    }
+
+    try {
+      socket.emit('command', { command });
+      Logger.modules.info(`Commande envoyée à ${moduleId}: ${command}`);
+      return { success: true };
+    } catch (error) {
+      Logger.modules.error(`Erreur envoi commande à ${moduleId}:`, error);
+      return { success: false, error: 'Erreur envoi' };
+    }
   }
 }
 

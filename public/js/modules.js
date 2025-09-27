@@ -1377,8 +1377,8 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       }, 500);
     }
 
-    // Envoi de la commande via Socket.io
-    socket.emit('module_command', {
+    // Envoi de la commande via Socket.io (système sécurisé)
+    socket.emit('send_module_command', {
       moduleId,
       command,
       params,
