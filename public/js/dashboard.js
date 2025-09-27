@@ -1,18 +1,40 @@
-/* =========================================================
- * MicroCoaster - Dashboard Page JavaScript
- * Fonctions spécifiques au tableau de bord
- * =======================================================*/
+/**
+ * ================================================================================
+ * MICROCOASTER WEBAPP - DASHBOARD PAGE
+ * ================================================================================
+ *
+ * Purpose: Dashboard functionality for real-time module monitoring
+ * Author: MicroCoaster Development Team
+ * Created: 2024
+ *
+ * Description:
+ * Manages the dashboard interface including real-time module status updates,
+ * statistics counters, WebSocket event handling, and interactive elements.
+ * Provides live updates for online/offline module counts and visual feedback.
+ *
+ * Dependencies:
+ * - global.js (WebSocket connection and utilities)
+ * - Socket.io (for real-time updates)
+ *
+ * ================================================================================
+ */
 
-// Variables globales pour les statistiques en temps réel
-const moduleStatus = new Map(); // moduleId -> boolean (online/offline)
+// ================================================================================
+// DASHBOARD STATE MANAGEMENT
+// ================================================================================
+
+const moduleStatus = new Map();
 let onlineModules = 0;
 let offlineModules = 0;
 
+// ================================================================================
+// INITIALIZATION
+// ================================================================================
+
 document.addEventListener('DOMContentLoaded', function () {
   initializeDashboard();
-  initializeWebSocket();
+  initializeDashboardWebSocket();
 
-  // Add event listener for the add module button
   const addModuleBtn = document.getElementById('addModuleBtn');
   if (addModuleBtn) {
     addModuleBtn.addEventListener('click', addNewModule);
@@ -23,8 +45,11 @@ function addNewModule() {
   window.location.href = '/modules#add';
 }
 
+// ================================================================================
+// DASHBOARD SETUP
+// ================================================================================
+
 function initializeDashboard() {
-  // Récupérer les compteurs initiaux depuis le DOM
   const onlineElement = document.querySelector('.dashboard-stat.online');
   const offlineElement = document.querySelector('.dashboard-stat.offline');
 
@@ -33,7 +58,6 @@ function initializeDashboard() {
     offlineModules = parseInt(offlineElement.textContent || '0');
   }
 
-  // Animation d'entrée des cartes
   const cards = document.querySelectorAll('.dashboard-card');
   cards.forEach((card, index) => {
     card.style.opacity = '0';
@@ -47,13 +71,15 @@ function initializeDashboard() {
   });
 }
 
-function initializeWebSocket() {
+// ================================================================================
+// WEBSOCKET INTEGRATION
+// ================================================================================
+
+function initializeDashboardWebSocket() {
   let webSocketReady = false;
 
-  // Fonction pour configurer les listeners WebSocket
   function setupWebSocketListeners() {
     if (typeof window.socket !== 'undefined' && window.socket && window.socket.connected) {
-      // Écouter les changements d'état des modules
       window.socket.on('module_online', function (data) {
         updateModuleStatus(data.moduleId, true);
       });
@@ -66,7 +92,6 @@ function initializeWebSocket() {
         updateModuleStatus(data.moduleId, data.online);
       });
 
-      // Écouter l'état initial des modules
       window.socket.on('modules_state', function (modules) {
         modules.forEach(module => {
           updateModuleStatus(module.moduleId, module.online);
@@ -78,21 +103,18 @@ function initializeWebSocket() {
     return false;
   }
 
-  // Écouter l'événement de disponibilité WebSocket
   window.addEventListener('websocket-ready', function () {
     if (!webSocketReady) {
       setupWebSocketListeners();
     }
   });
 
-  // Essayer immédiatement si Socket.IO est déjà disponible
   if (typeof window.socket !== 'undefined' && window.socket) {
     if (setupWebSocketListeners()) {
       return;
     }
   }
 
-  // Fallback après délai si WebSocket n'est toujours pas prêt
   setTimeout(() => {
     if (!webSocketReady) {
       startStatsPolling();
@@ -100,8 +122,11 @@ function initializeWebSocket() {
   }, 2000);
 }
 
+// ================================================================================
+// STATISTICS MANAGEMENT
+// ================================================================================
+
 function startStatsPolling() {
-  // Récupérer les stats toutes les 10 secondes
   setInterval(async () => {
     try {
       const response = await fetch('/dashboard/stats');
@@ -146,42 +171,37 @@ function updateModuleStatus(moduleId, isOnline) {
     return;
   }
 
-  // Vérifier le statut précédent du module
   const previousStatus = moduleStatus.get(moduleId);
 
   if (previousStatus === isOnline) {
-    // Pas de changement, rien à faire
     return;
   }
 
-  // Mettre à jour le statut du module
   moduleStatus.set(moduleId, isOnline);
 
-  // Ajuster les compteurs selon le changement
   if (previousStatus === undefined) {
-    // Nouveau module découvert
     if (isOnline) {
       onlineModules++;
     } else {
       offlineModules++;
     }
   } else if (previousStatus === false && isOnline === true) {
-    // Module passe de offline à online
     onlineModules++;
     if (offlineModules > 0) offlineModules--;
   } else if (previousStatus === true && isOnline === false) {
-    // Module passe de online à offline
     if (onlineModules > 0) onlineModules--;
     offlineModules++;
   }
 
-  // Animation de mise à jour des compteurs
   animateCounterUpdate(onlineElement, onlineModules);
   animateCounterUpdate(offlineElement, offlineModules);
 }
 
+// ================================================================================
+// VISUAL EFFECTS
+// ================================================================================
+
 function animateCounterUpdate(element, newValue) {
-  // Animation simple de pulsation pour indiquer la mise à jour
   element.style.transform = 'scale(1.1)';
   element.style.transition = 'transform 0.2s ease';
 

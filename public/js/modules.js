@@ -1,20 +1,36 @@
-/* =========================================================
- * MicroCoaster - Modules UI (multi-cartes, animations OK)
- * Adapted for Socket.io instead of native WebSocket
- * =======================================================*/
+/**
+ * ================================================================================
+ * MICROCOASTER WEBAPP - MODULES CONTROL PAGE
+ * ================================================================================
+ *
+ * Purpose: Interactive module control interface with real-time status updates
+ * Author: MicroCoaster Development Team
+ * Created: 2024
+ *
+ * Description:
+ * Manages the modules control interface including station controllers, lift
+ * controllers, block controllers, and interactive module cards. Provides
+ * real-time WebSocket communication for module commands and status updates.
+ *
+ * Dependencies:
+ * - global.js (WebSocket connection and utilities)
+ * - Socket.io (for real-time module communication)
+ *
+ * ================================================================================
+ */
 
-/* =============== Utils spécifiques aux modules =============== */
-// Envoi Socket.io (défini après init), mais on expose une no-op au cas où
+// ================================================================================
+// MODULE CONTROL SYSTEM
+// ================================================================================
+
 window.ws_sendCommand = window.ws_sendCommand || function () {};
 
-/* =============== Map des contrôleurs par module =============== */
 const controllersByMid = new Map();
 
-/* =========================================================
- * CONTROLLERS PAR TYPE (une instance par .panel[data-mid])
- * =======================================================*/
+// ================================================================================
+// MODULE CONTROLLERS
+// ================================================================================
 
-/* --------------------- Station --------------------- */
 function makeStationController(panel) {
   const IMG = {
     ON: urlImg('button_green_on.png'),
@@ -28,14 +44,12 @@ function makeStationController(panel) {
   };
   preload(Object.values(IMG));
 
-  // Elements (par data-role)
   const estopImg = panel.querySelector('[data-role="st_estop"]');
   const nsfImg = panel.querySelector('[data-role="st_nsf"]');
   const dispatchImg = panel.querySelector('[data-role="st_dispatch"]');
   const gatesImg = panel.querySelector('[data-role="st_gates"]');
   const harnessImg = panel.querySelector('[data-role="st_harness"]');
 
-  // State
   let gatesClosed = false,
     harnessLocked = false,
     nextSectionFree = true;
@@ -93,7 +107,6 @@ function makeStationController(panel) {
     else stopBlink(true);
   }
 
-  // Events
   estopImg?.addEventListener('click', () => {
     estop = !estop;
     estopImg.src = estop ? IMG.RESET : IMG.ESTOP;
@@ -156,7 +169,6 @@ function makeStationController(panel) {
     reevaluate();
   }
 
-  // Init
   updateDisabled();
   reevaluate();
 
@@ -172,7 +184,6 @@ function makeStationController(panel) {
   };
 }
 
-/* --------------------- Switch Track --------------------- */
 function makeSwitchController(root) {
   const transfer = root.querySelector('[data-role="swt_transfer"]');
   const ledL = root.querySelector('[data-role="swt_left"]');
@@ -219,7 +230,6 @@ function makeSwitchController(root) {
   return { onPresenceOnline, onPresenceOffline, updateTelemetry, destroy() {} };
 }
 
-/* --------------------- Light FX --------------------- */
 function makeLightController(panel) {
   const IMG = {
     A: urlImg('switch_0.png'),
@@ -272,7 +282,6 @@ function makeLightController(panel) {
   return { onPresenceOnline, onPresenceOffline, updateTelemetry, destroy() {} };
 }
 
-/* --------------------- Launch Track --------------------- */
 function makeLaunchController(panel) {
   const IMG = {
     BTN_ON: urlImg('button_green_on.png'),
@@ -535,7 +544,6 @@ function makeLaunchController(panel) {
     reevaluate();
   }
 
-  // Init
   setDirUI();
   setSpeedUI();
   if (lnRoll && lnTrack) {
@@ -544,15 +552,12 @@ function makeLaunchController(panel) {
       lnCalibrate();
       lnSetUI();
     };
-    // calibrage quand visible
     const tryWhenVisible = () => {
       const vis = lnRoll.offsetParent !== null && lnRoll.getBoundingClientRect().height > 0;
       if (vis) refreshRoller();
       else requestAnimationFrame(tryWhenVisible);
     };
     tryWhenVisible();
-
-    // recalibre sur resize/visible/online
     window.addEventListener('resize', refreshRoller);
     panel.addEventListener('mc:visible', refreshRoller);
     panel.addEventListener('mc:online', refreshRoller);
@@ -574,7 +579,6 @@ function makeLaunchController(panel) {
   };
 }
 
-/* --------------------- Smoke Machine --------------------- */
 function makeSmokeController(panel) {
   const IMG = {
     BTN_ON: urlImg('button_green_on.png'),
@@ -634,7 +638,6 @@ function makeSmokeController(panel) {
     ok ? startBlink() : stopBlink(true);
   }
 
-  // build track
   if (track) {
     for (let i = MIN; i <= MAX; i++) {
       const d = document.createElement('div');
@@ -784,13 +787,10 @@ function makeSmokeController(panel) {
   };
 }
 
-/* --------------------- Audio Player --------------------- */
 function makeAudioController(panel) {
-  // Éléments liés par data-role
   const list = panel.querySelector('[data-role="au_list"]');
   const btn = panel.querySelector('[data-role="au_play"]');
 
-  // <audio> facultatif dans le DOM : on le crée si absent (hidden)
   let tag = panel.querySelector('[data-role="au_tag"]');
   if (!tag) {
     tag = document.createElement('audio');
@@ -800,11 +800,9 @@ function makeAudioController(panel) {
     panel.appendChild(tag);
   }
 
-  // Assets (chemins via urlImg/IMG_BASE)
   const IMG = { ON: urlImg('button_green_on.png'), OFF: urlImg('button_green_off.png') };
   preload(Object.values(IMG));
 
-  // Playlist par défaut (peut être remplacée via télémétrie)
   let tracks = [
     { file: '001.mp3', title: 'Taron' },
     { file: '002.mp3', title: 'Fenrir' },
@@ -883,7 +881,6 @@ function makeAudioController(panel) {
     }, 30000);
   }
 
-  // Interactions
   btn?.addEventListener('click', () => {
     if (cooldown) return;
     beginCooldown();
@@ -896,7 +893,6 @@ function makeAudioController(panel) {
     if (p && p.catch) p.catch(() => {});
   });
 
-  // États audio -> lampe
   tag.addEventListener('play', () => {
     if (!cooldown) stopBlink(false);
   });
@@ -907,7 +903,6 @@ function makeAudioController(panel) {
     if (!cooldown) startBlink();
   });
 
-  // Présence
   function onPresenceOnline() {
     panel.classList.remove('locked');
     if (tag.paused) startBlink();
@@ -917,7 +912,6 @@ function makeAudioController(panel) {
     stopBlink(true);
   }
 
-  // Télémétrie (optionnelle) pour mettre à jour la playlist / sélection / état
   function updateTelemetry(payload = {}) {
     if (payload.playlist) {
       const arr = Array.isArray(payload.playlist) ? payload.playlist : [];
@@ -961,7 +955,6 @@ function makeAudioController(panel) {
     }
   }
 
-  // Init
   render();
   load(false);
   startBlink();
@@ -976,9 +969,10 @@ function makeAudioController(panel) {
   };
 }
 
-/* =========================================================
- * BOOTSTRAP : instancie un contrôleur par .panel[data-mid]
- * =======================================================*/
+// ================================================================================
+// CONTROLLER BOOTSTRAP
+// ================================================================================
+
 (function bootstrapPanels() {
   const panels = document.querySelectorAll('.panel[data-mid]');
   panels.forEach(panel => {
@@ -1007,7 +1001,6 @@ function makeAudioController(panel) {
         controller = makeAudioController(panel);
         break;
       default:
-        // fallback: rien
         controller = {
           onPresenceOnline() {},
           onPresenceOffline() {},
@@ -1019,9 +1012,10 @@ function makeAudioController(panel) {
   });
 })();
 
-/* =========================================================
- * Copy MID chip
- * =======================================================*/
+// ================================================================================
+// UI INTERACTIONS
+// ================================================================================
+
 document.querySelectorAll('.midchip[role="button"]').forEach(chip => {
   chip.addEventListener('click', () => {
     const id = chip.querySelector('.mid')?.textContent?.trim();
@@ -1035,9 +1029,6 @@ document.querySelectorAll('.midchip[role="button"]').forEach(chip => {
   });
 });
 
-/* =========================================================
- * Bouton "désactiver Online only" (si présent)
- * =======================================================*/
 document.getElementById('disableOnlineFilter')?.addEventListener('click', () => {
   const cb = document.getElementById('filterOnlineOnly');
   if (cb) {
@@ -1047,9 +1038,10 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
   }
 });
 
-/* =========================================================
- * FILTRES (online + recherche)
- * =======================================================*/
+// ================================================================================
+// FILTERS SYSTEM
+// ================================================================================
+
 (function () {
   const KEY_ONLINE = 'mc:onlineOnly';
   const KEY_QUERY = 'mc:moduleSearch';
@@ -1072,12 +1064,10 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       totalModules++;
       let show = true;
 
-      // Online only (strict)
       if (only) {
         show = serverDown ? false : panel.classList.contains('online');
       }
 
-      // Recherche texte
       if (show && q) {
         const title = panel.querySelector('.h1')?.textContent || '';
         const alias = panel.querySelector('.alias--type')?.textContent || '';
@@ -1087,7 +1077,6 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
         show = hay.includes(q);
       }
 
-      // Trouver le conteneur Bootstrap Grid parent (.col-12.col-lg-6)
       const gridContainer = panel.closest('.col-12, .col-lg-6') || panel;
 
       const wasHidden = gridContainer.style.display === 'none';
@@ -1101,13 +1090,10 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       }
     });
 
-    // Empty-state: visible seulement si Online only + 0 carte + serveur UP ET il y a des modules en base
     if (empty) {
-      // Si pas de modules du tout, on cache l'empty state (le message "No modules yet" sera géré par le serveur)
       if (totalModules === 0) {
         empty.hidden = true;
       } else {
-        // Sinon, on affiche l'empty state seulement si Online only + 0 visible + serveur UP
         empty.hidden = serverDown || !(only && visibleCount === 0);
       }
     }
@@ -1115,10 +1101,8 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     if (qInp) localStorage.setItem(KEY_QUERY, q);
   }
 
-  // Expose pour WS/bannière
   window.applyOnlineFilter = applyFilters;
 
-  // État mémorisé du toggle
   if (cb) {
     const savedOnline = localStorage.getItem(KEY_ONLINE);
     cb.checked = savedOnline !== null ? savedOnline === '1' : true;
@@ -1128,19 +1112,16 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     });
   }
 
-  // Recherche + ESC + bouton clear
   if (qInp) {
     const savedQ = localStorage.getItem(KEY_QUERY) || '';
     if (savedQ) qInp.value = savedQ;
 
-    // Fonction pour afficher/masquer le bouton clear
     function updateClearButton() {
       if (clrBtn) {
         clrBtn.classList.toggle('show', qInp.value.length > 0);
       }
     }
 
-    // Mettre à jour le bouton au chargement
     updateClearButton();
 
     qInp.addEventListener('input', () => {
@@ -1167,14 +1148,13 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
   requestAnimationFrame(applyFilters);
 })();
 
-/* =========================================================
- * Socket.io : présence + télémétrie + commandes
- * Adapted from WebSocket to Socket.io
- * =======================================================*/
+// ================================================================================
+// WEBSOCKET COMMUNICATION
+// ================================================================================
+
 (() => {
   let socket;
 
-  // banner helpers
   function setServerBanner(show) {
     const el = document.getElementById('serverState');
     if (el) el.hidden = !show;
@@ -1256,93 +1236,34 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     });
   }
 
-  // Gestionnaire de reconnexion automatique
-  let reconnectionManager;
+  // Plus besoin de reconnectionManager - global.js s'en charge
 
   function connectSocket() {
-    try {
-      console.log('🔌 [DEBUG] Initializing Socket.io connection...');
-      console.log('🔌 [DEBUG] io available:', typeof io !== 'undefined');
-      console.log('🔌 [DEBUG] ReconnectionManager available:', typeof ReconnectionManager !== 'undefined');
-      
-      // Socket.io se connecte automatiquement avec les sessions
-      socket = io();
-      console.log('🔌 [DEBUG] Socket.io instance created:', socket);
+    // AUCUNE gestion WebSocket - utiliser seulement la connexion globale
+    if (!window.socket) {
+      console.warn('[MODULES] Attente socket global...');
+      window.addEventListener('websocket-ready', connectSocket);
+      return;
+    }
 
-      // Initialiser le gestionnaire de reconnexion si pas déjà fait et si disponible
-      if (!reconnectionManager && typeof ReconnectionManager !== 'undefined') {
-        reconnectionManager = new ReconnectionManager(() => {
-          return new Promise((resolve) => {
-            const newSocket = io();
-            newSocket.on('connect', () => resolve(newSocket));
-            newSocket.on('connect_error', () => resolve(null));
-          });
-        }, {
-          maxReconnectAttempts: 15,
-          reconnectDelay: 1000,
-          maxReconnectDelay: 15000
-        });
+    socket = window.socket;
+    // Socket global assigné
 
-        // Callbacks de reconnexion
-        reconnectionManager.onReconnect((newSocket) => {
-          socket = newSocket;
-          setupSocketEvents(socket);
-          
-          // 📡 NOUVEAU: S'enregistrer à nouveau après reconnexion
-          socket.emit('register_page', { page: 'modules' });
-          console.log('📡 [DEBUG] Re-registered with server after reconnection for page: modules');
-          
-          setServerBanner(false);
-          window.applyOnlineFilter?.();
-        });
+    // Configurer les événements spécifiques aux modules
+    setupSocketEvents(socket);
 
-        reconnectionManager.onDisconnect(() => {
-          markAllOffline();
-          setServerBanner(true);
-        });
-      }
-
-      setupSocketEvents(socket);
-
-      socket.on('connect', () => {
-        console.log('✅ [DEBUG] Socket.io connected successfully!');
-        
-        // 📡 NOUVEAU: S'enregistrer auprès du serveur pour les événements temps réel
-        socket.emit('register_page', { page: 'modules' });
-        console.log('📡 [DEBUG] Registered with server for page: modules');
-        
-        reconnectionManager.reset(); // Réinitialiser les tentatives
-        setServerBanner(false);
-        // Plus besoin d'authentification, les sessions sont partagées !
-        window.applyOnlineFilter?.();
-      });
-
-      socket.on('disconnect', () => {
-        markAllOffline();
-        setServerBanner(true);
-        // Démarrer la reconnexion automatique
-        if (reconnectionManager) {
-          reconnectionManager.onDisconnection();
-        }
-      });
-    } catch (e) {
-      console.error('🔌 Socket.io connection failed:', e);
-      scheduleDownBanner();
-      if (reconnectionManager) {
-        reconnectionManager.startReconnection();
-      } else {
-        setTimeout(connectSocket, 2000);
-      }
+    // Enregistrer cette page si la connexion est active
+    if (socket.connected) {
+      socket.emit('register_page', { page: 'modules' });
     }
   }
 
-  // Fonction pour configurer tous les événements Socket.io
   function setupSocketEvents(socket) {
-    console.log('🔌 [DEBUG] Setting up socket events...');
-    
+    // Setting up socket events...
+
     // Réception des états de modules
     socket.on('modules_state', states => {
-      console.log('📡 [DEBUG] Received modules_state:', states);
+      // Received modules_state
       states.forEach(state => {
         setPresence(state.moduleId, state.online);
       });
@@ -1379,17 +1300,17 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     });
 
     // === ÉVÉNEMENTS TEMPS RÉEL ===
-    
+
     // Module ajouté en temps réel
     socket.on('rt_module_added', data => {
-      console.log('📡 [DEBUG] Real-time: Module added', data);
+      // Real-time: Module added
       // Rafraîchir la liste des modules si nécessaire
       window.location.reload(); // Solution simple, pourrait être optimisée
     });
 
     // Module supprimé en temps réel
     socket.on('rt_module_removed', data => {
-      console.log('📡 Real-time: Module removed', data);
+      // Real-time: Module removed
       // Retirer le module de l'interface
       const panel = document.querySelector(`.panel[data-mid="${data.moduleId}"]`);
       if (panel) {
@@ -1400,7 +1321,7 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 
     // Module mis à jour en temps réel
     socket.on('rt_module_updated', data => {
-      console.log('📡 Real-time: Module updated', data);
+      // Real-time: Module updated
       // Mettre à jour le nom/type du module dans l'interface
       const panel = document.querySelector(`.panel[data-mid="${data.moduleId}"]`);
       if (panel) {
@@ -1413,21 +1334,21 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 
     // Module en ligne en temps réel
     socket.on('rt_module_online', data => {
-      console.log('📡 [RT-DEBUG] Real-time: Module online received!', data);
+      // Real-time: Module online
       setPresence(data.moduleId, true);
-      console.log('📡 [RT-DEBUG] setPresence called with:', data.moduleId, true);
+      // setPresence: online
     });
 
     // Module hors ligne en temps réel
     socket.on('rt_module_offline', data => {
-      console.log('📡 [RT-DEBUG] Real-time: Module offline received!', data);
+      // Real-time: Module offline
       setPresence(data.moduleId, false);
-      console.log('📡 [RT-DEBUG] setPresence called with:', data.moduleId, false);
+      // setPresence: offline
     });
 
     // Télémétrie mise à jour en temps réel
     socket.on('rt_telemetry_updated', data => {
-      console.log('📡 Real-time: Telemetry updated', data);
+      // Real-time: Telemetry updated
       updateTelemetry(data.moduleId, data.telemetry);
     });
   }
@@ -1663,68 +1584,3 @@ delForm?.addEventListener('submit', async e => {
     window.showToast?.('Network error', 'error', 3000);
   }
 });
-
-/* =========================================================
- * Toasts
- * =======================================================*/
-(function () {
-  function ensureWrap() {
-    return (
-      document.getElementById('toasts') ||
-      (() => {
-        const d = document.createElement('div');
-        d.id = 'toasts';
-        d.className = 'toasts';
-        document.body.appendChild(d);
-        return d;
-      })()
-    );
-  }
-
-  function getToastIcon(type) {
-    switch (type) {
-      case 'success':
-        return `<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-        </svg>`;
-      case 'error':
-        return `<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-        </svg>`;
-      case 'info':
-        return `<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-        </svg>`;
-      case 'warning':
-        return `<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-        </svg>`;
-      default:
-        return `<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-        </svg>`;
-    }
-  }
-
-  window.showToast = function (message, type = 'success', duration = 2400) {
-    const wrap = ensureWrap();
-    const el = document.createElement('div');
-    el.className = 'toast ' + type;
-    el.innerHTML = `
-      ${getToastIcon(type)}
-      <span class="toast-message">${message}</span>
-      <button class="toast-close" aria-label="Close">
-        <svg viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-        </svg>
-      </button>
-    `;
-    wrap.appendChild(el);
-    const close = () => {
-      el.classList.add('hide');
-      setTimeout(() => el.remove(), 180);
-    };
-    el.querySelector('.toast-close').addEventListener('click', close);
-    if (duration > 0) setTimeout(close, duration);
-  };
-})();

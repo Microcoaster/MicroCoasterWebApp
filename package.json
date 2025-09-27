@@ -7,7 +7,7 @@
   "scripts": {
     "start": "node app.js",
     "dev": "nodemon app.js",
-    "sim-esp": "node sim-esp-socketio.cjs",
+    "sim-esp": "node ./sim/sim-esp-socketio.cjs",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",

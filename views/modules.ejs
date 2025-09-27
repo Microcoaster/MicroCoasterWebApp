@@ -5,11 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
   <title><%= title %></title>
-  <!-- Bootstrap Grid pour la responsivité -->
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
-  <!-- CSS global (variables, boutons, modals, toasts, navbar) -->
   <link rel="stylesheet" href="/css/global.css">
-  <!-- CSS principal des modules -->
   <link rel="stylesheet" href="/css/modules.css">
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
@@ -26,7 +23,6 @@
                 <header class="page-header">
                   <h1 class="page-title">My Modules</h1>
                   <div class="page-actions">
-                    <!-- Barre de recherche -->
                     <div class="searchbar">
                       <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/>
@@ -41,7 +37,6 @@
                       </button>
                     </div>
 
-                    <!-- Toggle + bouton -->
                     <label class="toggle">
                       <input type="checkbox" id="filterOnlineOnly" name="filterOnlineOnly">
                       <span>Online only</span>
@@ -52,11 +47,8 @@
               </div>
             </div>
 
-            <!-- Messages et états -->
             <div class="row">
               <div class="col-12">
-
-          <!-- SERVER UNREACHABLE / MAINTENANCE -->
           <div id="serverState" class="server-state" hidden>
             <div class="server-inner">
               <svg class="srv-ico" viewBox="0 0 24 24" aria-hidden="true">
@@ -77,10 +69,7 @@
             </script>
           <% } %>
 
-          <!-- Conteneur pour les notifications toasts -->
           <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
-
-          <!-- EMPTY STATE : no modules online -->
           <div id="emptyState" class="empty-state" hidden>
             <div>
               <h3>No online modules available</h3>
@@ -99,7 +88,6 @@
               </div>
             </div>
 
-            <!-- Grille des modules -->
             <div class="row g-1">
 
           <% modules.forEach(function(module) { %>
@@ -264,14 +252,12 @@
             </div>
           <% }); %>
 
-            </div><!-- /.row modules -->
-          </div><!-- /.container-fluid -->
+            </div>
+          </div>
         </section>
       </main>
-    </div><!-- /.main-content -->
-  </div><!-- /.layout -->
-
-  <!-- Modal: Add a module -->
+    </div>
+  </div>
   <div id="modalAdd" class="modal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="dlgAddTitle">
       <h3 id="dlgAddTitle">Add a module</h3>
@@ -308,8 +294,6 @@
       </form>
     </div>
   </div>
-
-  <!-- Modal: Delete a module -->
   <div id="modalDelete" class="modal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="dlgDelTitle">
       <h3 id="dlgDelTitle">Delete module</h3>
@@ -325,14 +309,9 @@
     </div>
   </div>
 
-  <!-- Scripts -->
-  <!-- Socket.io client -->
   <script src="/socket.io/socket.io.js"></script>
-  <!-- Gestionnaire de reconnexion -->
   <script src="/js/reconnection-manager.js"></script>
-  <!-- Utilitaires globaux -->
   <script src="/js/global.js"></script>
-  <!-- Configuration utilisateur -->
   <script>
     window.MC = { 
       wsCode: '<%= user.code %>',
@@ -340,7 +319,6 @@
       userName: '<%= user.name %>'
     };
   </script>
-  <!-- Logique spécifique aux modules -->
   <script src="/js/modules.js"></script>
 </body>
 </html>

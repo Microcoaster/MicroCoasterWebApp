@@ -5,18 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
   <title><%= title %></title>
-  <!-- Bootstrap Grid pour la responsivité -->
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
-  <!-- CSS global -->
   <link rel="stylesheet" href="/css/global.css">
-  <!-- CSS spécifique au dashboard (pour la navbar) -->
   <link rel="stylesheet" href="/css/dashboard.css">
-  <!-- CSS spécifique à l'admin -->
   <link rel="stylesheet" href="/css/admin.css">
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
 <body class="compact">
-  <!-- Navbar -->
   <%- include('partials/navbar', { 
     currentPage: 'admin', 
     user: user
@@ -41,7 +36,6 @@
         </div>
       <% } %>
 
-      <!-- Statistiques -->
       <div class="stats-grid">
         <div class="stat-card">
           <div class="stat-icon">
@@ -55,6 +49,18 @@
           <div class="stat-content">
             <h3 class="stat-total-users"><%= stats.totalUsers %></h3>
             <p>Utilisateurs</p>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12,6 12,12 16,14"/>
+            </svg>
+          </div>
+          <div class="stat-content">
+            <h3 class="stat-online-users"><%= stats.onlineUsers %></h3>
+            <p>Utilisateurs en ligne</p>
           </div>
         </div>
         <div class="stat-card">
@@ -86,24 +92,12 @@
           </div>
           <div class="stat-content">
             <h3 class="stat-online-modules"><%= stats.onlineModules %></h3>
-            <p>En ligne</p>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
-            </svg>
-          </div>
-          <div class="stat-content">
-            <h3 class="stat-admin-users"><%= stats.adminUsers %></h3>
-            <p>Admins</p>
+            <p>Modules en ligne</p>
           </div>
         </div>
       </div>
 
       <div class="admin-sections">
-        <!-- Section Utilisateurs -->
         <div id="usersSection" class="admin-section">
           <div class="section-header">
             <h2>
@@ -204,7 +198,6 @@
             </table>
           </div>
           
-          <!-- Contrôles de pagination utilisateurs -->
           <div class="pagination-container">
             <div class="items-per-page">
               <label for="usersItemsPerPage">Afficher :</label>
@@ -238,7 +231,6 @@
           </div>
         </div>
 
-        <!-- Section Modules -->
         <div id="modulesSection" class="admin-section">
           <div class="section-header">
             <h2>
@@ -351,7 +343,6 @@
             </table>
           </div>
           
-          <!-- Contrôles de pagination modules -->
           <div class="pagination-container">
             <div class="items-per-page">
               <label for="modulesItemsPerPage">Afficher :</label>
@@ -393,10 +384,15 @@
 </main>
 </div>
 
-  <!-- Scripts -->
-  <!-- Socket.io client -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/global.js"></script>
+  <script>
+    window.MC = {
+      userId: '<%= user.id %>',
+      userType: '<%= user.is_admin ? "admin" : "user" %>',
+      userName: '<%= user.name %>'
+    };
+  </script>
   <script src="/js/admin.js"></script>
 </body>
 </html>

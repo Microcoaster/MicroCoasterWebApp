@@ -5,13 +5,9 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
   <title><%= title %></title>
-  <!-- Bootstrap Grid pour la responsivité -->
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
-  <!-- CSS global (variables, boutons, modals, toasts, navbar) -->
   <link rel="stylesheet" href="/css/global.css">
-  <!-- CSS principal des modules réutilisé pour la cohérence -->
   <link rel="stylesheet" href="/css/modules.css">
-  <!-- CSS spécifique au dashboard -->
   <link rel="stylesheet" href="/css/dashboard.css">
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
@@ -27,7 +23,6 @@
             <div class="col-12">
               <div class="dashboard-grid">
                 
-                <!-- Carte de bienvenue -->
                 <div class="dashboard-card welcome-card">
                   <h2>Welcome back, <%= user.name || 'User' %>!</h2>
                   <p>Manage your MicroCoaster modules and monitor your theme park systems.</p>
@@ -52,7 +47,6 @@
                   </div>
                 </div>
 
-                <!-- Statistiques -->
                 <div class="dashboard-card">
                   <h3>
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -91,7 +85,6 @@
                   <p class="dashboard-description">Disconnected or unavailable</p>
                 </div>
 
-                <!-- Types de modules -->
                 <div class="dashboard-card">
                   <h3>
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -110,7 +103,6 @@
                   </div>
                 </div>
 
-                <!-- Activité récente -->
                 <div class="dashboard-card">
                   <h3>
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -139,7 +131,6 @@
     </main>
   </div>
 
-  <!-- Scripts -->
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/global.js"></script>
   <script src="/js/dashboard.js"></script>

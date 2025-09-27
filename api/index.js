@@ -1,3 +1,14 @@
+/**
+ * ============================================================================
+ * REAL-TIME API - MAIN ENTRY POINT
+ * ============================================================================
+ * Coordinates all real-time event handlers for the MicroCoaster application
+ *
+ * @module RealTimeAPI
+ * @description Central orchestrator for WebSocket events and real-time features
+ * ============================================================================
+ */
+
 const EventsManager = require('./EventsManager');
 const ModuleEvents = require('./ModuleEvents');
 const UserEvents = require('./UserEvents');
@@ -5,116 +16,126 @@ const AdminEvents = require('./AdminEvents');
 const Logger = require('../utils/logger');
 
 /**
- * Point d'entrée principal pour l'API des événements temps réel
- * Initialise et coordonne tous les gestionnaires d'événements
+ * Real-time API orchestrator class
  */
 class RealTimeAPI {
   constructor(io, databaseManager) {
     this.io = io;
     this.db = databaseManager;
     this.Logger = Logger;
+    this.initialized = false;
 
-    // Initialiser les gestionnaires
     this.events = new EventsManager(io);
     this.modules = new ModuleEvents(this.events);
     this.users = new UserEvents(this.events);
     this.admin = new AdminEvents(this.events, databaseManager);
-
-    this.initialized = false;
   }
 
+  // ========================================================================
+  // INITIALIZATION
+  // ========================================================================
+
   /**
-   * Initialise l'API des événements temps réel
+   * Initialize the real-time events API
    */
   initialize() {
     if (this.initialized) {
-      Logger.warn('[RealTimeAPI] Already initialized');
+      Logger.warn('RealTimeAPI already initialized');
       return;
     }
 
-    Logger.info('[RealTimeAPI] Initializing real-time events API');
+    Logger.info('Initializing real-time events API');
 
-    // Écouter les connexions Socket.io
-    this.io.on('connection', (socket) => {
-      this._handleClientConnection(socket);
-    });
+    // Les connexions sont gérées par websocket/handlers.js
+    // qui redirige vers cette API via client:authenticate quand nécessaire
 
     this.initialized = true;
-    Logger.info('[RealTimeAPI] Real-time events API initialized successfully');
+    Logger.info('Real-time events API initialized successfully');
   }
 
-  /**
-   * Gère une nouvelle connexion client
-   * @private
-   */
-  _handleClientConnection(socket) {
-    Logger.info(`[RealTimeAPI] New client connected: ${socket.id}`);
+  // ========================================================================
+  // CLIENT CONNECTION HANDLING
+  // ========================================================================
 
-    // Écouter l'authentification du client
-    socket.on('client:authenticate', (data) => {
+  /**
+   * Handle client events (called from websocket/handlers.js after auto-registration)
+   * @public
+   */
+  handleClientEvents(socket) {
+    // L'authentification est maintenant gérée automatiquement dans handlers.js
+    // pour éviter la double gestion et les bugs de comptage
+
+    socket.on('client:authenticate', data => {
+      // Optionnel: permet toujours l'authentification manuelle si nécessaire
       this._authenticateClient(socket, data);
     });
 
-    // Écouter la déconnexion
     socket.on('disconnect', () => {
       this._handleClientDisconnection(socket);
     });
 
-    // Écouter les demandes de synchronisation
     socket.on('client:sync:request', () => {
       this._handleSyncRequest(socket);
     });
 
-    // Écouter les changements de page
-    socket.on('client:page:changed', (data) => {
+    socket.on('client:page:changed', data => {
       this._handlePageChange(socket, data);
     });
   }
 
   /**
-   * Authentifie un client et l'enregistre
+   * Authenticate client and register (évite la double inscription)
    * @private
    */
   _authenticateClient(socket, data) {
     try {
-      const { userId, userType = 'user', page = 'unknown', sessionId } = data;
+      const { userId, userType = 'user', page = 'unknown' } = data;
 
       if (!userId) {
         socket.emit('client:auth:error', { message: 'User ID required' });
         return;
       }
 
-      // Enregistrer le client
-      this.events.registerClient(socket, userId, userType, page);
+      // Vérifier si déjà enregistré pour éviter la double inscription
+      const existingClient = this.events.connectedClients.get(socket.id);
 
-      // Confirmer l'authentification
+      if (!existingClient) {
+        // Nouveau client - enregistrer
+        this.events.registerClient(socket, userId, userType, page);
+        socket.isRegisteredWithEventsManager = true;
+        Logger.info(`Client authenticated via API: ${socket.id} (User ${userId}, Page ${page})`);
+      } else {
+        // Client déjà enregistré - mettre à jour la page seulement
+        const oldPage = existingClient.page;
+        existingClient.page = page;
+        if (oldPage !== page) {
+              Logger.debug(`📄 ${this.getUserName(socket)} navigated: ${oldPage} → ${page}`);
+        }
+      }
+
       socket.emit('client:auth:success', {
         message: 'Authenticated successfully',
         timestamp: new Date(),
       });
 
-      // Envoyer l'état actuel si nécessaire
       this._sendInitialState(socket, page);
-
-      Logger.info(`[RealTimeAPI] Client authenticated: ${socket.id} (User ${userId}, Page ${page})`);
-
     } catch (error) {
-      Logger.error('[RealTimeAPI] Error authenticating client:', error);
+      Logger.error('Error authenticating client:', error);
       socket.emit('client:auth:error', { message: 'Authentication failed' });
     }
   }
 
   /**
-   * Gère la déconnexion d'un client
+   * Handle client disconnection
    * @private
    */
   _handleClientDisconnection(socket) {
     this.events.unregisterClient(socket.id);
-    Logger.info(`[RealTimeAPI] Client disconnected: ${socket.id}`);
+    Logger.debug(`Client disconnected: ${socket.id}`);
   }
 
   /**
-   * Gère une demande de synchronisation
+   * Handle sync request
    * @private
    */
   _handleSyncRequest(socket) {
@@ -129,41 +150,32 @@ class RealTimeAPI {
   }
 
   /**
-   * Gère un changement de page
+   * Handle page change
    * @private
    */
   _handlePageChange(socket, data) {
     const client = this.events.connectedClients.get(socket.id);
     if (client) {
       client.page = data.page || 'unknown';
-      Logger.info(`[RealTimeAPI] Client ${socket.id} changed to page: ${client.page}`);
-      
-      // Envoyer l'état initial de la nouvelle page
+      Logger.info(`Client ${socket.id} changed to page: ${client.page}`);
       this._sendInitialState(socket, client.page);
     }
   }
 
   /**
-   * Envoie l'état initial selon la page
+   * Send initial state based on page
    * @private
    */
   async _sendInitialState(socket, page) {
     try {
       switch (page) {
-        case 'modules':
-          // Envoyer l'état actuel des modules
+        case 'modules': {
           const moduleStates = this.modules.getCurrentStates();
           socket.emit('modules:initial:state', moduleStates);
           break;
-
-        case 'admin':
-          // Envoyer les statistiques actuelles
-          const stats = await this.admin.updateGlobalStats();
-          socket.emit('admin:initial:stats', stats);
-          break;
+        }
 
         case 'dashboard':
-          // Envoyer un résumé général
           socket.emit('dashboard:initial:summary', {
             timestamp: new Date(),
             message: 'Dashboard synchronized',
@@ -171,15 +183,14 @@ class RealTimeAPI {
           break;
       }
     } catch (error) {
-      Logger.error(`[RealTimeAPI] Error sending initial state for page ${page}:`, error);
+      Logger.error(`Error sending initial state for page ${page}:`, error);
     }
   }
 
-  /**
-   * Méthodes publiques pour émettre des événements
-   */
+  // ========================================================================
+  // MODULE EVENTS
+  // ========================================================================
 
-  // Événements modules
   emitModuleOnline(moduleId, moduleInfo) {
     this.modules.moduleOnline(moduleId, moduleInfo);
   }
@@ -208,7 +219,10 @@ class RealTimeAPI {
     this.modules.commandSent(moduleId, command, userId);
   }
 
-  // Événements utilisateurs
+  // ========================================================================
+  // USER EVENTS
+  // ========================================================================
+
   emitUserLoggedIn(userData, sessionId) {
     this.users.userLoggedIn(userData, sessionId);
   }
@@ -233,10 +247,11 @@ class RealTimeAPI {
     this.users.userActivity(userId, activity, metadata);
   }
 
-  // Événements admin
-  async emitStatsUpdate() {
-    return await this.admin.updateGlobalStats();
-  }
+  // ========================================================================
+  // ADMIN EVENTS
+  // ========================================================================
+
+  // Ancien système supprimé - stats via demande/réponse maintenant
 
   emitAdminAction(adminUserId, action, details) {
     this.admin.adminAction(adminUserId, action, details);
@@ -262,12 +277,14 @@ class RealTimeAPI {
     this.admin.serverPerformance(performanceData);
   }
 
-  /**
-   * Utilitaires
-   */
+  // ========================================================================
+  // UTILITIES
+  // ========================================================================
+
   getStats() {
     return {
       events: this.events.getStats(),
+      modules: this.modules.getConnectionStats(),
       users: this.users.getConnectedUsersStats(),
       initialized: this.initialized,
     };
@@ -275,6 +292,11 @@ class RealTimeAPI {
 
   isInitialized() {
     return this.initialized;
+  }
+
+  // Helper method to get username from socket
+  getUserName(socket) {
+    return socket.session?.user?.username || 'Utilisateur Anonyme';
   }
 }
 

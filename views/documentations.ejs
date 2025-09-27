@@ -5,11 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
   <title><%= title %></title>
-  <!-- Bootstrap Grid pour la responsivité -->
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
-  <!-- CSS global (variables, boutons, modals, toasts, navbar) -->
   <link rel="stylesheet" href="/css/global.css">
-  <!-- CSS spécifique à la documentation -->
   <link rel="stylesheet" href="/css/documentations.css">
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
@@ -23,7 +20,6 @@
         <section class="card panels docs-card-container">
           <div class="docs-modern-container">
         
-        <!-- Header Section -->
         <div class="docs-header">
           <div class="docs-header-icon">
             <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -35,10 +31,8 @@
           <p class="docs-subtitle">Complete documentation to develop with MicroCoaster, manage your ESP32 modules and create innovative interactive experiences.</p>
         </div>
 
-        <!-- Documentation Cards Grid -->
         <div class="docs-cards-grid">
           
-          <!-- Configuration ESP32 Card -->
           <div class="docs-card">
             <div class="docs-card-icon getting-started">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -58,7 +52,6 @@
             </a>
           </div>
 
-          <!-- Timeline Sequencer Card -->
           <div class="docs-card">
             <div class="docs-card-icon authentication">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -76,7 +69,6 @@
             </a>
           </div>
 
-          <!-- Types de Modules Card -->
           <div class="docs-card">
             <div class="docs-card-icon modules">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -94,7 +86,6 @@
             </a>
           </div>
 
-          <!-- Gestion Circuit Card -->
           <div class="docs-card">
             <div class="docs-card-icon advanced">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -111,7 +102,6 @@
             </a>
           </div>
 
-          <!-- Effets Spéciaux Card -->
           <div class="docs-card">
             <div class="docs-card-icon api">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -134,7 +124,6 @@
             </a>
           </div>
 
-          <!-- Dépannage Card -->
           <div class="docs-card">
             <div class="docs-card-icon enterprise">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -160,7 +149,7 @@
     </main>
   </div>
 
-  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/global.js"></script>
 </body>
 </html>

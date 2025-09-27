@@ -389,6 +389,37 @@ class UserDAO extends BaseDAO {
       throw error;
     }
   }
+
+  /**
+   * Récupère les statistiques des utilisateurs pour l'administration
+   * @returns {Object} Statistiques des utilisateurs
+   */
+  async getStats() {
+    try {
+      const [totalResult, adminResult, recentResult] = await Promise.all([
+        this.findOne('SELECT COUNT(*) as total FROM users'),
+        this.findOne('SELECT COUNT(*) as total FROM users WHERE is_admin = 1'),
+        this.findOne(
+          'SELECT COUNT(*) as total FROM users WHERE last_login > DATE_SUB(NOW(), INTERVAL 30 DAY)'
+        ),
+      ]);
+
+      return {
+        total: totalResult?.total || 0,
+        admins: adminResult?.total || 0,
+        active: recentResult?.total || 0,
+        regular: (totalResult?.total || 0) - (adminResult?.total || 0),
+      };
+    } catch (error) {
+      Logger.error('Erreur lors du calcul des statistiques utilisateurs:', error);
+      return {
+        total: 0,
+        admins: 0,
+        active: 0,
+        regular: 0,
+      };
+    }
+  }
 }
 
 module.exports = UserDAO;

@@ -1,3 +1,27 @@
+/**
+ * ================================================================================
+ * MICROCOASTER WEBAPP - TIMELINE SEQUENCER
+ * ================================================================================
+ *
+ * Purpose: Interactive timeline editor for module sequences and automation
+ * Author: MicroCoaster Development Team
+ * Created: 2024
+ *
+ * Description:
+ * Manages timeline creation, editing, and playback functionality for module
+ * automation sequences. Provides drag-and-drop interface, real-time playback,
+ * and sequence configuration management.
+ *
+ * Dependencies:
+ * - global.js (utilities)
+ *
+ * ================================================================================
+ */
+
+// ================================================================================
+// TIMELINE SEQUENCER CLASS
+// ================================================================================
+
 class TimelineSequencer {
   constructor() {
     this.track = document.getElementById('timelineTrack');
@@ -9,7 +33,7 @@ class TimelineSequencer {
     this.isPlaying = false;
     this.currentTime = 0;
     this.totalDuration = 0;
-    this.pixelsPerSecond = 100; // 1 seconde = 100px
+    this.pixelsPerSecond = 100;
 
     this.selectedElement = null;
     this.draggedElement = null;

@@ -1,15 +1,33 @@
-// Charger les variables d'environnement
+/**
+ * ============================================================================
+ * MICROCOASTER WEBAPP - MAIN APPLICATION SERVER
+ * ============================================================================
+ * Express.js application with Socket.io for real-time IoT module management
+ *
+ * @version 1.0.0
+ * @description Web interface for MicroCoaster IoT modules control and monitoring
+ * @features Real-time updates, User authentication, Admin panel, Module control
+ * ============================================================================
+ */
+
 require('dotenv').config();
 
+// ============================================================================
+// DEPENDENCIES & IMPORTS
+// ============================================================================
+
 const express = require('express');
-const Logger = require('./utils/logger');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const session = require('express-session');
 const path = require('path');
 const cors = require('cors');
 
-// Routes
+const Logger = require('./utils/logger');
+const databaseManager = require('./bdd/DatabaseManager');
+const RealTimeAPI = require('./api');
+const websocketHandler = require('./websocket/handlers');
+
 const { router: authRoutes } = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
 const moduleRoutes = require('./routes/modules');
@@ -17,14 +35,9 @@ const dashboardRoutes = require('./routes/dashboard');
 const timelinesRoutes = require('./routes/timelines');
 const documentationsRoutes = require('./routes/documentations');
 
-// WebSocket handlers
-const websocketHandler = require('./websocket/handlers');
-
-// Database
-const databaseManager = require('./bdd/DatabaseManager');
-
-// Real-time Events API
-const RealTimeAPI = require('./api');
+// ============================================================================
+// APPLICATION SETUP
+// ============================================================================
 
 const app = express();
 const server = createServer(app);
@@ -33,17 +46,18 @@ const io = new Server(server, {
     origin: process.env.WS_CORS_ORIGIN || '*',
     methods: ['GET', 'POST'],
   },
-  // 🔧 AUGMENTER LES TIMEOUTS
-  pingTimeout: 60000, // 60 secondes avant timeout
-  pingInterval: 25000, // Ping toutes les 25 secondes
-  connectTimeout: 45000, // 45 secondes pour se connecter
+  pingTimeout: 60000,
+  pingInterval: 25000,
+  connectTimeout: 45000,
 });
 
-// Configuration Express
+// ============================================================================
+// MIDDLEWARE CONFIGURATION
+// ============================================================================
+
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
-// Middleware de sécurité CSP
 app.use((req, res, next) => {
   res.setHeader(
     'Content-Security-Policy',
@@ -61,31 +75,30 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Configuration des sessions
 const sessionMiddleware = session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: process.env.COOKIE_SECURE === 'true', // true en HTTPS
-    maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 24 * 60 * 60 * 1000, // 24 heures
+    secure: process.env.COOKIE_SECURE === 'true',
+    maxAge: parseInt(process.env.COOKIE_MAX_AGE) || 24 * 60 * 60 * 1000,
   },
 });
 
 app.use(sessionMiddleware);
-
-// Partage des sessions avec Socket.io
 io.use((socket, next) => {
   sessionMiddleware(socket.request, socket.request.res || {}, next);
 });
 
-// Servir les fichiers statiques (CSS, JS, images)
+// ============================================================================
+// STATIC FILES & ROUTES
+// ============================================================================
+
 app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 app.use('/css', express.static(path.join(__dirname, 'public/css')));
 app.use('/js', express.static(path.join(__dirname, 'public/js')));
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Routes
 app.use('/', authRoutes);
 app.use('/admin', adminRoutes);
 app.use('/dashboard', dashboardRoutes);
@@ -93,39 +106,39 @@ app.use('/modules', moduleRoutes);
 app.use('/timelines', timelinesRoutes);
 app.use('/documentations', documentationsRoutes);
 
-// Attacher l'app Express au serveur Socket.io pour l'accès aux locals
-io.app = app;
-
-// Gestion WebSocket
-websocketHandler(io);
-
-// Gestion des erreurs 404
 app.use((req, res) => {
   res.status(404).send('Page not found');
 });
 
-// Initialisation de la base de données
+// ============================================================================
+// WEBSOCKET SETUP
+// ============================================================================
+
+io.app = app;
+websocketHandler(io);
+
+// ============================================================================
+// SERVER INITIALIZATION
+// ============================================================================
+
+/**
+ * Initialize and start the MicroCoaster server
+ * @async
+ * @function startServer
+ */
 async function startServer() {
   try {
-    // Initialiser le gestionnaire de base de données
     await databaseManager.initialize();
-
-    // Initialiser la base de données si nécessaire
     await databaseManager.initializeDatabase();
 
-    // Initialiser l'API des événements temps réel
     const realTimeAPI = new RealTimeAPI(io, databaseManager);
     realTimeAPI.initialize();
-    
-    // Rendre l'API disponible globalement
     app.locals.realTimeAPI = realTimeAPI;
-    
+
     Logger.info('🔄 Real-time Events API initialized');
 
-    // Démarrer le nettoyage automatique des statuts des modules
-    databaseManager.startModuleStatusCleanup(1, 5); // Chaque minute, max 5 min
+    databaseManager.startModuleStatusCleanup(1, 5);
 
-    // Démarrer le serveur
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
       Logger.info(`🚀 MicroCoaster Server running on port ${PORT}`);
@@ -138,7 +151,6 @@ async function startServer() {
   }
 }
 
-// Démarrer l'application
 startServer();
 
 module.exports = { app, server, io };

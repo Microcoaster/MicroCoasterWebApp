@@ -182,7 +182,7 @@ router.post('/claim', requireAuth, async (req, res) => {
         type: type,
         userId: userId,
         claimed: true,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
     }
 
@@ -225,7 +225,7 @@ router.post('/add', requireAuth, async (req, res) => {
         type: type,
         userId: userId,
         claimed: true,
-        createdAt: new Date()
+        createdAt: new Date(),
       });
     }
 
@@ -274,7 +274,7 @@ router.post('/delete/:moduleId', requireAuth, async (req, res) => {
         module_id: moduleId,
         userId: userId,
         claimed: false,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
     }
 
@@ -321,7 +321,7 @@ router.post('/update/:moduleId', requireAuth, async (req, res) => {
         name: name?.trim() || null,
         type: finalType,
         userId: userId,
-        updatedAt: new Date()
+        updatedAt: new Date(),
       });
     }
 

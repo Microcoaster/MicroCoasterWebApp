@@ -5,11 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
   <title><%= title %></title>
-  <!-- Bootstrap Grid pour la responsivité -->
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
-  <!-- CSS global (variables, boutons, modals, toasts, navbar) -->
   <link rel="stylesheet" href="/css/global.css">
-  <!-- CSS spécifique aux timelines -->
   <link rel="stylesheet" href="/css/timelines.css">
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
@@ -17,7 +14,6 @@
   <%- include('partials/navbar', { currentPage: 'timelines', user: user }) %>
 
   <div class="timeline-app main-content">
-    <!-- Panel des modules -->
     <div class="modules-panel">
       <h3>
         <i class="bi bi-cpu"></i>
@@ -50,9 +46,7 @@
       </div>
     </div>
 
-    <!-- Timeline principale -->
     <div class="timeline-container">
-      <!-- Header avec contrôles -->
       <div class="timeline-header">
         <div class="timeline-title">
           <i class="bi bi-play-circle"></i>
@@ -73,18 +67,12 @@
         </div>
       </div>
 
-      <!-- Workspace de timeline -->
       <div class="timeline-workspace">
         <div class="timeline-track" id="timelineTrack">
-          <!-- Règle temporelle -->
           <div class="time-ruler" id="timeRuler">
-            <!-- Les marqueurs de temps seront générés par JS -->
           </div>
           
-          <!-- Indicateur de lecture -->
           <div class="playback-indicator" id="playbackIndicator"></div>
-          
-          <!-- Instructions -->
           <div class="timeline-instructions" id="instructions">
             <h4>🎬 Créez votre séquence</h4>
             <p>Glissez vos modules ici pour créer une timeline</p>
@@ -95,7 +83,6 @@
     </div>
   </div>
 
-  <!-- Modal de configuration -->
   <div class="config-modal" id="configModal">
     <div class="modal-content">
       <div class="modal-header">
@@ -120,7 +107,6 @@
         </div>
         
         <div class="form-group" id="moduleSpecificConfig">
-          <!-- Configuration spécifique selon le type de module -->
         </div>
         
         <div class="modal-actions">
@@ -131,7 +117,7 @@
     </div>
   </div>
 
-  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/global.js"></script>
   <script src="/js/timelines.js"></script>
 </body>

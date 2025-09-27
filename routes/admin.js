@@ -40,9 +40,9 @@ router.get('/', async (req, res) => {
 
     const stats = {
       totalUsers: allUsersResult.users.length,
+      onlineUsers: 0, // Sera mis à jour en temps réel par WebSocket
       totalModules: allModulesResult.modules.length,
       onlineModules: allModulesResult.modules.filter(m => m.status === 'online').length,
-      adminUsers: allUsersResult.users.filter(u => u.is_admin).length,
     };
 
     res.render('admin', {
@@ -74,6 +74,7 @@ router.get('/api/stats', async (req, res) => {
 
     const stats = {
       totalUsers: usersResult.total,
+      onlineUsers: 0, // Sera fourni par WebSocket en temps réel
       totalModules: modulesResult.total,
       onlineModules: modulesResult.modules.filter(m => m.status === 'online').length,
       offlineModules: modulesResult.modules.filter(m => m.status === 'offline').length,

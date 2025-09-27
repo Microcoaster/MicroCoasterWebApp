@@ -1,21 +1,36 @@
-/* =========================================================
- * MicroCoaster - Login Page JavaScript
- * Fonctions spécifiques à la page de connexion
- * =======================================================*/
+/**
+ * ================================================================================
+ * MICROCOASTER WEBAPP - LOGIN PAGE
+ * ================================================================================
+ *
+ * Purpose: Login page functionality and animations
+ * Author: MicroCoaster Development Team
+ * Created: 2024
+ *
+ * Description:
+ * Manages the login page interface including form focus management and
+ * entrance animations for enhanced user experience.
+ *
+ * Dependencies:
+ * - None (standalone login functionality)
+ *
+ * ================================================================================
+ */
+
+// ================================================================================
+// LOGIN PAGE INITIALIZATION
+// ================================================================================
 
 document.addEventListener('DOMContentLoaded', function () {
   initializeLoginPage();
 });
 
 function initializeLoginPage() {
-  // Vérifier si on est sur la page de login
   const codeInput = document.querySelector('input[name="code"]');
   if (!codeInput) return;
 
-  // Auto-focus sur le champ de saisie
   codeInput.focus();
 
-  // Animation d'entrée pour la box de login
   const box = document.querySelector('.box');
   if (box) {
     box.style.opacity = '0';

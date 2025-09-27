@@ -330,7 +330,7 @@ class ModuleDAO extends BaseDAO {
       // Mettre à jour la base de données
       await this.update('UPDATE modules SET last_seen = NOW() WHERE module_id = ?', [moduleId]);
 
-      Logger.info(`📡 Module ${moduleId} mis à jour: ${status}`);
+      Logger.esp(`📡 Module ${moduleId} mis à jour: ${status}`);
       return true;
     } catch (error) {
       Logger.error('Erreur lors de la mise à jour du statut du module:', error);
@@ -420,26 +420,59 @@ class ModuleDAO extends BaseDAO {
    * Obtient les statistiques des modules
    * @returns {Object} Statistiques des modules
    */
-  getStats() {
+  async getStats() {
     try {
-      const stats = {
-        total: this.moduleStatusCache.size,
-        online: 0,
-        offline: 0,
-      };
+      // Statistiques de la base de données
+      const [totalResult, claimedResult] = await Promise.all([
+        this.findOne('SELECT COUNT(*) as total FROM modules'),
+        this.findOne('SELECT COUNT(*) as total FROM modules WHERE user_id IS NOT NULL'),
+      ]);
 
-      for (const [, statusInfo] of this.moduleStatusCache.entries()) {
+      const dbTotal = totalResult?.total || 0;
+      const claimed = claimedResult?.total || 0;
+
+      // Statistiques en temps réel du cache
+      let online = 0;
+      let offline = 0;
+      const byType = {};
+
+      for (const [moduleId, statusInfo] of this.moduleStatusCache.entries()) {
         if (statusInfo.status === 'online') {
-          stats.online++;
+          online++;
         } else {
-          stats.offline++;
+          offline++;
         }
       }
 
-      return stats;
+      // Statistiques par type depuis la base de données
+      const typeResults = await this.execute(
+        'SELECT type, COUNT(*) as count FROM modules GROUP BY type ORDER BY count DESC'
+      );
+
+      typeResults.forEach(row => {
+        byType[row.type] = row.count;
+      });
+
+      return {
+        total: dbTotal,
+        online: online,
+        offline: Math.max(0, dbTotal - online), // Modules en DB mais pas online
+        claimed: claimed,
+        unclaimed: Math.max(0, dbTotal - claimed),
+        byType: byType,
+        inCache: this.moduleStatusCache.size,
+      };
     } catch (error) {
       Logger.error("Erreur lors de l'obtention des statistiques:", error);
-      return { total: 0, online: 0, offline: 0 };
+      return {
+        total: 0,
+        online: 0,
+        offline: 0,
+        claimed: 0,
+        unclaimed: 0,
+        byType: {},
+        inCache: 0,
+      };
     }
   }
 

@@ -1,7 +1,26 @@
 /**
- * Utilitaire de reconnexion automatique et synchronisation d'état
- * Gère la reconnexion WebSocket et la synchronisation après déconnexion
+ * ================================================================================
+ * MICROCOASTER WEBAPP - RECONNECTION MANAGER
+ * ================================================================================
+ *
+ * Purpose: Automatic WebSocket reconnection and state synchronization
+ * Author: MicroCoaster Development Team
+ * Created: 2024
+ *
+ * Description:
+ * Manages WebSocket connection recovery with exponential backoff, state
+ * preservation during disconnections, and automatic synchronization after
+ * reconnection. Provides visual feedback and callback system for applications.
+ *
+ * Dependencies:
+ * - global.js (toast notifications)
+ *
+ * ================================================================================
  */
+
+// ================================================================================
+// RECONNECTION MANAGER CLASS
+// ================================================================================
 
 class ReconnectionManager {
   constructor(socketInitializer, options = {}) {
@@ -12,43 +31,39 @@ class ReconnectionManager {
       maxReconnectDelay: 30000,
       reconnectDelayMultiplier: 1.5,
       syncOnReconnect: true,
-      ...options
+      ...options,
     };
 
     this.reconnectAttempts = 0;
     this.currentDelay = this.options.reconnectDelay;
     this.isReconnecting = false;
-    this.lastKnownState = new Map(); // Pour stocker l'état avant déconnexion
-    
+    this.lastKnownState = new Map();
+
     this.onReconnectCallbacks = [];
     this.onDisconnectCallbacks = [];
     this.onSyncCompleteCallbacks = [];
   }
 
-  /**
-   * Ajoute un callback appelé lors de la reconnexion réussie
-   */
+  // ================================================================================
+  // CALLBACK MANAGEMENT
+  // ================================================================================
+
   onReconnect(callback) {
     this.onReconnectCallbacks.push(callback);
   }
 
-  /**
-   * Ajoute un callback appelé lors de la déconnexion
-   */
   onDisconnect(callback) {
     this.onDisconnectCallbacks.push(callback);
   }
 
-  /**
-   * Ajoute un callback appelé après synchronisation complète
-   */
   onSyncComplete(callback) {
     this.onSyncCompleteCallbacks.push(callback);
   }
 
-  /**
-   * Sauvegarde l'état actuel avant déconnexion
-   */
+  // ================================================================================
+  // STATE MANAGEMENT
+  // ================================================================================
+
   saveState(stateData) {
     this.lastKnownState.clear();
     if (stateData && typeof stateData === 'object') {
@@ -58,9 +73,6 @@ class ReconnectionManager {
     }
   }
 
-  /**
-   * Récupère l'état sauvegardé
-   */
   getLastKnownState() {
     const state = {};
     this.lastKnownState.forEach((value, key) => {
@@ -69,9 +81,10 @@ class ReconnectionManager {
     return state;
   }
 
-  /**
-   * Démarre la logique de reconnexion automatique
-   */
+  // ================================================================================
+  // RECONNECTION LOGIC
+  // ================================================================================
+
   startReconnection() {
     if (this.isReconnecting) {
       console.warn('🔄 Reconnexion déjà en cours...');
@@ -87,8 +100,10 @@ class ReconnectionManager {
     this.isReconnecting = true;
     this.reconnectAttempts++;
 
-    console.log(`🔄 Tentative de reconnexion ${this.reconnectAttempts}/${this.options.maxReconnectAttempts} dans ${this.currentDelay}ms...`);
-    
+    console.log(
+      `🔄 Tentative de reconnexion ${this.reconnectAttempts}/${this.options.maxReconnectAttempts} dans ${this.currentDelay}ms...`
+    );
+
     // Afficher un indicateur visuel
     this.showReconnectingIndicator();
 
@@ -109,10 +124,10 @@ class ReconnectionManager {
   async attemptReconnection() {
     try {
       console.log('🔌 Tentative de reconnexion...');
-      
+
       // Réinitialiser la connexion via la fonction fournie
       const socket = await this.socketInitializer();
-      
+
       if (socket && socket.connected) {
         console.log('✅ Reconnexion réussie !');
         this.onReconnectionSuccess(socket);
@@ -122,7 +137,7 @@ class ReconnectionManager {
     } catch (error) {
       console.error('❌ Échec de la reconnexion:', error);
       this.isReconnecting = false;
-      
+
       // Programmer la prochaine tentative
       setTimeout(() => this.startReconnection(), 1000);
     }
@@ -158,16 +173,16 @@ class ReconnectionManager {
    * Synchronise l'état après reconnexion
    */
   async synchronizeState(socket) {
-    console.log('🔄 Synchronisation de l\'état après reconnexion...');
-    
+    console.log("🔄 Synchronisation de l'état après reconnexion...");
+
     try {
       // Demander l'état actuel au serveur
       socket.emit('request_state_sync', this.getLastKnownState());
-      
+
       // Écouter la réponse de synchronisation
-      socket.once('state_sync_response', (serverState) => {
+      socket.once('state_sync_response', serverState => {
         console.log('📥 État synchronisé avec le serveur');
-        
+
         // Appeler les callbacks de synchronisation complète
         this.onSyncCompleteCallbacks.forEach(callback => {
           try {
@@ -180,9 +195,8 @@ class ReconnectionManager {
 
       // Timeout pour la synchronisation
       setTimeout(() => {
-        console.warn('⏰ Timeout de synchronisation d\'état');
+        console.warn("⏰ Timeout de synchronisation d'état");
       }, 5000);
-
     } catch (error) {
       console.error('❌ Erreur lors de la synchronisation:', error);
     }
@@ -193,7 +207,7 @@ class ReconnectionManager {
    */
   onDisconnection() {
     console.log('🔌 Connexion perdue');
-    
+
     // Appeler les callbacks de déconnexion
     this.onDisconnectCallbacks.forEach(callback => {
       try {
@@ -258,7 +272,7 @@ class ReconnectionManager {
     if (!banner) return;
 
     banner.className = `connection-status-banner ${status}`;
-    
+
     switch (status) {
       case 'connected':
         banner.style.display = 'none';

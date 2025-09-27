@@ -1,15 +1,28 @@
 /**
- * Admin Page JavaScript
- * Gestion des fonctionnalités de la page d'administration
+ * ================================================================================
+ * MICROCOASTER WEBAPP - ADMIN PAGE
+ * ================================================================================
+ *
+ * Purpose: Administrative interface for user and system management
+ * Author: MicroCoaster Development Team
+ * Created: 2024
+ *
+ * Description:
+ * Manages the administrative interface including real-time statistics, user
+ * management, system monitoring, and module oversight. Provides WebSocket-based
+ * real-time updates and interactive administrative controls.
+ *
+ * Dependencies:
+ * - global.js (WebSocket connection and utilities)
+ * - Socket.io (for real-time admin updates)
+ *
+ * ================================================================================
  */
 
-// Ce code a été déplacé dans initializeAll() pour éviter la duplication
+// ================================================================================
+// UTILITY FUNCTIONS
+// ================================================================================
 
-/**
- * Génère le badge HTML pour un type de module
- * @param {string} moduleType - Le type du module
- * @returns {string} HTML du badge
- */
 function getTypeBadge(moduleType) {
   if (!moduleType) return getTypeBadge('unknown');
 
@@ -336,13 +349,13 @@ function showNoResultsMessage(table, visibleCount) {
 function initializeSorting() {
   // Écouter les clics sur les en-têtes sortables
   const sortableHeaders = document.querySelectorAll('.sortable-header');
-  
+
   sortableHeaders.forEach(header => {
-    header.addEventListener('click', function() {
+    header.addEventListener('click', function () {
       const column = this.getAttribute('data-sort');
       const tableElement = this.closest('table');
       const tableType = tableElement ? tableElement.getAttribute('data-table') : null;
-      
+
       if (column && tableType) {
         handleSort(tableType, column);
       }
@@ -363,22 +376,22 @@ function initializeSorting() {
  */
 function handleSort(tableType, column) {
   const currentSort = sortingState[tableType];
-  
+
   // Si même colonne, inverser l'ordre, sinon utiliser desc par défaut
   let newOrder = 'desc';
   if (currentSort.column === column) {
     newOrder = currentSort.order === 'asc' ? 'desc' : 'asc';
   }
-  
+
   // Mettre à jour l'état
   sortingState[tableType] = { column, order: newOrder };
-  
+
   // Appliquer le tri
   applySorting(tableType);
-  
+
   // Mettre à jour les flèches
   updateSortArrows(tableType, column, newOrder);
-  
+
   // Réappliquer les filtres et la pagination
   applyClientSidePagination(tableType);
   updatePaginationControls(tableType);
@@ -403,48 +416,74 @@ function applySorting(tableType) {
 
     if (tableType === 'users') {
       switch (column) {
-        case 'name': cellIndex = 0; break;
-        case 'email': cellIndex = 1; break;
-        case 'is_admin': cellIndex = 2; break;
-        case 'module_count': cellIndex = 3; break;
-        case 'last_login': cellIndex = 4; break;
-        case 'created_at': cellIndex = 5; break;
-        default: cellIndex = 0;
+        case 'name':
+          cellIndex = 0;
+          break;
+        case 'email':
+          cellIndex = 1;
+          break;
+        case 'is_admin':
+          cellIndex = 2;
+          break;
+        case 'module_count':
+          cellIndex = 3;
+          break;
+        case 'last_login':
+          cellIndex = 4;
+          break;
+        case 'created_at':
+          cellIndex = 5;
+          break;
+        default:
+          cellIndex = 0;
       }
     } else if (tableType === 'modules') {
       switch (column) {
-        case 'module_id': cellIndex = 0; break;
-        case 'name': cellIndex = 1; break;
-        case 'type': cellIndex = 2; break;
-        case 'user_name': cellIndex = 3; break;
-        case 'status': cellIndex = 4; break;
-        case 'last_seen': cellIndex = 5; break;
-        default: cellIndex = 0;
+        case 'module_id':
+          cellIndex = 0;
+          break;
+        case 'name':
+          cellIndex = 1;
+          break;
+        case 'type':
+          cellIndex = 2;
+          break;
+        case 'user_name':
+          cellIndex = 3;
+          break;
+        case 'status':
+          cellIndex = 4;
+          break;
+        case 'last_seen':
+          cellIndex = 5;
+          break;
+        default:
+          cellIndex = 0;
       }
     }
 
     cellValue = cells[cellIndex] ? cells[cellIndex].textContent.trim() : '';
-    
+
     // Traitement spécial pour certaines colonnes
     if (column === 'module_count') {
       return parseInt(cellValue) || 0;
     } else if (column === 'last_login' || column === 'last_seen' || column === 'created_at') {
       if (cellValue === 'Jamais') return new Date(0);
-      
+
       // Parser les dates françaises (DD/MM/YYYY HH:mm:ss)
       const dateMatch = cellValue.match(/(\d{2})\/(\d{2})\/(\d{4})\s+(\d{2}):(\d{2}):(\d{2})/);
       if (dateMatch) {
         const [, day, month, year, hour, minute, second] = dateMatch;
         return new Date(year, month - 1, day, hour, minute, second);
       }
-      
+
       // Fallback pour d'autres formats
       const simpleMatch = cellValue.match(/(\d{2})\/(\d{2})\/(\d{4})/);
       if (simpleMatch) {
         const [, day, month, year] = simpleMatch;
         return new Date(year, month - 1, day);
       }
-      
+
       return new Date(cellValue);
     } else if (column === 'is_admin') {
       return cellValue.toLowerCase().includes('admin') ? 1 : 0;
@@ -452,7 +491,7 @@ function applySorting(tableType) {
       // "En ligne" doit être trié avant "Hors ligne"
       return cellValue.toLowerCase().includes('en ligne') ? 1 : 0;
     }
-    
+
     return cellValue.toLowerCase();
   };
 
@@ -460,11 +499,11 @@ function applySorting(tableType) {
   rows.sort((a, b) => {
     const valueA = getSortValue(a, column, tableType);
     const valueB = getSortValue(b, column, tableType);
-    
+
     let comparison = 0;
     if (valueA < valueB) comparison = -1;
     else if (valueA > valueB) comparison = 1;
-    
+
     return order === 'asc' ? comparison : -comparison;
   });
 
@@ -545,9 +584,6 @@ function initializeAll() {
 
     // Initialiser la pagination côté client
     initializeClientSidePagination();
-    
-    // Initialiser les événements temps réel pour les admins
-    initializeRealTimeEvents();
   }, 100);
 }
 
@@ -729,97 +765,6 @@ function updatePaginationControls(tableType) {
 }
 
 /**
- * Initialisation des événements temps réel WebSocket pour les admins
- */
-function initializeRealTimeEvents() {
-  if (typeof io === 'undefined') {
-    console.warn('❌ Socket.io non disponible pour les événements temps réel');
-    return;
-  }
-
-  try {
-    const socket = io();
-
-    socket.on('connect', () => {
-      // 📡 NOUVEAU: S'enregistrer auprès du serveur pour les événements temps réel
-      socket.emit('register_page', { page: 'admin' });
-    });
-
-    // Événements utilisateurs
-    socket.on('rt_user_logged_in', data => {
-      showRealTimeNotification(`👤 ${data.user.name} s'est connecté${data.user.isNewUser ? ' (nouveau compte)' : ''}`);
-      
-      // Utiliser la vraie date de dernière connexion de la BDD
-      const loginTime = data.user.lastLogin ? new Date(data.user.lastLogin) : 
-                       (data.session ? new Date(data.session.loginTime) : new Date());
-      updateUserLastLogin(data.user.id, loginTime);
-    });
-
-    socket.on('rt_user_logged_out', data => {
-      showRealTimeNotification(`👤 ${data.user.name} s'est déconnecté`);
-    });
-
-    socket.on('rt_user_profile_updated', data => {
-      showRealTimeNotification(`👤 ${data.user.name} a mis à jour son profil`);
-      updateUserInTable(data.user);
-    });
-
-    // Événements modules
-    socket.on('rt_module_added', data => {
-      const moduleId = data.module ? data.module.module_id : data.moduleId;
-      showRealTimeNotification(`📦 Module ${moduleId} ajouté par un utilisateur`);
-      // Optionnel : ajouter dynamiquement à la liste
-    });
-
-    socket.on('rt_module_removed', data => {
-      const moduleId = data.module ? data.module.module_id : data.moduleId;
-      showRealTimeNotification(`📦 Module ${moduleId} supprimé`);
-      // Optionnel : retirer de la liste
-    });
-
-    socket.on('rt_module_updated', data => {
-      const moduleId = data.module ? data.module.module_id : data.moduleId;
-      showRealTimeNotification(`📦 Module ${moduleId} mis à jour`);
-      // Optionnel : mettre à jour la liste
-    });
-
-    socket.on('rt_module_online', data => {
-      updateModuleStatus(data.moduleId, true);
-      if (data.lastSeen) {
-        updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-      }
-    });
-
-    socket.on('rt_module_offline', data => {
-      updateModuleStatus(data.moduleId, false);
-      if (data.lastSeen) {
-        updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-      }
-    });
-
-    // Événement spécifique pour les mises à jour de dernière activité
-    socket.on('rt_module_last_seen_updated', data => {
-      if (data.lastSeen) {
-        updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-      }
-    });
-
-    // Événement télémétrie avec mise à jour de lastSeen
-    socket.on('rt_telemetry_updated', data => {
-      if (data.lastSeen) {
-        updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-      }
-    });
-
-    // Statistiques globales
-    socket.on('rt_global_stats_updated', data => {
-      updateGlobalStats(data.stats);
-    });
-
-  } catch (error) {
-    console.error('Erreur initialisation temps réel admin:', error);
-  }
-}
 
 /**
  * Affiche une notification temps réel pour les admins
@@ -836,7 +781,7 @@ function showRealTimeNotification(message) {
  */
 function updateModuleStatus(moduleId, isOnline) {
   const moduleRows = document.querySelectorAll(`tr[data-module-id="${moduleId}"]`);
-  
+
   moduleRows.forEach(row => {
     const statusSpan = row.querySelector('.status');
     if (statusSpan) {
@@ -851,42 +796,33 @@ function updateModuleStatus(moduleId, isOnline) {
  */
 function updateModuleLastSeen(moduleId, lastSeen, lastSeenFormatted) {
   const moduleRows = document.querySelectorAll(`tr[data-module-id="${moduleId}"]`);
-  
+
   moduleRows.forEach(row => {
     // La colonne "Dernière activité" est la 6ème colonne (index 5)
     const lastSeenCell = row.children[5]; // 0: ID, 1: Nom, 2: Type, 3: Propriétaire, 4: Statut, 5: Dernière activité
     if (lastSeenCell) {
       // Utiliser le format déjà formaté ou formater la date
-      const displayText = lastSeenFormatted || (lastSeen ? new Date(lastSeen).toLocaleString('fr-FR') : 'Jamais');
+      const displayText =
+        lastSeenFormatted || (lastSeen ? new Date(lastSeen).toLocaleString('fr-FR') : 'Jamais');
       lastSeenCell.textContent = displayText;
     }
   });
 }
 
 /**
- * Met à jour les statistiques globales en temps réel
+ * Met à jour les statistiques simples (version qui fonctionne, comme le log)
  */
-function updateGlobalStats(stats) {
-  // Mettre à jour les compteurs de statistiques si présents
-  const statsElements = {
-    totalUsers: document.querySelector('.stat-total-users'),
-    totalModules: document.querySelector('.stat-total-modules'),
-    onlineModules: document.querySelector('.stat-online-modules'),
-    adminUsers: document.querySelector('.stat-admin-users')
-  };
+function updateSimpleStats(data) {
+  // Format simple direct des WebSocket stats : { users: { online: X }, modules: { online: Y } }
+  const onlineUsersElement = document.querySelector('.stat-online-users');
+  const onlineModulesElement = document.querySelector('.stat-online-modules');
 
-  // Les stats viennent sous forme: { users: {...}, modules: {...}, websocket: {...}, system: {...} }
-  if (stats.users && statsElements.totalUsers) {
-    statsElements.totalUsers.textContent = stats.users.total || 0;
+  if (data.users && onlineUsersElement) {
+    onlineUsersElement.textContent = data.users.online || 0;
   }
-  if (stats.users && statsElements.adminUsers) {
-    statsElements.adminUsers.textContent = stats.users.admins || 0;
-  }
-  if (stats.modules && statsElements.totalModules) {
-    statsElements.totalModules.textContent = stats.modules.total || 0;
-  }
-  if (stats.modules && statsElements.onlineModules) {
-    statsElements.onlineModules.textContent = stats.modules.online || 0;
+
+  if (data.modules && onlineModulesElement) {
+    onlineModulesElement.textContent = data.modules.online || 0;
   }
 }
 
@@ -896,26 +832,26 @@ function updateGlobalStats(stats) {
 function updateUserInTable(user) {
   // Chercher la ligne utilisateur par ID
   const userRows = document.querySelectorAll(`tr[data-user-id="${user.id}"]`);
-  
+
   userRows.forEach(row => {
     // Mettre à jour le nom
     const nameCell = row.querySelector('.user-name');
     if (nameCell) {
       nameCell.textContent = user.name;
     }
-    
+
     // Mettre à jour l'email
     const emailCell = row.querySelector('.user-email');
     if (emailCell) {
       emailCell.textContent = user.email;
     }
-    
+
     // Mettre à jour le badge de rôle si nécessaire
     const roleCell = row.querySelector('.user-role');
     if (roleCell) {
       const roleText = user.isAdmin ? 'ADMINISTRATEUR' : 'UTILISATEUR';
       const badgeClass = user.isAdmin ? 'badge badge-admin' : 'badge badge-user';
-      
+
       roleCell.textContent = roleText;
       roleCell.className = `${badgeClass} user-role`;
     }
@@ -928,7 +864,7 @@ function updateUserInTable(user) {
 function updateUserLastLogin(userId, loginTime) {
   // Chercher la ligne utilisateur par ID
   const userRows = document.querySelectorAll(`tr[data-user-id="${userId}"]`);
-  
+
   userRows.forEach(row => {
     // Mettre à jour la colonne "Dernière connexion" (5ème td = index 4)
     const loginCell = row.children[4]; // 0: name, 1: email, 2: role, 3: modules, 4: last_login
@@ -945,4 +881,8 @@ window.getTypeBadge = getTypeBadge;
 window.updateModuleTypeBadge = updateModuleTypeBadge;
 window.convertLegacyBadges = convertLegacyBadges;
 window.initializeModuleTypeBadges = initializeModuleTypeBadges;
-window.initializeRealTimeEvents = initializeRealTimeEvents;
+
+// Export admin functions for global.js
+window.updateSimpleStats = updateSimpleStats;
+window.updateModuleStatus = updateModuleStatus;
+window.updateModuleLastSeen = updateModuleLastSeen;

@@ -5,18 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
   <title><%= title %></title>
-  <!-- Bootstrap Grid pour la responsivité -->
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
-  <!-- CSS global -->
   <link rel="stylesheet" href="/css/global.css">
-  <!-- CSS spécifique au dashboard (pour la navbar) -->
   <link rel="stylesheet" href="/css/dashboard.css">
-  <!-- CSS spécifique au profil -->
   <link rel="stylesheet" href="/css/profile.css">
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
 <body class="compact">
-  <!-- Navbar -->
   <%- include('partials/navbar', { 
     currentPage: 'profile', 
     user: user 
@@ -43,7 +38,6 @@
       <% } %>
 
       <div class="profile-sections">
-        <!-- Section Informations personnelles -->
         <div class="profile-section">
           <h2>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; display: inline-block; vertical-align: middle; margin-right: 8px;">
@@ -67,7 +61,6 @@
           </form>
         </div>
 
-        <!-- Section Mot de passe -->
         <div class="profile-section">
           <h2>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; display: inline-block; vertical-align: middle; margin-right: 8px;">
@@ -97,7 +90,6 @@
           </form>
         </div>
 
-        <!-- Section Informations du compte -->
         <div class="profile-section">
           <h2>
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width: 24px; height: 24px; display: inline-block; vertical-align: middle; margin-right: 8px;">
@@ -128,7 +120,7 @@
     </main>
   </div>
 
-  <!-- Scripts -->
+  <script src="/socket.io/socket.io.js"></script>
   <script src="/js/global.js"></script>
 </body>
 </html>
