@@ -57,7 +57,7 @@ router.get('/', requireAuth, async (req, res) => {
       modules: formattedModules,
     });
   } catch (error) {
-    Logger.error('Erreur lors du chargement des timelines:', error);
+    Logger.app.error('Erreur lors du chargement des timelines:', error);
     res.status(500).render('error', {
       title: 'Erreur - MicroCoaster',
       message: 'Une erreur est survenue lors du chargement des timelines',

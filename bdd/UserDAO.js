@@ -34,7 +34,7 @@ class UserDAO extends BaseDAO {
 
       return null;
     } catch (error) {
-      Logger.error('Erreur lors de la vérification des identifiants:', error);
+      Logger.app.error('Erreur lors de la vérification des identifiants:', error);
       throw error;
     }
   }
@@ -68,7 +68,7 @@ class UserDAO extends BaseDAO {
       // Retourner l'utilisateur créé (sans le mot de passe)
       return await this.findById(result.insertId);
     } catch (error) {
-      Logger.error("Erreur lors de la création de l'utilisateur:", error);
+      Logger.activity.error("Erreur lors de la création de l'utilisateur:", error);
       throw error;
     }
   }
@@ -86,7 +86,7 @@ class UserDAO extends BaseDAO {
       );
       return user;
     } catch (error) {
-      Logger.error("Erreur lors de la récupération de l'utilisateur:", error);
+      Logger.app.error("Erreur lors de la récupération de l'utilisateur:", error);
       throw error;
     }
   }
@@ -250,7 +250,7 @@ class UserDAO extends BaseDAO {
         total,
       };
     } catch (error) {
-      Logger.error('Erreur lors de la récupération des utilisateurs:', error);
+      Logger.app.error('Erreur lors de la récupération des utilisateurs:', error);
       throw error;
     }
   }
@@ -287,7 +287,7 @@ class UserDAO extends BaseDAO {
 
       return result.affectedRows > 0;
     } catch (error) {
-      Logger.error('Erreur lors de la mise à jour du profil:', error);
+      Logger.activity.error('Erreur lors de la mise à jour du profil:', error);
       throw error;
     }
   }
@@ -305,7 +305,7 @@ class UserDAO extends BaseDAO {
 
       return result.affectedRows > 0;
     } catch (error) {
-      Logger.error('Erreur lors de la mise à jour de la dernière connexion:', error);
+      Logger.activity.error('Erreur lors de la mise à jour de la dernière connexion:', error);
       throw error;
     }
   }
@@ -320,7 +320,7 @@ class UserDAO extends BaseDAO {
       const user = await this.findOne('SELECT id FROM users WHERE email = ?', [email]);
       return !!user;
     } catch (error) {
-      Logger.error("Erreur lors de la vérification de l'email:", error);
+      Logger.app.error("Erreur lors de la vérification de l'email:", error);
       throw error;
     }
   }
@@ -334,7 +334,7 @@ class UserDAO extends BaseDAO {
       const result = await this.findOne('SELECT COUNT(*) as total FROM users');
       return result ? result.total : 0;
     } catch (error) {
-      Logger.error('Erreur lors du comptage des utilisateurs:', error);
+      Logger.system.error('Erreur lors du comptage des utilisateurs:', error);
       throw error;
     }
   }
@@ -348,7 +348,7 @@ class UserDAO extends BaseDAO {
       const result = await this.findOne('SELECT COUNT(*) as total FROM users WHERE is_admin = 1');
       return result ? result.total : 0;
     } catch (error) {
-      Logger.error('Erreur lors du comptage des administrateurs:', error);
+      Logger.system.error('Erreur lors du comptage des administrateurs:', error);
       throw error;
     }
   }
@@ -385,7 +385,7 @@ class UserDAO extends BaseDAO {
 
       return result.affectedRows > 0;
     } catch (error) {
-      Logger.error('Erreur lors du changement de mot de passe:', error);
+      Logger.activity.error('Erreur lors du changement de mot de passe:', error);
       throw error;
     }
   }
@@ -411,7 +411,7 @@ class UserDAO extends BaseDAO {
         regular: (totalResult?.total || 0) - (adminResult?.total || 0),
       };
     } catch (error) {
-      Logger.error('Erreur lors du calcul des statistiques utilisateurs:', error);
+      Logger.system.error('Erreur lors du calcul des statistiques utilisateurs:', error);
       return {
         total: 0,
         admins: 0,

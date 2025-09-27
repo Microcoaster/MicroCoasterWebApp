@@ -40,7 +40,7 @@ class UserEvents {
   // ================================================================================
 
   userLoggedIn(userData, sessionId) {
-    Logger.info(`[UserEvents] User logged in: ${userData.name} (ID: ${userData.id})`);
+    Logger.activity.info(`[UserEvents] User logged in: ${userData.name} (ID: ${userData.id})`);
 
     const loginTime = userData.last_login ? new Date(userData.last_login) : new Date();
 
@@ -71,7 +71,7 @@ class UserEvents {
   }
 
   userLoggedOut(userData, sessionId) {
-    Logger.info(`[UserEvents] User logged out: ${userData.name} (ID: ${userData.id})`);
+    Logger.activity.info(`[UserEvents] User logged out: ${userData.name} (ID: ${userData.id})`);
 
     const eventData = {
       action: 'logout',
@@ -96,7 +96,7 @@ class UserEvents {
   // ================================================================================
 
   userProfileUpdated(userData, sessionId = null) {
-    Logger.info(`[UserEvents] User profile updated: ${userData.name} (ID: ${userData.id})`);
+    Logger.activity.info(`[UserEvents] User profile updated: ${userData.name} (ID: ${userData.id})`);
 
     const eventData = {
       action: 'profile_updated',
@@ -118,7 +118,7 @@ class UserEvents {
   // ================================================================================
 
   userPasswordChanged(userData) {
-    Logger.info(`[UserEvents] Password changed for user: ${userData.name} (ID: ${userData.id})`);
+    Logger.activity.info(`[UserEvents] Password changed for user: ${userData.name} (ID: ${userData.id})`);
 
     const eventData = {
       action: 'password_changed',
@@ -139,7 +139,7 @@ class UserEvents {
   }
 
   userRegistered(userData) {
-    Logger.info(`[UserEvents] New user registered: ${userData.name} (ID: ${userData.id})`);
+    Logger.activity.info(`[UserEvents] New user registered: ${userData.name} (ID: ${userData.id})`);
 
     const eventData = {
       action: 'registered',
@@ -212,11 +212,11 @@ class UserEvents {
         };
 
         this.events.emitToAdmins('simple_stats_update', simpleStats);
-        Logger.debug(
-          `[UserEvents] Stats mises à jour émises: ${clientStats.uniqueUsers} utilisateurs, ${moduleStats.connectedModules} modules`
+        Logger.system.debug(
+          `[UserEvents] Stats mises à jour émises: ${stats.users} utilisateurs, ${stats.modules} modules`
         );
       } catch (error) {
-        Logger.error('[UserEvents] Erreur émission stats:', error);
+        Logger.system.error('[UserEvents] Erreur émission stats:', error);
       }
     }, 300); // Délai un peu plus long pour laisser le WebSocket se mettre à jour
   }

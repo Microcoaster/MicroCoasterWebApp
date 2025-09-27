@@ -57,7 +57,7 @@ class ModuleEvents {
     });
 
     if (!wasOnline) {
-      Logger.info(`[ModuleEvents] Module ${moduleId} is now ONLINE`);
+      Logger.modules.info(`[ModuleEvents] Module ${moduleId} is now ONLINE`);
 
       const eventData = {
         moduleId,
@@ -94,7 +94,7 @@ class ModuleEvents {
     });
 
     if (wasOnline) {
-      Logger.info(`[ModuleEvents] Module ${moduleId} is now OFFLINE`);
+      Logger.modules.info(`[ModuleEvents] Module ${moduleId} is now OFFLINE`);
 
       const eventData = {
         moduleId,
@@ -123,7 +123,7 @@ class ModuleEvents {
   // ================================================================================
 
   moduleAdded(moduleData) {
-    Logger.info(`[ModuleEvents] New module added: ${moduleData.module_id}`);
+    Logger.modules.info(`[ModuleEvents] New module added: ${moduleData.module_id}`);
 
     const eventData = {
       action: 'added',
@@ -141,7 +141,7 @@ class ModuleEvents {
   }
 
   moduleRemoved(moduleData) {
-    Logger.info(`[ModuleEvents] Module removed: ${moduleData.module_id}`);
+    Logger.modules.info(`[ModuleEvents] Module removed: ${moduleData.module_id}`);
 
     const eventData = {
       action: 'removed',
@@ -161,7 +161,7 @@ class ModuleEvents {
   }
 
   moduleUpdated(moduleData) {
-    Logger.info(`[ModuleEvents] Module updated: ${moduleData.module_id}`);
+    Logger.modules.info(`[ModuleEvents] Module updated: ${moduleData.module_id}`);
 
     const eventData = {
       action: 'updated',
@@ -230,8 +230,8 @@ class ModuleEvents {
     // Gérer les reconnexions - déconnecter l'ancienne session
     const existingSocket = this.connectedESPs.get(moduleId);
     if (existingSocket && existingSocket !== socket) {
-      Logger.warn(
-        `Module ${moduleId} already connected with socket ${existingSocket.id}, replacing...`
+      Logger.modules.warn(
+        `⚠️ ESP ${moduleId} already connected on different socket. Disconnecting previous socket ${previousSocket.id}`
       );
 
       try {
@@ -239,7 +239,7 @@ class ModuleEvents {
         existingSocket.removeAllListeners();
         existingSocket.disconnect(true);
       } catch (error) {
-        Logger.error('Error disconnecting previous ESP socket:', error);
+        Logger.modules.error('Error disconnecting previous ESP socket:', error);
       }
     }
 
@@ -274,12 +274,12 @@ class ModuleEvents {
     const currentSocket = this.connectedESPs.get(moduleId);
     if (currentSocket === socket) {
       this.connectedESPs.delete(moduleId);
-      Logger.debug(`Removed ${moduleId} from connectedESPs map`);
+      Logger.modules.debug(`Removed ${moduleId} from connectedESPs map`);
 
       // Marquer comme offline
       this.moduleOffline(moduleId, { moduleType, timestamp: new Date() });
     } else if (currentSocket) {
-      Logger.debug(
+      Logger.modules.debug(
         `Socket ${socket.id} disconnected but ${moduleId} is now handled by ${currentSocket.id}`
       );
     }
@@ -378,11 +378,11 @@ class ModuleEvents {
         };
 
         this.events.emitToAdmins('simple_stats_update', simpleStats);
-        Logger.debug(
-          `[ModuleEvents] Stats mises à jour émises: ${clientStats.uniqueUsers} utilisateurs, ${moduleStats.connectedModules} modules`
+        Logger.system.debug(
+          `[ModuleEvents] Stats mises à jour émises: ${stats.users} utilisateurs, ${stats.modules} modules`
         );
       } catch (error) {
-        Logger.error('[ModuleEvents] Erreur émission stats:', error);
+        Logger.modules.error('[ModuleEvents] Erreur émission stats:', error);
       }
     }, 200); // Petit délai pour éviter les appels trop fréquents
   }

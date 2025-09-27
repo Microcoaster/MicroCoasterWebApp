@@ -48,7 +48,7 @@ class AdminEvents {
   // ================================================================================
 
   adminAction(adminUserId, action, details = {}) {
-    Logger.info(`[AdminEvents] Admin action: ${action} by user ${adminUserId}`);
+    Logger.activity.info(`[AdminEvents] Admin action: ${action} by user ${adminUserId}`);
 
     const eventData = {
       adminUserId,
@@ -100,7 +100,7 @@ class AdminEvents {
   // ================================================================================
 
   maintenanceMode(inMaintenance, reason = '', adminUserId) {
-    Logger.info(
+    Logger.activity.info(
       `[AdminEvents] Maintenance mode: ${inMaintenance ? 'ON' : 'OFF'} by admin ${adminUserId}`
     );
 
@@ -115,7 +115,7 @@ class AdminEvents {
   }
 
   systemAlert(level, message, details = {}) {
-    Logger.warn(`[AdminEvents] System alert (${level}): ${message}`);
+    Logger.app.warn(`[AdminEvents] System alert (${level}): ${message}`);
 
     const eventData = {
       level,

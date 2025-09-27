@@ -20,7 +20,7 @@ class BaseDAO {
       const [rows] = await this.pool.execute(query, params);
       return rows;
     } catch (error) {
-      Logger.error(`❌ Database error in ${this.constructor.name}:`, error);
+      Logger.app.error(`❌ Database error in ${this.constructor.name}:`, error);
       throw error;
     }
   }

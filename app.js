@@ -135,18 +135,18 @@ async function startServer() {
     realTimeAPI.initialize();
     app.locals.realTimeAPI = realTimeAPI;
 
-    Logger.info('🔄 Real-time Events API initialized');
+    Logger.app.info('🔄 Real-time Events API initialized');
 
     databaseManager.startModuleStatusCleanup(1, 5);
 
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
-      Logger.info(`🚀 MicroCoaster Server running on port ${PORT}`);
-      Logger.info(`📱 Web interface: http://localhost:${PORT}`);
-      Logger.info(`🔌 WebSocket: ws://localhost:${PORT}`);
+      Logger.app.info(`🚀 MicroCoaster Server running on port ${PORT}`);
+      Logger.app.info(`📱 Web interface: http://localhost:${PORT}`);
+      Logger.app.info(`🔌 WebSocket: ws://localhost:${PORT}`);
     });
   } catch (error) {
-    Logger.error('❌ Failed to start server:', error);
+    Logger.app.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }

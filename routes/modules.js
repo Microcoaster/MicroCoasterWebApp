@@ -60,7 +60,7 @@ router.get('/', requireAuth, async (req, res) => {
       flash: req.query.flash || null,
     });
   } catch (error) {
-    Logger.error('Error loading modules page:', error);
+    Logger.app.error('Error loading modules page:', error);
     res.status(500).render('modules', {
       title: 'My Modules – MicroCoaster',
       modules: [],
@@ -90,7 +90,7 @@ router.get('/api', requireAuth, async (req, res) => {
 
     res.json({ success: true, modules });
   } catch (error) {
-    Logger.error('Error fetching modules:', error);
+    Logger.modules.error('Error fetching modules:', error);
     res.status(500).json({ success: false, error: 'Database error' });
   }
 });
@@ -186,10 +186,10 @@ router.post('/claim', requireAuth, async (req, res) => {
       });
     }
 
-    Logger.info(`✅ Module claimed: ${moduleIdTrim} (${type}) by user ${userId}`);
+    Logger.activity.info(`✅ Module claimed: ${moduleIdTrim} (${type}) by user ${userId}`);
     res.redirect('/modules?flash=' + encodeURIComponent('Module added successfully'));
   } catch (error) {
-    Logger.error('Error claiming module:', error);
+    Logger.modules.error('Error claiming module:', error);
     res.redirect('/modules?flash=' + encodeURIComponent('Database error occurred'));
   }
 });
@@ -229,10 +229,10 @@ router.post('/add', requireAuth, async (req, res) => {
       });
     }
 
-    Logger.info(`➕ Module added: ${module_id} (${type}) by user ${userId}`);
+    Logger.activity.info(`➕ Module added: ${module_id} (${type}) by user ${userId}`);
     res.redirect('/modules?flash=' + encodeURIComponent('Module added successfully'));
   } catch (error) {
-    Logger.error('Error adding module:', error);
+    Logger.modules.error('Error adding module:', error);
 
     if (error.code === 'ER_DUP_ENTRY') {
       res.redirect('/modules?flash=' + encodeURIComponent('Module already exists'));
@@ -278,10 +278,10 @@ router.post('/delete/:moduleId', requireAuth, async (req, res) => {
       });
     }
 
-    Logger.info(`🗑️ Module unclaimed: ${moduleId} by user ${userId}`);
+    Logger.activity.info(`🗑️ Module unclaimed: ${moduleId} by user ${userId}`);
     res.json({ success: true, message: 'Module deleted successfully' });
   } catch (error) {
-    Logger.error('Error unclaiming module:', error);
+    Logger.modules.error('Error unclaiming module:', error);
     res.status(500).json({ success: false, error: 'Database error' });
   }
 });
@@ -325,10 +325,10 @@ router.post('/update/:moduleId', requireAuth, async (req, res) => {
       });
     }
 
-    Logger.info(`📝 Module updated: ${moduleId} by user ${userId}`);
+    Logger.activity.info(`📝 Module updated: ${moduleId} by user ${userId}`);
     res.json({ success: true, message: 'Module updated successfully' });
   } catch (error) {
-    Logger.error('Error updating module:', error);
+    Logger.modules.error('Error updating module:', error);
     res.status(500).json({ success: false, error: 'Database error' });
   }
 });

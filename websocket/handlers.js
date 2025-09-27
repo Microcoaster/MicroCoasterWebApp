@@ -7,8 +7,8 @@ function getRealTimeAPI(socket) {
   const api =
     socket.server?.app?.locals?.realTimeAPI || socket.nsp?.server?.app?.locals?.realTimeAPI;
   if (!api) {
-    Logger.warn('RealTimeAPI not found - WebSocket functionality may be limited');
-    Logger.debug('RealTimeAPI debug info', {
+    Logger.app.warn('RealTimeAPI not found - WebSocket functionality may be limited');
+    Logger.app.debug('RealTimeAPI debug info', {
       hasServer: !!socket.server,
       hasServerApp: !!socket.server?.app,
       hasServerAppLocals: !!socket.server?.app?.locals,
@@ -66,12 +66,12 @@ function logRx(socket, event, data, session = null) {
       if (who(socket, session).includes('unknown')) {
         Logger.esp(`[RX] ${who(socket, session)} ${event}`);
       } else {
-        Logger.info(`[RX] ${who(socket, session)} ${event}`);
+        Logger.modules.info(`[RX] ${who(socket, session)} ${event}`);
       }
-      Logger.debug(`[RX] ${who(socket, session)} ${event}`, { data: redact(data) });
+      Logger.modules.debug(`[RX] ${who(socket, session)} ${event}`, { data: redact(data) });
     }
   } catch (error) {
-    Logger.error('Erreur lors du logging RX:', error);
+    Logger.app.error('Erreur lors du logging RX:', error);
   }
 }
 
@@ -81,18 +81,18 @@ function logTx(socket, event, data, session = null) {
     if (event.includes('telemetry') || event.includes('module_telemetry')) {
       Logger.esp(`[TX] ${who(socket, session)} ${event}`, { data: redact(data) });
     } else if (event === 'modules_state' || event === 'module_presence') {
-      Logger.debug(`[TX] ${who(socket, session)} ${event}`); // Événements fréquents en debug
+      Logger.modules.debug(`[TX] ${who(socket, session)} ${event}`); // Événements fréquents en debug
     } else {
       // Si c'est une transmission vers un module ESP, utiliser le logger ESP
       if (who(socket, session).includes('esp') || event.includes('esp') || who(socket, session).includes('MC-')) {
         Logger.esp(`[TX] ${who(socket, session)} ${event}`);
       } else {
-        Logger.info(`[TX] ${who(socket, session)} ${event}`);
+        Logger.modules.info(`[TX] ${who(socket, session)} ${event}`);
       }
-      Logger.debug(`[TX] ${who(socket, session)} ${event}`, { data: redact(data) });
+      Logger.modules.debug(`[TX] ${who(socket, session)} ${event}`, { data: redact(data) });
     }
   } catch (error) {
-    Logger.error('Erreur lors du logging TX:', error);
+    Logger.app.error('Erreur lors du logging TX:', error);
   }
 }
 
@@ -112,7 +112,7 @@ function broadcastToWebByCode(realTimeAPI, userCode, event, data) {
   });
 
   if (clients.length > 0) {
-    Logger.debug(`Broadcasted '${event}' to ${clients.length} client(s) with code ${userCode}`);
+    Logger.system.debug(`Broadcasted '${event}' to ${clients.length} client(s) with code ${userCode}`);
   }
 }
 
@@ -125,12 +125,12 @@ function getUserSockets(realTimeAPI, userId) {
 }
 
 module.exports = function (io) {
-  Logger.info('🔌 WebSocket handler initialized (Socket.io)');
+  Logger.app.info('🔌 WebSocket handler initialized (Socket.io)');
 
   io.on('connection', socket => {
     const session = socket.request.session;
 
-    Logger.debug(`New connection: ${socket.id}`, {
+    Logger.activity.debug(`New connection: ${socket.id}`, {
       hasSession: !!session,
       hasUserId: !!session?.user_id,
       sessionKeys: session ? Object.keys(session) : 'no session',
@@ -148,10 +148,10 @@ module.exports = function (io) {
 
       // Écouter l'authentification manuelle du client (prioritaire)
       socket.on('client:authenticate', data => {
-        Logger.info(`🔐 Manual client authentication attempt: ${socket.id}`, data);
+        Logger.activity.info(`🔐 Manual client authentication attempt: ${socket.id}`, data);
 
         if (!data.userId) {
-          Logger.warn(`❌ Authentication failed - no userId: ${socket.id}`);
+          Logger.activity.warn(`❌ Authentication failed - no userId: ${socket.id}`);
           socket.emit('client:auth:error', { message: 'User ID required' });
           return;
         }
@@ -164,7 +164,7 @@ module.exports = function (io) {
           code: data.code || `USER-${data.userId}`,
         };
 
-        Logger.info(
+        Logger.activity.info(
           `✅ Processing manual authentication for user ${data.userId} (${data.userType})`
         );
 
@@ -184,7 +184,7 @@ module.exports = function (io) {
 
     // Gestion générale des erreurs de socket
     socket.on('error', error => {
-      Logger.error(`Socket error on ${socket.id}:`, error);
+      Logger.app.error(`Socket error on ${socket.id}:`, error);
     });
   });
 
@@ -194,7 +194,7 @@ module.exports = function (io) {
     const userName = session.nickname || 'User';
     const userCode = session.code || `USER-${userId}`; // Générer un code par défaut si undefined
 
-    Logger.debug(`👤 ${userName} connected (ID: ${userId}, Code: ${userCode})`);
+    Logger.activity.debug(`👤 ${userName} connected (ID: ${userId}, Code: ${userCode})`);
 
     // 📡 NOUVEAU: Enregistrer avec l'EventsManager pour les événements temps réel
     const realTimeAPI = getRealTimeAPI(socket);
@@ -211,7 +211,7 @@ module.exports = function (io) {
       // Ceci corrige le bug des statistiques incorrectes
       realTimeAPI.events.registerClient(socket, userId, userType, 'unknown');
       socket.isRegisteredWithEventsManager = true;
-      Logger.debug(`Client auto-registered in EventsManager: ${socket.id} (${userType})`);
+      Logger.activity.debug(`Client auto-registered in EventsManager: ${socket.id} (${userType})`);
 
       // Stats désormais à la demande via 'request_stats'
     }
@@ -231,7 +231,7 @@ module.exports = function (io) {
         };
 
         socket.emit('simple_stats_update', simpleStats);
-        Logger.debug(
+        Logger.system.debug(
           `Stats envoyées à ${socket.id}: ${clientStats.uniqueUsers} utilisateurs, ${moduleStats.connectedModules} modules`
         );
       }
@@ -240,14 +240,14 @@ module.exports = function (io) {
     // Écouter l'enregistrement de page par le client (pour mettre à jour la page)
     socket.on('register_page', data => {
       const page = data?.page || 'unknown';
-      Logger.debug('Client updating page', { page, socketId: socket.id });
+      Logger.activity.debug('Client updating page', { page, socketId: socket.id });
 
       if (realTimeAPI && socket.isRegisteredWithEventsManager) {
         // Mettre à jour la page dans EventsManager
         const client = realTimeAPI.events.connectedClients.get(socket.id);
         if (client) {
           client.page = page;
-          Logger.info(`Client page updated: ${socket.id} -> ${page}`);
+          Logger.activity.info(`Client page updated: ${socket.id} -> ${page}`);
         }
       }
     });
@@ -255,7 +255,7 @@ module.exports = function (io) {
     // 🔄 NOUVEAU: Récupérer les modules depuis la base de données
     try {
       const userModules = await databaseManager.modules.findByUserId(userId);
-      Logger.debug(`📋 User ${userName} has ${userModules.length} modules in database`);
+      Logger.modules.debug(`📋 User ${userName} has ${userModules.length} modules in database`);
 
       // Auto-claim tous les modules de l'utilisateur
       const claimedModules = [];
@@ -263,15 +263,15 @@ module.exports = function (io) {
         const moduleId = module.module_id;
         codeByModuleId.set(moduleId, userCode);
         claimedModules.push(moduleId);
-        Logger.debug(`🔗 Auto-claimed module: ${moduleId} for user ${userCode}`);
+        Logger.modules.debug(`🔗 Auto-claimed module: ${moduleId} for user ${userCode}`);
       }
       
       // Log dans fichier pour debug navigation
       if (claimedModules.length > 0) {
-        Logger.debug(`🔗 Auto-claimed ${claimedModules.length} modules for ${userName}`);
+        Logger.modules.debug(`🔗 Auto-claimed ${claimedModules.length} modules for ${userName}`);
       }
     } catch (error) {
-      Logger.error('Error loading user modules:', error);
+      Logger.modules.error('Error loading user modules:', error);
     }
 
     // Renvoyer la présence connue des modules déjà "claimés" par ce code
@@ -311,7 +311,7 @@ module.exports = function (io) {
 
     // Nettoyage à la déconnexion
     socket.on('disconnect', () => {
-      Logger.debug(`👤 ${userName} disconnected`);
+      Logger.activity.debug(`👤 ${userName} disconnected`);
 
       // La désinscription de l'EventsManager est maintenant gérée automatiquement
       // par le handler 'disconnect' dans api/index.js pour éviter la double gestion
@@ -360,9 +360,9 @@ module.exports = function (io) {
         socket.moduleType = type || 'Unknown';
 
         // Mettre à jour le statut en cache
-        databaseManager.modules.updateStatus(moduleId, 'online').catch(Logger.error);
+        databaseManager.modules.updateStatus(moduleId, 'online').catch(Logger.modules.error);
       } else {
-        Logger.error('RealTimeAPI or ModuleEvents not available for ESP registration');
+        Logger.modules.error('RealTimeAPI or ModuleEvents not available for ESP registration');
         socket.emit('error', { message: 'Server not ready' });
         return socket.disconnect();
       }
@@ -416,7 +416,7 @@ module.exports = function (io) {
 
           // Mettre à jour le statut BDD seulement si c'était la connexion active
           if (moduleInfo && !realTimeAPI.modules.isModuleConnected(moduleId)) {
-            databaseManager.modules.updateStatus(moduleId, 'offline').catch(Logger.error);
+            databaseManager.modules.updateStatus(moduleId, 'offline').catch(Logger.modules.error);
           }
 
           // Notifier les clients web via le système de codes
@@ -430,7 +430,7 @@ module.exports = function (io) {
         }
       } else {
         // Socket non identifié
-        Logger.info(`🤖 Unidentified module socket disconnected: ${socket.id} (reason: ${reason})`);
+        Logger.modules.info(`🤖 Unidentified module socket disconnected: ${socket.id} (reason: ${reason})`);
       }
 
       // Nettoyer tous les listeners pour éviter les fuites mémoire
@@ -448,7 +448,7 @@ module.exports = function (io) {
       });
     }
 
-    Logger.info(`📡 Command from user ${session.user_id}: ${command} -> ${moduleId}`, params);
+    Logger.modules.info(`📡 Command from user ${session.user_id}: ${command} -> ${moduleId}`, params);
 
     // Trouver le module cible via ModuleEvents
     const realTimeAPI = getRealTimeAPI(clientSocket);
@@ -493,17 +493,25 @@ module.exports = function (io) {
       const clientStats = realTimeAPI.events.getStats();
       const moduleStats = realTimeAPI.modules.getConnectionStats();
 
-      // Statistiques simplifiées : Personnes sur le site + Modules connectés (pour debug uniquement)
-      Logger.info(
-        `📊 Connectés - ${clientStats.uniqueUsers} personne(s) sur le site, ${moduleStats.connectedModules} module(s) ESP connecté(s)`
+      // Statistiques avec anti-spam : seulement si changement
+      const currentStats = {
+        users: clientStats.uniqueUsers,
+        modules: moduleStats.connectedModules,
+        clients: clientStats.total,
+        esp: moduleStats.onlineModules
+      };
+      
+      Logger.system.statsIfChanged(
+        `📊 Connectés - ${clientStats.uniqueUsers} personne(s) sur le site, ${moduleStats.connectedModules} module(s) ESP connecté(s)`,
+        currentStats
       );
 
-      // Debug détaillé si nécessaire
-      Logger.debug(
+      // Debug détaillé toujours disponible dans les fichiers
+      Logger.system.debug(
         `📊 Stats détaillées - Users: ${clientStats.uniqueUsers}, Clients: ${clientStats.total}, ESP: ${moduleStats.connectedModules}, Modules BDD: ${moduleStats.onlineModules}`
       );
     } else {
-      Logger.info(`📊 Connectés - (APIs indisponibles)`);
+      Logger.system.info(`📊 Connectés - (APIs indisponibles)`);
     }
   }, 30000); // Toutes les 30 secondes pour debug uniquement
 };

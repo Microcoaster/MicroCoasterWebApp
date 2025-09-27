@@ -39,14 +39,14 @@ class EventsManager {
     );
 
     if (existingClients.length > 0) {
-      Logger.warn(
+      Logger.activity.warn(
         `User ${userId} already has ${existingClients.length} connection(s), replacing older ones...`
       );
 
       // Déconnecter les anciennes connexions
       existingClients.forEach(existingClient => {
         if (existingClient.socket !== socket && existingClient.socket.connected) {
-          Logger.info(
+          Logger.activity.info(
             `Disconnecting previous session for user ${userId}: ${existingClient.socket.id}`
           );
           existingClient.socket.emit('session_replaced', {
@@ -68,7 +68,7 @@ class EventsManager {
       connectedAt: new Date(),
     });
 
-    Logger.debug(
+    Logger.activity.debug(
       `Client registered: ${socket.id} (User ${userId}, Type: ${userType}, Page: ${page})`
     );
   }
@@ -80,7 +80,7 @@ class EventsManager {
   unregisterClient(socketId) {
     const client = this.connectedClients.get(socketId);
     if (client) {
-      Logger.debug(`Client unregistered: ${socketId} (User ${client.userId})`);
+      Logger.activity.debug(`Client unregistered: ${socketId} (User ${client.userId})`);
       this.connectedClients.delete(socketId);
     }
   }
@@ -95,7 +95,7 @@ class EventsManager {
    * @param {object} data - Data to send
    */
   broadcast(event, data) {
-    Logger.info(`Broadcasting '${event}' to ${this.connectedClients.size} clients`);
+    Logger.system.info(`Broadcasting '${event}' to ${this.connectedClients.size} clients`);
     this.io.emit(event, data);
   }
 
@@ -115,7 +115,7 @@ class EventsManager {
     });
 
     if (clients.length > 0) {
-      Logger.debug(`Emitted '${event}' to user ${userId} (${clients.length} clients)`);
+      Logger.system.debug(`Emitted '${event}' to user ${userId} (${clients.length} clients)`);
     }
   }
 
@@ -136,9 +136,9 @@ class EventsManager {
     if (adminClients.length > 0) {
       // Log émissions fréquentes en debug seulement pour éviter spam
       if (event.includes('telemetry') || event.includes('last_seen')) {
-        Logger.debug(`Emitted '${event}' to ${adminClients.length} admin(s)`);
+        Logger.system.debug(`Emitted '${event}' to ${adminClients.length} admin(s)`);
       } else {
-        Logger.debug(`Emitted '${event}' to ${adminClients.length} admin(s)`);
+        Logger.system.debug(`Emitted '${event}' to ${adminClients.length} admin(s)`);
       }
     }
   }
@@ -159,7 +159,7 @@ class EventsManager {
     });
 
     if (pageClients.length > 0) {
-      Logger.debug(`Emitted '${event}' to page '${page}' (${pageClients.length} clients)`);
+      Logger.system.debug(`Emitted '${event}' to page '${page}' (${pageClients.length} clients`);
     }
   }
 

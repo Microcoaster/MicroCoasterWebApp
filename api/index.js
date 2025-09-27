@@ -40,17 +40,17 @@ class RealTimeAPI {
    */
   initialize() {
     if (this.initialized) {
-      Logger.warn('RealTimeAPI already initialized');
+      Logger.app.warn('RealTimeAPI already initialized');
       return;
     }
 
-    Logger.info('Initializing real-time events API');
+    Logger.app.info('Initializing real-time events API');
 
     // Les connexions sont gérées par websocket/handlers.js
     // qui redirige vers cette API via client:authenticate quand nécessaire
 
     this.initialized = true;
-    Logger.info('Real-time events API initialized successfully');
+    Logger.app.info('Real-time events API initialized successfully');
   }
 
   // ========================================================================
@@ -103,13 +103,13 @@ class RealTimeAPI {
         // Nouveau client - enregistrer
         this.events.registerClient(socket, userId, userType, page);
         socket.isRegisteredWithEventsManager = true;
-        Logger.info(`Client authenticated via API: ${socket.id} (User ${userId}, Page ${page})`);
+        Logger.activity.info(`Client authenticated via API: ${socket.id} (User ${userId}, Page ${page})`);
       } else {
         // Client déjà enregistré - mettre à jour la page seulement
         const oldPage = existingClient.page;
         existingClient.page = page;
         if (oldPage !== page) {
-              Logger.debug(`📄 ${this.getUserName(socket)} navigated: ${oldPage} → ${page}`);
+              Logger.activity.debug(`📄 ${this.getUserName(socket)} navigated: ${oldPage} → ${page}`);
         }
       }
 
@@ -120,7 +120,7 @@ class RealTimeAPI {
 
       this._sendInitialState(socket, page);
     } catch (error) {
-      Logger.error('Error authenticating client:', error);
+      Logger.activity.error('Error authenticating client:', error);
       socket.emit('client:auth:error', { message: 'Authentication failed' });
     }
   }
@@ -131,7 +131,7 @@ class RealTimeAPI {
    */
   _handleClientDisconnection(socket) {
     this.events.unregisterClient(socket.id);
-    Logger.debug(`Client disconnected: ${socket.id}`);
+    Logger.activity.debug(`Client disconnected: ${socket.id}`);
   }
 
   /**
@@ -157,7 +157,7 @@ class RealTimeAPI {
     const client = this.events.connectedClients.get(socket.id);
     if (client) {
       client.page = data.page || 'unknown';
-      Logger.info(`Client ${socket.id} changed to page: ${client.page}`);
+      Logger.activity.info(`Client ${socket.id} changed to page: ${client.page}`);
       this._sendInitialState(socket, client.page);
     }
   }
@@ -183,7 +183,7 @@ class RealTimeAPI {
           break;
       }
     } catch (error) {
-      Logger.error(`Error sending initial state for page ${page}:`, error);
+      Logger.app.error(`Error sending initial state for page ${page}:`, error);
     }
   }
 

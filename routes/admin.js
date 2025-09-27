@@ -57,7 +57,7 @@ router.get('/', async (req, res) => {
       nickname: req.session.nickname, // Garder pour compatibilité
     });
   } catch (error) {
-    Logger.error('Admin page error:', error);
+    Logger.app.error('Admin page error:', error);
     res.status(500).render('error', { message: 'Erreur interne du serveur' });
   }
 });
@@ -84,7 +84,7 @@ router.get('/api/stats', async (req, res) => {
 
     res.json(stats);
   } catch (error) {
-    Logger.error('Admin stats error:', error);
+    Logger.system.error('Admin stats error:', error);
     res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
@@ -97,7 +97,7 @@ router.get('/api/users', async (req, res) => {
     const usersResult = await databaseManager.users.findAll({ limit: 1000, offset: 0 });
     res.json(usersResult);
   } catch (error) {
-    Logger.error('Admin users API error:', error);
+    Logger.app.error('Admin users API error:', error);
     res.status(500).json({ error: 'Erreur interne du serveur' });
   }
 });
@@ -110,7 +110,7 @@ router.get('/api/modules', async (req, res) => {
     const modulesResult = await databaseManager.modules.findAll({ limit: 1000, offset: 0 });
     res.json(modulesResult);
   } catch (error) {
-    Logger.error('Admin modules API error:', error);
+    Logger.app.error('Admin modules API error:', error);
     res.status(500).json({ error: 'Erreur lors de la récupération des modules' });
   }
 });

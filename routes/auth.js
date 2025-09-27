@@ -77,14 +77,14 @@ router.post('/login', async (req, res) => {
           );
         }
 
-        Logger.info('User authenticated:', user.name, user.is_admin ? '(admin)' : '');
+        Logger.activity.info('User authenticated:', user.name, user.is_admin ? '(admin)' : '');
         return res.redirect('/dashboard');
       } else {
         error = 'Email ou mot de passe incorrect.';
       }
     }
   } catch (err) {
-    Logger.error('Login error:', err);
+    Logger.activity.error('Login error:', err);
     error = 'Erreur de connexion à la base de données.';
   }
 
@@ -139,11 +139,11 @@ router.post('/register', async (req, res) => {
         );
       }
 
-      Logger.info('New user registered:', user.name);
+      Logger.activity.info('New user registered:', user.name);
       return res.redirect('/dashboard');
     }
   } catch (err) {
-    Logger.error('Register error:', err);
+    Logger.activity.error('Register error:', err);
     error = err.message || 'Erreur lors de la création du compte.';
   }
 
@@ -172,9 +172,9 @@ router.get('/logout', (req, res) => {
 
   req.session.destroy(err => {
     if (err) {
-      Logger.error('Session destroy error:', err);
+      Logger.activity.error('Session destroy error:', err);
     }
-    Logger.info('User logged out:', userName);
+    Logger.activity.info('User logged out:', userName);
     res.redirect('/login');
   });
 });
@@ -193,7 +193,7 @@ router.get('/profile', requireAuth, async (req, res) => {
       success: null,
     });
   } catch (error) {
-    Logger.error('Profile error:', error);
+    Logger.activity.error('Profile error:', error);
     res.render('error', {
       title: 'Erreur',
       message: 'Erreur lors du chargement du profil.',
@@ -253,7 +253,7 @@ router.post('/profile', requireAuth, async (req, res) => {
       }
     }
   } catch (err) {
-    Logger.error('Profile update error:', err);
+    Logger.activity.error('Profile update error:', err);
     error = err.message || 'Erreur lors de la mise à jour du profil.';
   }
 
@@ -290,7 +290,7 @@ router.post('/change-password', requireAuth, async (req, res) => {
       success = 'Mot de passe changé avec succès.';
     }
   } catch (err) {
-    Logger.error('Password change error:', err);
+    Logger.activity.error('Password change error:', err);
     error = err.message || 'Erreur lors du changement de mot de passe.';
   }
 

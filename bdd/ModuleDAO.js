@@ -35,7 +35,7 @@ class ModuleDAO extends BaseDAO {
         lastSeen: this.getLastSeen(module.module_id),
       }));
     } catch (error) {
-      Logger.error('Erreur lors de la récupération des modules utilisateur:', error);
+      Logger.modules.error('Erreur lors de la récupération des modules utilisateur:', error);
       throw error;
     }
   }
@@ -168,7 +168,7 @@ class ModuleDAO extends BaseDAO {
         total,
       };
     } catch (error) {
-      Logger.error('Erreur lors de la récupération des modules:', error);
+      Logger.modules.error('Erreur lors de la récupération des modules:', error);
       throw error;
     }
   }
@@ -184,7 +184,7 @@ class ModuleDAO extends BaseDAO {
       );
       return modules;
     } catch (error) {
-      Logger.error('Erreur lors de la récupération des modules disponibles:', error);
+      Logger.modules.error('Erreur lors de la récupération des modules disponibles:', error);
       throw error;
     }
   }
@@ -214,7 +214,7 @@ class ModuleDAO extends BaseDAO {
 
       return null;
     } catch (error) {
-      Logger.error('Erreur lors de la récupération du module:', error);
+      Logger.modules.error('Erreur lors de la récupération du module:', error);
       throw error;
     }
   }
@@ -248,7 +248,7 @@ class ModuleDAO extends BaseDAO {
 
       return result.affectedRows > 0;
     } catch (error) {
-      Logger.error('Erreur lors de la réclamation du module:', error);
+      Logger.modules.error('Erreur lors de la réclamation du module:', error);
       throw error;
     }
   }
@@ -285,7 +285,7 @@ class ModuleDAO extends BaseDAO {
 
       return result.affectedRows > 0;
     } catch (error) {
-      Logger.error('Erreur lors de la libération du module:', error);
+      Logger.modules.error('Erreur lors de la libération du module:', error);
       throw error;
     }
   }
@@ -310,7 +310,7 @@ class ModuleDAO extends BaseDAO {
       ]);
 
       if (!module) {
-        Logger.info(
+        Logger.modules.info(
           `⚠️  Module ${moduleId} non trouvé dans la base de données, création automatique...`
         );
         // Créer le module automatiquement s'il n'existe pas
@@ -333,7 +333,7 @@ class ModuleDAO extends BaseDAO {
       Logger.esp(`📡 Module ${moduleId} mis à jour: ${status}`);
       return true;
     } catch (error) {
-      Logger.error('Erreur lors de la mise à jour du statut du module:', error);
+      Logger.modules.error('Erreur lors de la mise à jour du statut du module:', error);
       throw error;
     }
   }
@@ -357,14 +357,14 @@ class ModuleDAO extends BaseDAO {
       }
 
       if (cleanedCount > 0) {
-        Logger.info(
+        Logger.system.info(
           `🧹 ${cleanedCount} modules marqués comme hors ligne après ${maxAgeMinutes} minutes d'inactivité`
         );
       }
 
       return cleanedCount;
     } catch (error) {
-      Logger.error('Erreur lors du nettoyage des statuts:', error);
+      Logger.system.error('Erreur lors du nettoyage des statuts:', error);
       return 0;
     }
   }
@@ -396,7 +396,7 @@ class ModuleDAO extends BaseDAO {
       // Par défaut, considérer comme hors ligne
       return 'offline';
     } catch (error) {
-      Logger.error("Erreur lors de l'obtention du statut du module:", error);
+      Logger.modules.error("Erreur lors de l'obtention du statut du module:", error);
       return 'offline';
     }
   }
@@ -411,7 +411,7 @@ class ModuleDAO extends BaseDAO {
       const cached = this.moduleStatusCache.get(moduleId);
       return cached ? cached.lastSeen : null;
     } catch (error) {
-      Logger.error("Erreur lors de l'obtention de la dernière activité:", error);
+      Logger.modules.error("Erreur lors de l'obtention de la dernière activité:", error);
       return null;
     }
   }
@@ -463,7 +463,7 @@ class ModuleDAO extends BaseDAO {
         inCache: this.moduleStatusCache.size,
       };
     } catch (error) {
-      Logger.error("Erreur lors de l'obtention des statistiques:", error);
+      Logger.system.error("Erreur lors de l'obtention des statistiques:", error);
       return {
         total: 0,
         online: 0,
@@ -485,7 +485,7 @@ class ModuleDAO extends BaseDAO {
       const result = await this.findOne('SELECT COUNT(*) as total FROM modules');
       return result ? result.total : 0;
     } catch (error) {
-      Logger.error('Erreur lors du comptage des modules:', error);
+      Logger.modules.error('Erreur lors du comptage des modules:', error);
       throw error;
     }
   }
@@ -498,7 +498,7 @@ class ModuleDAO extends BaseDAO {
     try {
       return this.getStats().online;
     } catch (error) {
-      Logger.error('Erreur lors du comptage des modules en ligne:', error);
+      Logger.modules.error('Erreur lors du comptage des modules en ligne:', error);
       return 0;
     }
   }

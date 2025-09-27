@@ -47,7 +47,7 @@ router.get('/', async (req, res) => {
       stats: stats,
     });
   } catch (error) {
-    Logger.error('Erreur lors du chargement du dashboard:', error);
+    Logger.app.error('Erreur lors du chargement du dashboard:', error);
     res.status(500).render('error', {
       title: 'Erreur - MicroCoaster',
       message: 'Une erreur est survenue lors du chargement du dashboard',
@@ -67,7 +67,7 @@ router.get('/stats', async (req, res) => {
     const stats = await calculateStats(req.session.user_id);
     res.json(stats);
   } catch (error) {
-    Logger.error('Erreur lors de la récupération des statistiques:', error);
+    Logger.system.error('Erreur lors de la récupération des statistiques:', error);
     res.status(500).json({ error: 'Internal server error' });
   }
 });

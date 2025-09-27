@@ -50,11 +50,11 @@ class DatabaseManager {
       this.moduleDAO = new ModuleDAO(this.pool);
 
       this.isInitialized = true;
-      Logger.info('✅ Database Manager initialized successfully');
+      Logger.app.info('✅ Database Manager initialized successfully');
 
       return true;
     } catch (error) {
-      Logger.error('❌ Database Manager initialization failed:', error);
+      Logger.app.error('❌ Database Manager initialization failed:', error);
       throw error;
     }
   }
@@ -66,13 +66,13 @@ class DatabaseManager {
     try {
       const [rows] = await this.pool.execute('SELECT 1 as test');
       if (rows[0]?.test === 1) {
-        Logger.info('✅ Database connection successful');
+        Logger.app.info('✅ Database connection successful');
         return true;
       } else {
         throw new Error('Test query failed');
       }
     } catch (error) {
-      Logger.error('❌ Database connection failed:', error);
+      Logger.app.error('❌ Database connection failed:', error);
       throw error;
     }
   }
@@ -101,10 +101,10 @@ class DatabaseManager {
         }
       }
 
-      Logger.info(`✅ SQL file executed: ${filename}`);
+      Logger.app.info(`✅ SQL file executed: ${filename}`);
       return true;
     } catch (error) {
-      Logger.error(`❌ Error executing SQL file ${filename}:`, error);
+      Logger.app.error(`❌ Error executing SQL file ${filename}:`, error);
       throw error;
     }
   }
@@ -114,7 +114,7 @@ class DatabaseManager {
    */
   async initializeDatabase() {
     try {
-      Logger.info('🔄 Initializing database...');
+      Logger.app.info('🔄 Initializing database...');
 
       // Créer les tables
       await this.executeSQLFile('001_create_tables.sql');
@@ -122,10 +122,10 @@ class DatabaseManager {
       // Insérer les données par défaut
       await this.executeSQLFile('002_default_data.sql');
 
-      Logger.info('✅ Database initialized successfully');
+      Logger.app.info('✅ Database initialized successfully');
       return true;
     } catch (error) {
-      Logger.error('❌ Database initialization failed:', error);
+      Logger.app.error('❌ Database initialization failed:', error);
       throw error;
     }
   }
@@ -137,7 +137,7 @@ class DatabaseManager {
    */
   startModuleStatusCleanup(intervalMinutes = 1, maxAgeMinutes = 5) {
     if (!this.moduleDAO) {
-      Logger.error('❌ ModuleDAO not initialized');
+      Logger.app.error('❌ ModuleDAO not initialized');
       return;
     }
 
@@ -146,13 +146,13 @@ class DatabaseManager {
         try {
           this.moduleDAO.cleanupStatus(maxAgeMinutes);
         } catch (error) {
-          Logger.error('❌ Error during module status cleanup:', error);
+          Logger.system.error('❌ Error during module status cleanup:', error);
         }
       },
       intervalMinutes * 60 * 1000
     );
 
-    Logger.info(
+    Logger.system.info(
       `🧹 Module status cleanup started (every ${intervalMinutes}min, max age ${maxAgeMinutes}min)`
     );
   }
@@ -183,7 +183,7 @@ class DatabaseManager {
         regularUsers: totalUsers - adminUsers,
       };
     } catch (error) {
-      Logger.error('Error getting global stats:', error);
+      Logger.system.error('Error getting global stats:', error);
       throw error;
     }
   }
@@ -195,10 +195,10 @@ class DatabaseManager {
     try {
       if (this.pool) {
         await this.pool.end();
-        Logger.info('✅ Database connections closed');
+        Logger.app.info('✅ Database connections closed');
       }
     } catch (error) {
-      Logger.error('❌ Error closing database connections:', error);
+      Logger.app.error('❌ Error closing database connections:', error);
       throw error;
     }
   }
