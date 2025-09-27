@@ -310,14 +310,10 @@ class ModuleDAO extends BaseDAO {
       ]);
 
       if (!module) {
-        Logger.modules.info(
-          `⚠️  Module ${moduleId} non trouvé dans la base de données, création automatique...`
+        Logger.modules.warn(
+          `🚨 SÉCURITÉ: Tentative de connexion avec module non certifié ${moduleId} - REJETÉ`
         );
-        // Créer le module automatiquement s'il n'existe pas
-        await this.insert(
-          'INSERT INTO modules (module_id, name, type, user_id, created_at) VALUES (?, ?, ?, ?, NOW())',
-          [moduleId, `Module ${moduleId}`, 'Unknown', userId]
-        );
+        throw new Error('Module non certifié - connexion refusée');
       }
 
       // Mettre à jour le cache de statut
