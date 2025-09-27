@@ -96,7 +96,9 @@ class UserEvents {
   // ================================================================================
 
   userProfileUpdated(userData, sessionId = null) {
-    Logger.activity.info(`[UserEvents] User profile updated: ${userData.name} (ID: ${userData.id})`);
+    Logger.activity.info(
+      `[UserEvents] User profile updated: ${userData.name} (ID: ${userData.id})`
+    );
 
     const eventData = {
       action: 'profile_updated',
@@ -118,7 +120,9 @@ class UserEvents {
   // ================================================================================
 
   userPasswordChanged(userData) {
-    Logger.activity.info(`[UserEvents] Password changed for user: ${userData.name} (ID: ${userData.id})`);
+    Logger.activity.info(
+      `[UserEvents] Password changed for user: ${userData.name} (ID: ${userData.id})`
+    );
 
     const eventData = {
       action: 'password_changed',

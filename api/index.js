@@ -103,13 +103,15 @@ class RealTimeAPI {
         // Nouveau client - enregistrer
         this.events.registerClient(socket, userId, userType, page);
         socket.isRegisteredWithEventsManager = true;
-        Logger.activity.info(`Client authenticated via API: ${socket.id} (User ${userId}, Page ${page})`);
+        Logger.activity.info(
+          `Client authenticated via API: ${socket.id} (User ${userId}, Page ${page})`
+        );
       } else {
         // Client déjà enregistré - mettre à jour la page seulement
         const oldPage = existingClient.page;
         existingClient.page = page;
         if (oldPage !== page) {
-              Logger.activity.debug(`📄 ${this.getUserName(socket)} navigated: ${oldPage} → ${page}`);
+          Logger.activity.debug(`📄 ${this.getUserName(socket)} navigated: ${oldPage} → ${page}`);
         }
       }
 

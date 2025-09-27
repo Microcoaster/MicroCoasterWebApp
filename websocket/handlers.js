@@ -50,13 +50,18 @@ async function validateESPMessage(socket, data) {
 
   // Vérifier que les credentials correspondent à ceux du socket
   if (data.moduleId !== socket.moduleId) {
-    Logger.modules.warn(`🚨 Tentative d'usurpation: ${data.moduleId} depuis socket ${socket.moduleId}`);
+    Logger.modules.warn(
+      `🚨 Tentative d'usurpation: ${data.moduleId} depuis socket ${socket.moduleId}`
+    );
     return false;
   }
 
   // Valider le password à nouveau (sécurité renforcée)
   try {
-    const moduleAuth = await databaseManager.modules.validateModuleAuth(data.moduleId, data.password);
+    const moduleAuth = await databaseManager.modules.validateModuleAuth(
+      data.moduleId,
+      data.password
+    );
     if (!moduleAuth) {
       Logger.modules.warn(`🚨 Password invalide pour module ${data.moduleId}`);
       return false;
@@ -125,7 +130,11 @@ function logTx(socket, event, data, session = null) {
       Logger.modules.debug(`[TX] ${who(socket, session)} ${event}`); // Événements fréquents en debug
     } else {
       // Si c'est une transmission vers un module ESP, utiliser le logger ESP
-      if (who(socket, session).includes('esp') || event.includes('esp') || who(socket, session).includes('MC-')) {
+      if (
+        who(socket, session).includes('esp') ||
+        event.includes('esp') ||
+        who(socket, session).includes('MC-')
+      ) {
         Logger.esp(`[TX] ${who(socket, session)} ${event}`);
       } else {
         Logger.modules.info(`[TX] ${who(socket, session)} ${event}`);
@@ -153,7 +162,9 @@ function broadcastToWebByCode(realTimeAPI, userCode, event, data) {
   });
 
   if (clients.length > 0) {
-    Logger.system.debug(`Broadcasted '${event}' to ${clients.length} client(s) with code ${userCode}`);
+    Logger.system.debug(
+      `Broadcasted '${event}' to ${clients.length} client(s) with code ${userCode}`
+    );
   }
 }
 
@@ -306,7 +317,7 @@ module.exports = function (io) {
         claimedModules.push(moduleId);
         Logger.modules.debug(`🔗 Auto-claimed module: ${moduleId} for user ${userCode}`);
       }
-      
+
       // Log dans fichier pour debug navigation
       if (claimedModules.length > 0) {
         Logger.modules.debug(`🔗 Auto-claimed ${claimedModules.length} modules for ${userName}`);
@@ -327,9 +338,9 @@ module.exports = function (io) {
     }
 
     // ===== WEB -> ESP COMMANDES SÉCURISÉES =====
-    socket.on('send_module_command', (data) => {
+    socket.on('send_module_command', data => {
       const { moduleId, command } = data;
-      
+
       if (!moduleId || !command) {
         socket.emit('error', { message: 'moduleId et command requis' });
         return;
@@ -340,20 +351,20 @@ module.exports = function (io) {
       const realTimeAPI = getRealTimeAPI(socket);
       if (realTimeAPI?.modules) {
         const result = realTimeAPI.modules.sendSecureCommand(moduleId, command, userId);
-        
+
         if (!result.success) {
           Logger.activity.warn(`🚫 Commande refusée pour ${userName}: ${result.error}`);
-          socket.emit('command_error', { 
-            moduleId, 
-            command, 
-            error: result.error 
+          socket.emit('command_error', {
+            moduleId,
+            command,
+            error: result.error,
           });
         } else {
           Logger.activity.info(`✅ Commande envoyée: ${command} -> ${moduleId}`);
-          socket.emit('command_sent', { 
-            moduleId, 
-            command, 
-            timestamp: new Date() 
+          socket.emit('command_sent', {
+            moduleId,
+            command,
+            timestamp: new Date(),
           });
         }
       } else {
@@ -410,7 +421,7 @@ module.exports = function (io) {
     socket._moduleTimeout = identificationTimeout;
 
     // ===== ESP -> REGISTER ===== (le module doit s'identifier avec auth)
-    socket.on('module_identify', async (data) => {
+    socket.on('module_identify', async data => {
       clearTimeout(identificationTimeout); // Annuler le timeout
 
       logRx(socket, 'module_identify', data);
@@ -418,7 +429,9 @@ module.exports = function (io) {
 
       // Validation des données requises
       if (!moduleId || !password) {
-        Logger.modules.warn(`🚨 Tentative d'identification sans credentials: ${moduleId || 'NO_ID'}`);
+        Logger.modules.warn(
+          `🚨 Tentative d'identification sans credentials: ${moduleId || 'NO_ID'}`
+        );
         socket.emit('error', { message: 'Module ID et password requis' });
         return socket.disconnect();
       }
@@ -426,7 +439,7 @@ module.exports = function (io) {
       try {
         // AUTHENTIFICATION SÉCURISÉE
         const moduleAuth = await databaseManager.modules.validateModuleAuth(moduleId, password);
-        
+
         if (!moduleAuth) {
           Logger.modules.warn(`🚨 SÉCURITÉ: Authentification échouée pour ${moduleId}`);
           socket.emit('error', { message: 'Authentification échouée' });
@@ -450,18 +463,20 @@ module.exports = function (io) {
           databaseManager.modules.updateStatus(moduleId, 'online').catch(Logger.modules.error);
 
           // Confirmer l'authentification avec état initial
-          socket.emit('connected', { 
+          socket.emit('connected', {
             status: 'authenticated',
-            initialState: { uptime, position }
+            initialState: { uptime, position },
           });
 
-          Logger.modules.info(`✅ Module ${moduleId} connecté avec état initial: ${position || 'unknown'}`);
+          Logger.modules.info(
+            `✅ Module ${moduleId} connecté avec état initial: ${position || 'unknown'}`
+          );
         } else {
           Logger.modules.error('RealTimeAPI or ModuleEvents not available for ESP registration');
           socket.emit('error', { message: 'Erreur serveur' });
           socket.disconnect();
         }
-        
+
         // Si déjà claimé par un dashboard, annoncer présence
         const c = codeByModuleId.get(moduleId);
         if (c) {
@@ -472,16 +487,16 @@ module.exports = function (io) {
           });
         }
       } catch (error) {
-        Logger.modules.error('Erreur lors de l\'authentification ESP:', error);
+        Logger.modules.error("Erreur lors de l'authentification ESP:", error);
         socket.emit('error', { message: 'Erreur authentification' });
         socket.disconnect();
       }
-      
+
       // Connected event already sent in auth success block above
     });
 
     // ===== ESP -> TELEMETRY ===== (télémétrie sécurisée depuis les modules)
-    socket.on('telemetry', async (data) => {
+    socket.on('telemetry', async data => {
       // VALIDATION SÉCURISÉE
       const isValid = await validateESPMessage(socket, data);
       if (!isValid) {
@@ -499,7 +514,7 @@ module.exports = function (io) {
       const telemetryData = {
         uptime: data.uptime,
         position: data.position,
-        timestamp: new Date()
+        timestamp: new Date(),
       };
 
       // Émettre événement temps réel : télémétrie mise à jour
@@ -545,7 +560,9 @@ module.exports = function (io) {
         }
       } else {
         // Socket non identifié
-        Logger.modules.info(`🤖 Unidentified module socket disconnected: ${socket.id} (reason: ${reason})`);
+        Logger.modules.info(
+          `🤖 Unidentified module socket disconnected: ${socket.id} (reason: ${reason})`
+        );
       }
 
       // Nettoyer tous les listeners pour éviter les fuites mémoire
@@ -569,9 +586,9 @@ module.exports = function (io) {
         users: clientStats.uniqueUsers,
         modules: moduleStats.connectedModules,
         clients: clientStats.total,
-        esp: moduleStats.onlineModules
+        esp: moduleStats.onlineModules,
       };
-      
+
       Logger.system.statsIfChanged(
         `📊 Connectés - ${clientStats.uniqueUsers} personne(s) sur le site, ${moduleStats.connectedModules} module(s) ESP connecté(s)`,
         currentStats

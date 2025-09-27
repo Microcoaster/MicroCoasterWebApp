@@ -256,17 +256,17 @@ class ModuleEvents {
       moduleType,
       userId: socket.moduleAuth.userId, // Ajouter l'ownership
       connectedAt: new Date(),
-      authenticated: true
+      authenticated: true,
     };
 
     this.connectedESPs.set(moduleId, socket);
     this.modulesBySocket.set(socket.id, moduleInfo);
 
     // Mettre à jour l'état du module
-    this.moduleOnline(moduleId, { 
-      type: moduleType, 
-      lastSeen: new Date(), 
-      userId: socket.moduleAuth.userId 
+    this.moduleOnline(moduleId, {
+      type: moduleType,
+      lastSeen: new Date(),
+      userId: socket.moduleAuth.userId,
     });
 
     Logger.esp(`ESP registered: ${moduleId} (${moduleType}) on socket ${socket.id}`);
@@ -422,7 +422,9 @@ class ModuleEvents {
 
     // Vérifier l'ownership
     if (moduleInfo.userId !== userId) {
-      Logger.modules.warn(`🚨 Tentative d'accès non autorisé au module ${moduleId} par user ${userId}`);
+      Logger.modules.warn(
+        `🚨 Tentative d'accès non autorisé au module ${moduleId} par user ${userId}`
+      );
       return { success: false, error: 'Accès non autorisé' };
     }
 

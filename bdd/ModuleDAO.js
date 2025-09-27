@@ -531,7 +531,7 @@ class ModuleDAO extends BaseDAO {
     try {
       // Récupérer le module avec son hash
       const module = await this.findByModuleIdWithHash(moduleId);
-      
+
       if (!module) {
         Logger.modules.warn(`🚨 Tentative d'authentification avec module inexistant: ${moduleId}`);
         return null;
@@ -550,9 +550,11 @@ class ModuleDAO extends BaseDAO {
       // Valider le password avec bcrypt
       const bcrypt = require('bcrypt');
       const isValid = await bcrypt.compare(password, module.module_password_hash);
-      
+
       if (!isValid) {
-        Logger.modules.warn(`🚨 SÉCURITÉ: Échec authentification module ${moduleId} - Password invalide`);
+        Logger.modules.warn(
+          `🚨 SÉCURITÉ: Échec authentification module ${moduleId} - Password invalide`
+        );
         return null;
       }
 
@@ -562,10 +564,10 @@ class ModuleDAO extends BaseDAO {
         moduleId: module.module_id,
         userId: module.user_id,
         type: module.type,
-        claimed: module.claimed
+        claimed: module.claimed,
       };
     } catch (error) {
-      Logger.modules.error('Erreur lors de la validation d\'authentification:', error);
+      Logger.modules.error("Erreur lors de la validation d'authentification:", error);
       return null;
     }
   }

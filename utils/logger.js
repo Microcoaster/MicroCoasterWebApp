@@ -92,19 +92,19 @@ function shouldLogSystemStats(currentStats) {
     lastSystemStats = currentStats;
     return true;
   }
-  
+
   // Vérifier si les stats ont changé
-  const hasChanged = 
+  const hasChanged =
     lastSystemStats.users !== currentStats.users ||
     lastSystemStats.modules !== currentStats.modules ||
     lastSystemStats.clients !== currentStats.clients ||
     lastSystemStats.esp !== currentStats.esp;
-    
+
   if (hasChanged) {
     lastSystemStats = currentStats;
     return true;
   }
-  
+
   return false;
 }
 
@@ -120,21 +120,21 @@ const logger = {
     error: (msg, meta) => appLogger.error(msg, meta),
     debug: (msg, meta) => appLogger.debug(msg, meta),
   },
-  
+
   activity: {
     info: (msg, meta) => activityLogger.info(msg, meta),
     warn: (msg, meta) => activityLogger.warn(msg, meta),
     error: (msg, meta) => activityLogger.error(msg, meta),
     debug: (msg, meta) => activityLogger.debug(msg, meta),
   },
-  
+
   modules: {
     info: (msg, meta) => modulesLogger.info(msg, meta),
     warn: (msg, meta) => modulesLogger.warn(msg, meta),
     error: (msg, meta) => modulesLogger.error(msg, meta),
     debug: (msg, meta) => modulesLogger.debug(msg, meta),
   },
-  
+
   system: {
     info: (msg, meta) => systemLogger.info(msg, meta),
     warn: (msg, meta) => systemLogger.warn(msg, meta),
@@ -158,11 +158,15 @@ const logger = {
     appLogger.warn(msg, meta);
   },
   error: (msg, meta) => {
-    console.warn('⚠️ Logger.error déprécié - utilisez Logger.app.error, Logger.activity.error, etc.');
+    console.warn(
+      '⚠️ Logger.error déprécié - utilisez Logger.app.error, Logger.activity.error, etc.'
+    );
     appLogger.error(msg, meta);
   },
   debug: (msg, meta) => {
-    console.warn('⚠️ Logger.debug déprécié - utilisez Logger.app.debug, Logger.activity.debug, etc.');
+    console.warn(
+      '⚠️ Logger.debug déprécié - utilisez Logger.app.debug, Logger.activity.debug, etc.'
+    );
     appLogger.debug(msg, meta);
   },
 

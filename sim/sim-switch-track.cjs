@@ -12,7 +12,7 @@ const MODULE_PASSWORD = process.env.MODULE_PASSWORD || 'F674iaRftVsHGKOA8hq3TI93
 
 let socket;
 const uptimeStart = Date.now();
-let currentPosition = "left"; // Position initiale
+let currentPosition = 'left'; // Position initiale
 
 // -------- Helpers --------
 const log = (...args) => console.log('[SWITCH TRACK]', ...args);
@@ -24,7 +24,7 @@ function createAuthenticatedPayload(additionalData = {}) {
     password: MODULE_PASSWORD,
     uptime: Date.now() - uptimeStart,
     position: currentPosition,
-    ...additionalData
+    ...additionalData,
   };
 }
 
@@ -43,12 +43,12 @@ function handleCommand(cmd) {
   switch (cmd) {
     case 'switch_left':
     case 'left':
-      currentPosition = "left";
+      currentPosition = 'left';
       log('🔄 Aiguillage basculé vers la GAUCHE');
       break;
     case 'switch_right':
     case 'right':
-      currentPosition = "right";
+      currentPosition = 'right';
       log('🔄 Aiguillage basculé vers la DROITE');
       break;
     default:
@@ -79,24 +79,24 @@ function connect() {
 
     // Authentification avec état initial
     const authPayload = createAuthenticatedPayload({
-      type: "Switch Track"
+      type: 'Switch Track',
     });
-    
+
     socket.emit('module_identify', authPayload);
     log(`📤 Authentification envoyée avec état initial: ${currentPosition}`);
   });
 
-  socket.on('connected', (data) => {
+  socket.on('connected', data => {
     log('✅ Module authentifié:', data?.status || 'OK');
     if (data?.initialState) {
       log(`📍 État initial confirmé: ${data.initialState.position}`);
     }
-    
+
     // Socket.io gère automatiquement les déconnexions - pas de télémétrie nécessaire
     log('🔗 Connexion établie - Socket.io surveille automatiquement');
   });
 
-  socket.on('command', (data) => {
+  socket.on('command', data => {
     if (data && data.command) {
       handleCommand(data.command);
     } else {
@@ -104,16 +104,16 @@ function connect() {
     }
   });
 
-  socket.on('disconnect', (reason) => {
+  socket.on('disconnect', reason => {
     // En réalité, l'ESP32 ne peut pas notifier sa déconnexion (coupure courant/wifi)
     // Socket.io gère automatiquement la détection de déconnexion
   });
 
-  socket.on('connect_error', (error) => {
+  socket.on('connect_error', error => {
     log('❌ Erreur de connexion:', error.message);
   });
 
-  socket.on('error', (error) => {
+  socket.on('error', error => {
     log('❌ Erreur socket:', error);
   });
 }
@@ -125,10 +125,10 @@ function main() {
   log(`🆔 Module ID: ${MODULE_ID}`);
   log(`📍 Position initiale: ${currentPosition}`);
   log(`🌐 Serveur: ${SERVER_URL}`);
-  
+
   // Connexion au serveur
   connect();
-  
+
   // Pas de simulation d'activité - l'ESP32 réel n'a pas de bouton physique
 }
 
@@ -136,11 +136,11 @@ function main() {
 function shutdown(signal) {
   // En réalité, l'ESP32 s'arrête brutalement (coupure courant)
   // Pas de log de déconnexion - simulation réaliste
-  
+
   if (socket) {
     socket.disconnect();
   }
-  
+
   process.exit(0);
 }
 
@@ -149,13 +149,13 @@ process.on('SIGINT', () => shutdown('SIGINT'));
 process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 // Gestion des erreurs non capturées
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   // ESP32 en panne - arrêt brutal sans log
   shutdown('ERROR');
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  // ESP32 en panne - arrêt brutal sans log  
+  // ESP32 en panne - arrêt brutal sans log
   shutdown('ERROR');
 });
 
