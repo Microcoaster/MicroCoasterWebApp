@@ -55,7 +55,7 @@ router.get('/info', (req, res) => {
   res.json({
     current: req.language,
     available: ['fr', 'en'],
-    default: 'fr',
+    default: 'en',
   });
 });
 
@@ -64,8 +64,8 @@ router.get('/info', (req, res) => {
  * Get all translations for current language for client-side use
  */
 router.get('/translations', (req, res) => {
-  const currentLanguage = req.language || 'fr';
-  const translations = LocaleLoader.languages.get(currentLanguage) || {};
+  const currentLanguage = req.language || 'en';
+  const translations = LocaleLoader.getAllTranslations(currentLanguage);
 
   res.json({
     language: currentLanguage,

@@ -328,7 +328,22 @@ function makeLaunchController(panel) {
   function setDirUI() {
     if (!dirImg || !dirLbl) return;
     dirImg.src = direction === 'forward' ? IMG.SW_A : IMG.SW_B;
-    dirLbl.textContent = direction === 'forward' ? t('modules.forward') : t('modules.backward');
+    
+    // Utiliser les traductions si disponibles, sinon fallback en anglais
+    if (typeof window.t === 'function' && window.MC && window.MC.translations) {
+      dirLbl.textContent = direction === 'forward' ? t('modules.forward') : t('modules.backward');
+    } else {
+      // Fallback en attendant les traductions
+      dirLbl.textContent = direction === 'forward' ? 'Forward' : 'Backward';
+      
+      // Programmer une mise à jour quand les traductions seront prêtes
+      if (!window.pendingTranslationUpdates) window.pendingTranslationUpdates = [];
+      window.pendingTranslationUpdates.push(() => {
+        if (dirLbl && typeof window.t === 'function') {
+          dirLbl.textContent = direction === 'forward' ? t('modules.forward') : t('modules.backward');
+        }
+      });
+    }
   }
   function setSpeedUI() {
     if (spVal) spVal.textContent = speed;

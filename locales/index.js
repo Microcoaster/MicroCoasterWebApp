@@ -136,6 +136,18 @@ class LocaleLoader {
   }
 
   /**
+   * Obtient toutes les traductions pour une langue donnée
+   * @param {string} lang - Code de langue
+   * @returns {Object} Toutes les traductions pour cette langue
+   */
+  getAllTranslations(lang) {
+    if (!this.isLanguageSupported(lang)) {
+      lang = this.defaultLanguage;
+    }
+    return this.languages.get(lang) || {};
+  }
+
+  /**
    * Recharge les langues (utile pour le développement)
    */
   reload() {

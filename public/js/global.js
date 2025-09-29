@@ -86,6 +86,29 @@ window.t = t;
 document.addEventListener('DOMContentLoaded', () => {
   loadTranslations().then(() => {
     console.log('Translations loaded for language:', window.MC.currentLanguage);
+    
+    // Appliquer les mises à jour de traduction en attente
+    if (window.pendingTranslationUpdates && Array.isArray(window.pendingTranslationUpdates)) {
+      window.pendingTranslationUpdates.forEach(updateFn => {
+        try {
+          updateFn();
+        } catch (error) {
+          console.warn('Error applying pending translation update:', error);
+        }
+      });
+      window.pendingTranslationUpdates = []; // Vider la liste
+    }
+    
+    // Mettre à jour tous les éléments avec des clés de traduction non résolues
+    document.querySelectorAll('[data-state]').forEach(element => {
+      if (element.textContent && element.textContent.startsWith('modules.')) {
+        const key = element.textContent;
+        const translated = window.t(key);
+        if (translated !== key) {
+          element.textContent = translated;
+        }
+      }
+    });
   });
 });
 
