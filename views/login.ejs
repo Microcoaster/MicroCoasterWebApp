@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= language %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
-  <title><%= title %></title>
+  <title><%= t('auth.login_title') %> - <%= t('common.app_name') %></title>
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/login.css">
@@ -15,7 +15,7 @@
   <div class="center">
     <div class="box">
   <img src="assets/img/microcoasters_logo_pos.svg" alt="MicroCoaster logo" class="logo">
-  <h1 style="font-weight: bold; font-style: italic;">LOGIN</h1>
+  <h1 style="font-weight: bold; font-style: italic;"><%= t('auth.login_title') %></h1>
 
       <% if (error) { %>
         <div class="error">
@@ -24,18 +24,19 @@
       <% } %>
 
       <form method="post" action="/login" autocomplete="on">
-        <input type="email" id="email" name="email" placeholder="Email address" required autocomplete="email">
-        <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password">
-  <button type="submit">Login</button>
+        <input type="email" id="email" name="email" placeholder="<%= t('auth.email_placeholder') %>" required autocomplete="email">
+        <input type="password" id="password" name="password" placeholder="<%= t('auth.password_placeholder') %>" required autocomplete="current-password">
+  <button type="submit"><%= t('auth.login_button') %></button>
       </form>
       
       <div class="action-link">
-        <span>Don't have an account?</span><a href="/register">Create one</a>
+        <span><%= t('auth.no_account') %></span><a href="/register"><%= t('auth.create_one') %></a>
       </div>
     </div>
   </div>
 
   <script src="/js/global.js"></script>
+  <script src="/js/language.js"></script>
   <script src="/js/login.js"></script>
 </body>
 </html>

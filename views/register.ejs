@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= language %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
-  <title><%= title %></title>
+  <title><%= t('auth.create_account_title') %> - <%= t('common.app_name') %></title>
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/login.css">
@@ -15,7 +15,7 @@
   <div class="center">
     <div class="box">
   <img src="assets/img/microcoasters_logo_pos.svg" alt="MicroCoaster logo" class="logo">
-  <h1 style="font-weight: bold; font-style: italic;">CREATE AN ACCOUNT</h1>
+  <h1 style="font-weight: bold; font-style: italic;"><%= t('auth.create_account_title') %></h1>
 
       <% if (error) { %>
         <div class="error">
@@ -24,22 +24,23 @@
       <% } %>
 
       <form method="post" action="/register" autocomplete="on">
-   <input type="text" id="name" name="name" placeholder="Full name" 
+   <input type="text" id="name" name="name" placeholder="<%= t('auth.full_name_placeholder') %>" 
      value="<%= locals.formData?.name || '' %>" required autocomplete="name">
-   <input type="email" id="email" name="email" placeholder="Email address" 
+   <input type="email" id="email" name="email" placeholder="<%= t('auth.email_placeholder') %>" 
      value="<%= locals.formData?.email || '' %>" required autocomplete="email">
-   <input type="password" id="password" name="password" placeholder="Password (min. 6 characters)" required autocomplete="new-password">
-   <input type="password" id="confirmPassword" name="confirmPassword" placeholder="Confirm password" required autocomplete="new-password">
-   <button type="submit">Create my account</button>
+   <input type="password" id="password" name="password" placeholder="<%= t('auth.password_min_chars') %>" required autocomplete="new-password">
+   <input type="password" id="confirmPassword" name="confirmPassword" placeholder="<%= t('auth.confirm_password_placeholder') %>" required autocomplete="new-password">
+   <button type="submit"><%= t('auth.create_account_button') %></button>
       </form>
       
       <div class="action-link">
-        <span>Already have an account?</span><a href="/login">Login</a>
+        <span><%= t('auth.already_have_account') %></span><a href="/login"><%= t('auth.login_link') %></a>
       </div>
     </div>
   </div>
 
   <script src="/js/global.js"></script>
+  <script src="/js/language.js"></script>
   <script src="/js/login.js"></script>
 </body>
 </html>

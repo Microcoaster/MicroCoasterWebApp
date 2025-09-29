@@ -40,7 +40,7 @@ class UserEvents {
   // ================================================================================
 
   userLoggedIn(userData, sessionId) {
-    Logger.activity.info(`[UserEvents] User logged in: ${userData.name} (ID: ${userData.id})`);
+    Logger.activity.debug(`[UserEvents] User logged in: ${userData.name} (ID: ${userData.id})`);
 
     const loginTime = userData.last_login ? new Date(userData.last_login) : new Date();
 

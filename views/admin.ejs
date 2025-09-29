@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= language %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
-  <title><%= title %></title>
+  <title><%= t('admin.title') %> - <%= t('common.app_name') %></title>
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/dashboard.css">
@@ -48,7 +48,7 @@
           </div>
           <div class="stat-content">
             <h3 class="stat-total-users"><%= stats.totalUsers %></h3>
-            <p>Utilisateurs</p>
+            <p><%= t('admin.users') %></p>
           </div>
         </div>
         <div class="stat-card">
@@ -60,7 +60,7 @@
           </div>
           <div class="stat-content">
             <h3 class="stat-online-users"><%= stats.onlineUsers %></h3>
-            <p>Utilisateurs en ligne</p>
+            <p><%= t('admin.online_users') %></p>
           </div>
         </div>
         <div class="stat-card">
@@ -80,7 +80,7 @@
           </div>
           <div class="stat-content">
             <h3 class="stat-total-modules"><%= stats.totalModules %></h3>
-            <p>Modules</p>
+            <p><%= t('admin.total_modules') %></p>
           </div>
         </div>
         <div class="stat-card">
@@ -92,7 +92,7 @@
           </div>
           <div class="stat-content">
             <h3 class="stat-online-modules"><%= stats.onlineModules %></h3>
-            <p>Modules en ligne</p>
+            <p><%= t('admin.online_modules') %></p>
           </div>
         </div>
       </div>
@@ -107,9 +107,9 @@
                 <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
                 <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
               </svg>
-              Utilisateurs (<%= stats.totalUsers %>)
+              <%= t('admin.users_count') %> (<%= stats.totalUsers %>)
             </h2>
-            <button class="clear-filters-btn-header" id="clearUsersFilters" style="display: none;" title="Effacer tous les filtres">
+            <button class="clear-filters-btn-header" id="clearUsersFilters" style="display: none;" title="<%= t('admin.clear_all_filters') %>">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 6h18"/>
                 <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -124,43 +124,43 @@
               <thead>
                 <tr>
                   <th class="sortable-header" data-sort="name">
-                    <span>Nom</span>
+                    <span><%= t('common.name') %></span>
                     <span class="sort-arrow" data-sort="name"></span>
                   </th>
                   <th class="sortable-header" data-sort="email">
-                    <span>Email</span>
+                    <span><%= t('common.email') %></span>
                     <span class="sort-arrow" data-sort="email"></span>
                   </th>
                   <th class="sortable-header" data-sort="is_admin">
-                    <span>Rôle</span>
+                    <span><%= t('admin.role') %></span>
                     <span class="sort-arrow" data-sort="is_admin"></span>
                   </th>
                   <th class="sortable-header" data-sort="module_count">
-                    <span>Modules</span>
+                    <span><%= t('admin.modules_count') %></span>
                     <span class="sort-arrow" data-sort="module_count"></span>
                   </th>
                   <th class="sortable-header" data-sort="last_login">
-                    <span>Dernière connexion</span>
+                    <span><%= t('common.last_login') %></span>
                     <span class="sort-arrow" data-sort="last_login"></span>
                   </th>
                   <th class="sortable-header" data-sort="created_at">
-                    <span>Inscription</span>
+                    <span><%= t('admin.registration') %></span>
                     <span class="sort-arrow" data-sort="created_at"></span>
                   </th>
                 </tr>
                 <tr class="filter-row">
-                  <td><input type="text" id="filter-user-name" name="filter-user-name" class="column-filter" data-column="name" placeholder="Filtrer nom..." aria-label="Filtrer par nom d'utilisateur" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-user-email" name="filter-user-email" class="column-filter" data-column="email" placeholder="Filtrer email..." aria-label="Filtrer par adresse email" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-name" name="filter-user-name" class="column-filter" data-column="name" placeholder="<%= t('admin.filter_name') %>" aria-label="Filtrer par nom d'utilisateur" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-email" name="filter-user-email" class="column-filter" data-column="email" placeholder="<%= t('admin.filter_email') %>" aria-label="Filtrer par adresse email" autocomplete="off" /></td>
                   <td>
                     <select id="filter-user-role" name="filter-user-role" class="column-filter" data-column="role" aria-label="Filtrer par rôle utilisateur">
-                      <option value="">Tous les rôles</option>
-                      <option value="Admin">Admin</option>
-                      <option value="Utilisateur">Utilisateur</option>
+                      <option value=""><%= t('admin.all_roles') %></option>
+                      <option value="Admin"><%= t('admin.admin_role') %></option>
+                      <option value="Utilisateur"><%= t('admin.user_role') %></option>
                     </select>
                   </td>
-                  <td><input type="number" id="filter-user-modules" name="filter-user-modules" class="column-filter" data-column="module_count" placeholder="Nb modules..." aria-label="Filtrer par nombre de modules" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-user-lastlogin" name="filter-user-lastlogin" class="column-filter" data-column="last_login" placeholder="Filtrer date..." aria-label="Filtrer par date de dernière connexion" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-user-created" name="filter-user-created" class="column-filter" data-column="created_at" placeholder="Filtrer date..." aria-label="Filtrer par date de création" autocomplete="off" /></td>
+                  <td><input type="number" id="filter-user-modules" name="filter-user-modules" class="column-filter" data-column="module_count" placeholder="<%= t('admin.filter_modules_count') %>" aria-label="Filtrer par nombre de modules" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-lastlogin" name="filter-user-lastlogin" class="column-filter" data-column="last_login" placeholder="<%= t('admin.filter_last_login') %>" aria-label="Filtrer par date de dernière connexion" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-user-created" name="filter-user-created" class="column-filter" data-column="created_at" placeholder="<%= t('admin.filter_created_date') %>" aria-label="Filtrer par date de création" autocomplete="off" /></td>
                 </tr>
               </thead>
               <tbody>
@@ -173,8 +173,8 @@
                         <path d="m21 21-4.35-4.35"/>
                         <circle cx="11" cy="11" r="1"/>
                       </svg>
-                      <h4>Aucun utilisateur trouvé</h4>
-                      <p>Essayez de modifier vos filtres de recherche</p>
+                      <h4><%= t('admin.no_users_found') %></h4>
+                      <p><%= t('common.try_modify_filters') %></p>
                     </div>
                   </td>
                 </tr>
@@ -185,12 +185,12 @@
                   <td class="user-email"><%= user.email %></td>
                   <td>
                     <span class="<%= user.is_admin ? 'badge badge-admin' : 'badge badge-user' %> user-role">
-                      <%= user.is_admin ? 'ADMINISTRATEUR' : 'UTILISATEUR' %>
+                      <%= user.is_admin ? t('admin.administrator') : t('admin.user') %>
                     </span>
                   </td>
                   <td><%= user.module_count %></td>
-                  <td><%= user.last_login ? new Date(user.last_login).toLocaleString('fr-FR') : 'Jamais' %></td>
-                  <td><%= new Date(user.created_at).toLocaleDateString('fr-FR') %></td>
+                  <td><%= user.last_login ? new Date(user.last_login).toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US') : t('common.never') %></td>
+                  <td><%= new Date(user.created_at).toLocaleDateString(language === 'fr' ? 'fr-FR' : 'en-US') %></td>
                 </tr>
                 <% }) %>
                 <% } %>
@@ -200,32 +200,32 @@
           
           <div class="pagination-container">
             <div class="items-per-page">
-              <label for="usersItemsPerPage">Afficher :</label>
+              <label for="usersItemsPerPage"><%= t('common.show') %> :</label>
               <select id="usersItemsPerPage" data-table="users" onchange="window.changeItemsPerPage(this)">
                 <option value="10">10</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
               </select>
-              <span>éléments</span>
+              <span><%= t('common.items') %></span>
             </div>
             <div class="pagination-controls">
               <button 
                 class="pagination-prev" 
                 data-table="users" 
                 onclick="window.navigatePage('users', 'prev', event)">
-                ← Précédent
+                ← <%= t('common.previous') %>
               </button>
               
               <span class="pagination-info" data-table="users">
-                Chargement...
+                <%= t('common.loading') %>
               </span>
               
               <button 
                 class="pagination-next" 
                 data-table="users" 
                 onclick="window.navigatePage('users', 'next', event)">
-                Suivant →
+                <%= t('common.next') %> →
               </button>
             </div>
           </div>
@@ -246,9 +246,9 @@
                 <line x1="1" y1="9" x2="4" y2="9"/>
                 <line x1="1" y1="14" x2="4" y2="14"/>
               </svg>
-              Modules (<%= stats.totalModules %>)
+              <%= t('admin.total_modules') %> (<%= stats.totalModules %>)
             </h2>
-            <button class="clear-filters-btn-header" id="clearModulesFilters" style="display: none;" title="Effacer tous les filtres">
+            <button class="clear-filters-btn-header" id="clearModulesFilters" style="display: none;" title="<%= t('admin.clear_all_filters') %>">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M3 6h18"/>
                 <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/>
@@ -263,43 +263,43 @@
               <thead>
                 <tr>
                   <th class="sortable-header" data-sort="module_id">
-                    <span>ID Module</span>
+                    <span><%= t('modules.module_id') %></span>
                     <span class="sort-arrow" data-sort="module_id"></span>
                   </th>
                   <th class="sortable-header" data-sort="name">
-                    <span>Nom</span>
+                    <span><%= t('common.name') %></span>
                     <span class="sort-arrow" data-sort="name"></span>
                   </th>
                   <th class="sortable-header" data-sort="type">
-                    <span>Type</span>
+                    <span><%= t('common.type') %></span>
                     <span class="sort-arrow" data-sort="type"></span>
                   </th>
                   <th class="sortable-header" data-sort="user_name">
-                    <span>Propriétaire</span>
+                    <span><%= t('common.owner') %></span>
                     <span class="sort-arrow" data-sort="user_name"></span>
                   </th>
                   <th class="sortable-header" data-sort="status">
-                    <span>Statut</span>
+                    <span><%= t('common.status') %></span>
                     <span class="sort-arrow" data-sort="status"></span>
                   </th>
                   <th class="sortable-header" data-sort="last_seen">
-                    <span>Dernière activité</span>
+                    <span><%= t('admin.last_activity') %></span>
                     <span class="sort-arrow" data-sort="last_seen"></span>
                   </th>
                 </tr>
                 <tr class="filter-row">
-                  <td><input type="text" id="filter-module-id" name="filter-module-id" class="column-filter" data-column="module_id" placeholder="Filtrer ID..." aria-label="Filtrer par ID de module" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-module-name" name="filter-module-name" class="column-filter" data-column="name" placeholder="Filtrer nom..." aria-label="Filtrer par nom de module" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-module-type" name="filter-module-type" class="column-filter" data-column="type" placeholder="Filtrer type..." aria-label="Filtrer par type de module" autocomplete="off" /></td>
-                  <td><input type="text" id="filter-module-owner" name="filter-module-owner" class="column-filter" data-column="user_name" placeholder="Filtrer propriétaire..." aria-label="Filtrer par propriétaire du module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-id" name="filter-module-id" class="column-filter" data-column="module_id" placeholder="<%= t('admin.filter_module_id') %>" aria-label="Filtrer par ID de module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-name" name="filter-module-name" class="column-filter" data-column="name" placeholder="<%= t('admin.filter_module_name') %>" aria-label="Filtrer par nom de module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-type" name="filter-module-type" class="column-filter" data-column="type" placeholder="<%= t('admin.filter_module_type') %>" aria-label="Filtrer par type de module" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-owner" name="filter-module-owner" class="column-filter" data-column="user_name" placeholder="<%= t('admin.filter_module_owner') %>" aria-label="Filtrer par propriétaire du module" autocomplete="off" /></td>
                   <td>
                     <select id="filter-module-status" name="filter-module-status" class="column-filter" data-column="status" aria-label="Filtrer par statut de module">
-                      <option value="">Tous les statuts</option>
-                      <option value="En ligne">En ligne</option>
-                      <option value="Hors ligne">Hors ligne</option>
+                      <option value=""><%= t('admin.all_statuses') %></option>
+                      <option value="En ligne"><%= t('common.online') %></option>
+                      <option value="Hors ligne"><%= t('common.offline') %></option>
                     </select>
                   </td>
-                  <td><input type="text" id="filter-module-last-seen" name="filter-module-last-seen" class="column-filter" data-column="last_seen" placeholder="Filtrer date..." aria-label="Filtrer par dernière activité" autocomplete="off" /></td>
+                  <td><input type="text" id="filter-module-last-seen" name="filter-module-last-seen" class="column-filter" data-column="last_seen" placeholder="<%= t('admin.filter_last_seen') %>" aria-label="Filtrer par dernière activité" autocomplete="off" /></td>
                 </tr>
               </thead>
               <tbody>
@@ -312,8 +312,8 @@
                         <path d="m21 21-4.35-4.35"/>
                         <rect x="9" y="9" width="4" height="4" rx="1"/>
                       </svg>
-                      <h4>Aucun module trouvé</h4>
-                      <p>Essayez de modifier vos filtres de recherche</p>
+                      <h4><%= t('admin.no_modules_found') %></h4>
+                      <p><%= t('common.try_modify_filters') %></p>
                     </div>
                   </td>
                 </tr>
@@ -321,20 +321,20 @@
                 <% modules.forEach(module => { %>
                 <tr data-module-id="<%= module.module_id %>">
                   <td><code><%= module.module_id %></code></td>
-                  <td><%= module.name || 'Sans nom' %></td>
+                  <td><%= module.name || t('admin.without_name') %></td>
                   <td>
                     <span data-module-type="<%= module.type || 'Unknown' %>" class="type-badge-container">
-                      <%= module.type || 'Inconnu' %>
+                      <%= module.type || t('admin.unknown') %>
                     </span>
                   </td>
                   <td><%= module.user_name %></td>
                   <td>
                     <span class="status <%= module.status === 'online' ? 'status-online' : 'status-offline' %>">
-                      <%= module.status === 'online' ? 'En ligne' : 'Hors ligne' %>
+                      <%= module.status === 'online' ? t('common.online') : t('common.offline') %>
                     </span>
                   </td>
                   <td>
-                    <%= module.lastSeen ? new Date(module.lastSeen).toLocaleString('fr-FR') : 'Jamais' %>
+                    <%= module.lastSeen ? new Date(module.lastSeen).toLocaleString(language === 'fr' ? 'fr-FR' : 'en-US') : t('common.never') %>
                   </td>
                 </tr>
                 <% }) %>
@@ -345,32 +345,32 @@
           
           <div class="pagination-container">
             <div class="items-per-page">
-              <label for="modulesItemsPerPage">Afficher :</label>
+              <label for="modulesItemsPerPage"><%= t('common.show') %> :</label>
               <select id="modulesItemsPerPage" data-table="modules" onchange="window.changeItemsPerPage(this)">
                 <option value="10">10</option>
                 <option value="25">25</option>
                 <option value="50">50</option>
                 <option value="100">100</option>
               </select>
-              <span>éléments</span>
+              <span><%= t('common.items') %></span>
             </div>
             <div class="pagination-controls">
               <button 
                 class="pagination-prev" 
                 data-table="modules" 
                 onclick="window.navigatePage('modules', 'prev', event)">
-                ← Précédent
+                ← <%= t('common.previous') %>
               </button>
               
               <span class="pagination-info" data-table="modules">
-                Chargement...
+                <%= t('common.loading') %>
               </span>
               
               <button 
                 class="pagination-next" 
                 data-table="modules" 
                 onclick="window.navigatePage('modules', 'next', event)">
-                Suivant →
+                <%= t('common.next') %> →
               </button>
             </div>
           </div>
@@ -386,6 +386,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/global.js"></script>
+  <script src="/js/language.js"></script>
   <script>
     window.MC = {
       userId: '<%= user.id %>',

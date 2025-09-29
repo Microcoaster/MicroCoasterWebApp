@@ -328,7 +328,7 @@ function makeLaunchController(panel) {
   function setDirUI() {
     if (!dirImg || !dirLbl) return;
     dirImg.src = direction === 'forward' ? IMG.SW_A : IMG.SW_B;
-    dirLbl.textContent = direction === 'forward' ? 'Forward' : 'Backward';
+    dirLbl.textContent = direction === 'forward' ? t('modules.forward') : t('modules.backward');
   }
   function setSpeedUI() {
     if (spVal) spVal.textContent = speed;

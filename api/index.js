@@ -44,13 +44,13 @@ class RealTimeAPI {
       return;
     }
 
-    Logger.app.info('Initializing real-time events API');
+    Logger.app.info('🚀 Initializing real-time events API');
 
     // Les connexions sont gérées par websocket/handlers.js
     // qui redirige vers cette API via client:authenticate quand nécessaire
 
     this.initialized = true;
-    Logger.app.info('Real-time events API initialized successfully');
+    Logger.app.info('✅ Real-time events API initialized successfully');
   }
 
   // ========================================================================

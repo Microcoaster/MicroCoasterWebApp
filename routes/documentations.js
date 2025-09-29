@@ -15,14 +15,14 @@ router.get('/', requireAuth, async (req, res) => {
     }
 
     res.render('documentations', {
-      title: 'Documentations - MicroCoaster',
+      title: req.t('common.docs') + ' - ' + req.t('common.app_name'),
       currentPage: 'documentations',
       user: user, // Passer l'objet utilisateur complet avec isAdmin
     });
   } catch (error) {
     console.error('Erreur lors du chargement des documentations:', error);
     res.status(500).render('error', {
-      title: 'Erreur - MicroCoaster',
+      title: req.t('common.error') + ' - ' + req.t('common.app_name'),
       message: 'Une erreur est survenue lors du chargement des documentations',
       error: process.env.NODE_ENV === 'development' ? error : {},
     });

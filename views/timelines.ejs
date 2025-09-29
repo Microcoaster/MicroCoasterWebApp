@@ -50,19 +50,19 @@
       <div class="timeline-header">
         <div class="timeline-title">
           <i class="bi bi-play-circle"></i>
-          Timeline Sequencer
+          <%= t('timelines.timeline_sequencer') %>
         </div>
         
         <div class="timeline-controls">
           <button class="control-btn" id="clearBtn">
-            <i class="bi bi-trash"></i> Clear
+            <i class="bi bi-trash"></i> <%= t('timelines.clear') %>
           </button>
           <button class="control-btn" id="saveBtn">
-            <i class="bi bi-save"></i> Save
+            <i class="bi bi-save"></i> <%= t('common.save') %>
           </button>
           <button class="play-btn" id="playBtn">
             <i class="bi bi-play-fill" id="playIcon"></i>
-            <span id="playText">Play Timeline</span>
+            <span id="playText"><%= t('timelines.play_timeline') %></span>
           </button>
         </div>
       </div>
@@ -74,9 +74,9 @@
           
           <div class="playback-indicator" id="playbackIndicator"></div>
           <div class="timeline-instructions" id="instructions">
-            <h4>🎬 Créez votre séquence</h4>
-            <p>Glissez vos modules ici pour créer une timeline</p>
-            <p>Cliquez sur un module pour le configurer</p>
+            <h4><%= t('timelines.create_sequence') %></h4>
+            <p><%= t('timelines.drag_modules_here') %></p>
+            <p><%= t('timelines.click_module_configure') %></p>
           </div>
         </div>
       </div>
@@ -86,23 +86,23 @@
   <div class="config-modal" id="configModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title" id="modalTitle">Configuration Module</h3>
+        <h3 class="modal-title" id="modalTitle"><%= t('timelines.module_configuration') %></h3>
         <button class="close-btn" id="closeConfigBtn">&times;</button>
       </div>
       
       <form id="configForm">
         <div class="form-group">
-          <label class="form-label" for="moduleName">Nom du module</label>
+          <label class="form-label" for="moduleName"><%= t('timelines.module_name') %></label>
           <input type="text" class="form-input" id="moduleName" name="moduleName" readonly autocomplete="off">
         </div>
         
         <div class="form-group">
-          <label class="form-label" for="moduleDuration">Durée d'exécution (secondes)</label>
+          <label class="form-label" for="moduleDuration"><%= t('timelines.execution_duration') %></label>
           <input type="number" class="form-input" id="moduleDuration" name="moduleDuration" value="2" min="0.1" step="0.1" autocomplete="off">
         </div>
         
         <div class="form-group">
-          <label class="form-label" for="moduleDelay">Délai avant le prochain (secondes)</label>
+          <label class="form-label" for="moduleDelay"><%= t('timelines.delay_before_next') %></label>
           <input type="number" class="form-input" id="moduleDelay" name="moduleDelay" value="1" min="0" step="0.1" autocomplete="off">
         </div>
         
@@ -110,8 +110,8 @@
         </div>
         
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="cancelConfigBtn">Annuler</button>
-          <button type="button" class="btn btn-primary" id="saveConfigBtn">Sauvegarder</button>
+          <button type="button" class="btn btn-secondary" id="cancelConfigBtn"><%= t('common.cancel') %></button>
+          <button type="button" class="btn btn-primary" id="saveConfigBtn"><%= t('common.save') %></button>
         </div>
       </form>
     </div>
@@ -119,6 +119,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/global.js"></script>
+  <script src="/js/language.js"></script>
   <script src="/js/timelines.js"></script>
 </body>
 </html>

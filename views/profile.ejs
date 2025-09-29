@@ -48,7 +48,7 @@
           </h2>
           <form method="post" action="/profile" class="profile-form">
             <div class="form-group">
-              <label for="name">Nom complet</label>
+              <label for="name"><%= t('auth.full_name') %></label>
               <input type="text" id="name" name="name" value="<%= user.name %>" required autocomplete="name">
             </div>
             <div class="form-group">
@@ -56,7 +56,7 @@
               <input type="email" id="email" name="email" value="<%= user.email %>" required autocomplete="email">
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary">Sauvegarder</button>
+              <button type="submit" class="btn btn-primary"><%= t('auth.save_profile') %></button>
             </div>
           </form>
         </div>
@@ -68,24 +68,24 @@
               <circle cx="12" cy="16" r="1"/>
               <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
             </svg>
-            Changer le mot de passe
+            <%= t('auth.change_password') %>
           </h2>
           <form method="post" action="/change-password" class="profile-form">
             <div class="form-group">
-              <label for="currentPassword">Mot de passe actuel</label>
+              <label for="currentPassword"><%= t('auth.current_password') %></label>
               <input type="password" id="currentPassword" name="currentPassword" required autocomplete="current-password">
             </div>
             <div class="form-group">
-              <label for="newPassword">Nouveau mot de passe</label>
+              <label for="newPassword"><%= t('auth.new_password') %></label>
               <input type="password" id="newPassword" name="newPassword" 
-                     placeholder="Min. 6 caractères" required autocomplete="new-password">
+                     placeholder="<%= t('auth.password_min_6_chars') %>" required autocomplete="new-password">
             </div>
             <div class="form-group">
-              <label for="confirmPassword">Confirmer le nouveau mot de passe</label>
+              <label for="confirmPassword"><%= t('auth.confirm_new_password') %></label>
               <input type="password" id="confirmPassword" name="confirmPassword" required autocomplete="new-password">
             </div>
             <div class="form-actions">
-              <button type="submit" class="btn btn-primary">Changer le mot de passe</button>
+              <button type="submit" class="btn btn-primary"><%= t('auth.change_password') %></button>
             </div>
           </form>
         </div>
@@ -101,7 +101,7 @@
           </h2>
           <dl class="info-grid">
             <div class="info-item">
-              <span class="info-label">Statut</span>
+              <span class="info-label"><%= t('auth.status') %></span>
               <span class="info-value <%= user.is_admin ? 'status-admin' : 'status-user' %>">
                 <%= user.is_admin ? 'Administrateur' : 'Utilisateur' %>
               </span>
@@ -122,5 +122,6 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/global.js"></script>
+  <script src="/js/language.js"></script>
 </body>
 </html>

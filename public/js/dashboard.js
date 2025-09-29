@@ -179,22 +179,22 @@ function updateModuleStatus(moduleId, isOnline) {
 
   moduleStatus.set(moduleId, isOnline);
 
-  if (previousStatus === undefined) {
-    if (isOnline) {
+  // Seulement mettre à jour si c'est un changement de statut (pas une nouvelle détection)
+  // Si previousStatus === undefined, le module est déjà compté dans les stats initiales du DOM
+  if (previousStatus !== undefined) {
+    if (previousStatus === false && isOnline === true) {
+      // Module passe d'offline à online
       onlineModules++;
-    } else {
+      if (offlineModules > 0) offlineModules--;
+    } else if (previousStatus === true && isOnline === false) {
+      // Module passe d'online à offline
+      if (onlineModules > 0) onlineModules--;
       offlineModules++;
     }
-  } else if (previousStatus === false && isOnline === true) {
-    onlineModules++;
-    if (offlineModules > 0) offlineModules--;
-  } else if (previousStatus === true && isOnline === false) {
-    if (onlineModules > 0) onlineModules--;
-    offlineModules++;
-  }
 
-  animateCounterUpdate(onlineElement, onlineModules);
-  animateCounterUpdate(offlineElement, offlineModules);
+    animateCounterUpdate(onlineElement, onlineModules);
+    animateCounterUpdate(offlineElement, offlineModules);
+  }
 }
 
 // ================================================================================

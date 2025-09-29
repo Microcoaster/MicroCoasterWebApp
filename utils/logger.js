@@ -14,14 +14,33 @@ const fileFormat = winston.format.combine(
   winston.format.json()
 );
 
-// Format console épuré
+// Format console épuré - timestamp + emoji + message
 const consoleFormat = winston.format.combine(
-  winston.format.colorize(),
   winston.format.timestamp({ format: 'HH:mm:ss' }),
   winston.format.printf(({ timestamp, level, message }) => {
     const cleanMessage =
       typeof message === 'string' ? message.replace(/\{.*?\}/g, '').trim() : String(message);
-    return `${timestamp} ${level}: ${cleanMessage}`;
+    
+    // Emoji selon le niveau de log
+    let emoji = '';
+    switch (level) {
+      case 'error':
+        emoji = '❌';
+        break;
+      case 'warn':
+        emoji = '⚠️';
+        break;
+      case 'info':
+        emoji = 'ℹ️';
+        break;
+      case 'debug':
+        emoji = '🔍';
+        break;
+      default:
+        emoji = 'ℹ️';
+    }
+    
+    return ` ${emoji}  ${timestamp} : ${cleanMessage}`;
   })
 );
 
@@ -34,8 +53,8 @@ const appLogger = winston.createLogger({
   level: 'debug',
   transports: [
     new winston.transports.Console({
-      level: 'warn', // Seulement erreurs/warns en console
-      format: consoleFormat,
+      level: 'info', // Logs d'info importants en console
+      format: consoleFormat, // Format clean (juste le message)
     }),
     new winston.transports.File({
       filename: 'logs/app.log',

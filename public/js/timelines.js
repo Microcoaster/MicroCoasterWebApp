@@ -366,7 +366,7 @@ class TimelineSequencer {
 
   startPlayback() {
     if (this.elements.length === 0) {
-      alert('Aucun module dans la timeline !');
+      alert(t('timelines.no_modules_alert'));
       return;
     }
 
@@ -375,7 +375,7 @@ class TimelineSequencer {
 
     document.getElementById('playBtn').classList.add('playing');
     document.getElementById('playIcon').className = 'bi bi-stop-fill';
-    document.getElementById('playText').textContent = 'Stop Timeline';
+        document.getElementById('playText').textContent = t('timelines.stop_timeline');
 
     this.playbackIndicator.classList.add('active');
 
@@ -401,7 +401,7 @@ class TimelineSequencer {
 
     document.getElementById('playBtn').classList.remove('playing');
     document.getElementById('playIcon').className = 'bi bi-play-fill';
-    document.getElementById('playText').textContent = 'Play Timeline';
+    document.getElementById('playText').textContent = t('timelines.play_timeline');
 
     this.playbackIndicator.classList.remove('active');
     this.currentTime = 0;
@@ -424,7 +424,7 @@ class TimelineSequencer {
   }
 
   clear() {
-    if (confirm('Effacer toute la timeline ?')) {
+    if (confirm(t('timelines.clear_timeline_confirm'))) {
       this.elements.forEach(e => e.element.remove());
       this.elements = [];
       this.stopPlayback();
@@ -449,7 +449,7 @@ class TimelineSequencer {
     };
 
     console.log('Timeline sauvegardée:', timelineData);
-    alert('Timeline sauvegardée avec succès !');
+    alert(t('timelines.timeline_saved'));
 
     // Ici on pourrait sauvegarder en base
   }

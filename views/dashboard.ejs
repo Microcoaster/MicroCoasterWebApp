@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<%= language %>">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
-  <title><%= title %></title>
+  <title><%= t('dashboard.title') %> - <%= t('common.app_name') %></title>
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/modules.css">
@@ -24,7 +24,7 @@
               <div class="dashboard-grid">
                 
                 <div class="dashboard-card welcome-card">
-                  <h2>Welcome back, <%= user.name || 'User' %>!</h2>
+                  <h2><%= t('dashboard.welcome') %>, <%= user.name || 'User' %>!</h2>
                   <p>Manage your MicroCoaster modules and monitor your theme park systems.</p>
                   
                   <div class="quick-actions">
@@ -133,6 +133,7 @@
 
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/global.js"></script>
+  <script src="/js/language.js"></script>
   <script src="/js/dashboard.js"></script>
 
 </body>

@@ -53,7 +53,6 @@ router.get('/', requireAuth, async (req, res) => {
 
     // Rendu de la page
     res.render('modules', {
-      title: 'My Modules – MicroCoaster',
       currentPage: 'modules',
       modules,
       user: user, // Passer l'objet utilisateur complet avec isAdmin
@@ -62,7 +61,6 @@ router.get('/', requireAuth, async (req, res) => {
   } catch (error) {
     Logger.app.error('Error loading modules page:', error);
     res.status(500).render('modules', {
-      title: 'My Modules – MicroCoaster',
       modules: [],
       user: {
         id: req.session.user_id,

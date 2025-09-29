@@ -23,9 +23,71 @@
 // ================================================================================
 
 window.MC = window.MC || {};
+window.MC.translations = window.MC.translations || {};
 
 const IMG_BASE = '/assets/img/';
 const urlImg = name => IMG_BASE + name;
+
+// ================================================================================
+// CLIENT-SIDE TRANSLATION SYSTEM
+// ================================================================================
+
+/**
+ * Load translations from server
+ */
+async function loadTranslations() {
+  try {
+    const response = await fetch('/api/language/translations');
+    const data = await response.json();
+    window.MC.translations = data.translations;
+    window.MC.currentLanguage = data.language;
+    return data.translations;
+  } catch (error) {
+    console.warn('Failed to load translations:', error);
+    return {};
+  }
+}
+
+/**
+ * Get translated text by key path (e.g., 'common.save')
+ * @param {string} key - The translation key path
+ * @param {object} params - Parameters for interpolation
+ * @returns {string} The translated text or the key if not found
+ */
+function t(key, params = {}) {
+  const keys = key.split('.');
+  let value = window.MC.translations;
+  
+  for (const k of keys) {
+    if (value && typeof value === 'object' && k in value) {
+      value = value[k];
+    } else {
+      return key; // Return key if not found
+    }
+  }
+  
+  if (typeof value !== 'string') {
+    return key;
+  }
+  
+  // Simple interpolation for parameters like {{count}}
+  let result = value;
+  for (const [param, replacement] of Object.entries(params)) {
+    result = result.replace(new RegExp(`{{${param}}}`, 'g'), replacement);
+  }
+  
+  return result;
+}
+
+// Make translation function globally available
+window.t = t;
+
+// Auto-load translations when the page loads
+document.addEventListener('DOMContentLoaded', () => {
+  loadTranslations().then(() => {
+    console.log('Translations loaded for language:', window.MC.currentLanguage);
+  });
+});
 
 function preload(paths) {
   for (const s of paths) {

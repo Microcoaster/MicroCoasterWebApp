@@ -20,10 +20,14 @@ const express = require('express');
 const { createServer } = require('http');
 const { Server } = require('socket.io');
 const session = require('express-session');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const cors = require('cors');
 
-const Logger = require('./utils/logger');
+const AppLogger = require('./utils/logger');
+
+// TEMPORARY FIX: Expose Logger globally to prevent Express error
+global.Logger = AppLogger;
 const databaseManager = require('./bdd/DatabaseManager');
 const RealTimeAPI = require('./api');
 const websocketHandler = require('./websocket/handlers');
@@ -34,6 +38,10 @@ const moduleRoutes = require('./routes/modules');
 const dashboardRoutes = require('./routes/dashboard');
 const timelinesRoutes = require('./routes/timelines');
 const documentationsRoutes = require('./routes/documentations');
+const languageRoutes = require('./routes/language');
+
+// Language middleware
+const { languageMiddleware } = require('./middleware/language');
 
 // ============================================================================
 // APPLICATION SETUP
@@ -72,6 +80,7 @@ app.use((req, res, next) => {
 });
 
 app.use(cors());
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -86,6 +95,10 @@ const sessionMiddleware = session({
 });
 
 app.use(sessionMiddleware);
+
+// Language middleware - must be after session for cookie access
+app.use(languageMiddleware);
+
 io.use((socket, next) => {
   sessionMiddleware(socket.request, socket.request.res || {}, next);
 });
@@ -105,6 +118,7 @@ app.use('/dashboard', dashboardRoutes);
 app.use('/modules', moduleRoutes);
 app.use('/timelines', timelinesRoutes);
 app.use('/documentations', documentationsRoutes);
+app.use('/api/language', languageRoutes);
 
 app.use((req, res) => {
   res.status(404).send('Page not found');
@@ -116,6 +130,24 @@ app.use((req, res) => {
 
 io.app = app;
 websocketHandler(io);
+
+// ============================================================================
+// ERROR HANDLING
+// ============================================================================
+
+// Fixed: The error was caused by LocaleLoader constructor issue in routes/language.js
+
+// Catch unhandled errors
+process.on('uncaughtException', (error) => {
+  console.error('❌ Uncaught Exception:', error.message);
+  console.error('Stack:', error.stack);
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  AppLogger.app.error('❌ Unhandled Rejection at:', promise, 'reason:', reason);
+  process.exit(1);
+});
 
 // ============================================================================
 // SERVER INITIALIZATION
@@ -135,18 +167,18 @@ async function startServer() {
     realTimeAPI.initialize();
     app.locals.realTimeAPI = realTimeAPI;
 
-    Logger.app.info('🔄 Real-time Events API initialized');
+    AppLogger.app.info('🔄 Real-time Events API initialized');
 
     databaseManager.startModuleStatusCleanup(1, 5);
 
     const PORT = process.env.PORT || 3000;
     server.listen(PORT, () => {
-      Logger.app.info(`🚀 MicroCoaster Server running on port ${PORT}`);
-      Logger.app.info(`📱 Web interface: http://localhost:${PORT}`);
-      Logger.app.info(`🔌 WebSocket: ws://localhost:${PORT}`);
+      AppLogger.app.info(`🚀 MicroCoaster Server running on port ${PORT}`);
+      AppLogger.app.info(`📱 Web interface: http://localhost:${PORT}`);
+      AppLogger.app.info(`🔌 WebSocket: ws://localhost:${PORT}`);
     });
   } catch (error) {
-    Logger.app.error('❌ Failed to start server:', error);
+    AppLogger.app.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }

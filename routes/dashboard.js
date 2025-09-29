@@ -41,7 +41,7 @@ router.get('/', async (req, res) => {
     const user = await databaseManager.users.findById(req.session.user_id);
 
     res.render('dashboard', {
-      title: 'Dashboard - MicroCoaster',
+      title: req.t('dashboard.title'),
       currentPage: 'dashboard',
       user: user,
       stats: stats,
@@ -49,7 +49,7 @@ router.get('/', async (req, res) => {
   } catch (error) {
     Logger.app.error('Erreur lors du chargement du dashboard:', error);
     res.status(500).render('error', {
-      title: 'Erreur - MicroCoaster',
+      title: req.t('common.error') + ' - ' + req.t('common.app_name'),
       message: 'Une erreur est survenue lors du chargement du dashboard',
       error: process.env.NODE_ENV === 'development' ? error : {},
     });

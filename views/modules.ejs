@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="fr">
+<html lang="<%= language %>">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
-  <title><%= title %></title>
+  <title><%= t('modules.title') %> - <%= t('common.app_name') %></title>
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/modules.css">
@@ -21,15 +21,15 @@
             <div class="row">
               <div class="col-12">
                 <header class="page-header">
-                  <h1 class="page-title">My Modules</h1>
+                  <h1 class="page-title"><%= t('modules.title') %></h1>
                   <div class="page-actions">
                     <div class="searchbar">
                       <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <circle cx="11" cy="11" r="8"/>
                         <path d="m21 21-4.35-4.35"/>
                       </svg>
-                      <input id="moduleSearch" name="moduleSearch" type="text" placeholder="Search modules…" autocomplete="off">
-                      <button type="button" class="search-clear" aria-label="Clear">
+                      <input id="moduleSearch" name="moduleSearch" type="text" placeholder="<%= t('modules.search_placeholder') %>" autocomplete="off">
+                      <button type="button" class="search-clear" aria-label="<%= t('modules.clear_search') %>">
                         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                           <path d="M18 6L6 18"/>
                           <path d="M6 6l12 12"/>
@@ -39,9 +39,9 @@
 
                     <label class="toggle">
                       <input type="checkbox" id="filterOnlineOnly" name="filterOnlineOnly">
-                      <span>Online only</span>
+                      <span><%= t('modules.online_only') %></span>
                     </label>
-                    <button id="openModal" class="btn">+ Add module</button>
+                    <button id="openModal" class="btn"><%= t('modules.add_module_button') %></button>
                   </div>
                 </header>
               </div>
@@ -57,8 +57,8 @@
                 <circle cx="12" cy="17" r="1.6" fill="#ef4444"/>
               </svg>
               <div class="srv-copy">
-                <h3>Server temporarily unavailable</h3>
-                <p>We can't reach the control server. Maintenance may be in progress. We'll keep trying to reconnect.</p>
+                <h3><%= t('modules.server_unavailable') %></h3>
+                <p><%= t('modules.server_unavailable_desc') %></p>
               </div>
             </div>
           </div>
@@ -71,17 +71,17 @@
 
           <div id="toasts" class="toasts" aria-live="polite" aria-atomic="true"></div>
           <div id="emptyState" class="empty-state" hidden>
-            <div>
-              <h3>No online modules available</h3>
-              <p>The <strong>Online only</strong> filter is enabled, and no modules are currently connected.</p>
+            <div>  
+              <h3><%= t('modules.no_online_modules') %></h3>
+              <p><%- t('modules.online_filter_enabled') %></p>
             </div>
           </div>
 
           <% if (modules.length === 0) { %>
             <div class="empty-state">
               <div>
-                <h3>No modules yet</h3>
-                <p>Add your first module to get started.</p>
+                <h3><%= t('modules.no_modules_yet') %></h3>
+                <p><%= t('modules.add_first_module') %></p>
               </div>
             </div>
           <% } %>
@@ -101,9 +101,9 @@
               <button class="kill" type="button" aria-label="Delete this module"></button>
               <div class="h1">
                 <%= moduleName %>
-                <span class="state offline" data-state>offline</span>
-                <span class="alias alias--type" title="Type de module"><%= moduleType %></span>
-                <span class="midchip" role="button" title="Cliquer pour copier l'ID">
+                <span class="state offline" data-state><%= t('modules.offline_status') %></span>
+                <span class="alias alias--type" title="<%= t('modules.module_type_tooltip') %>"><%= moduleType %></span>
+                <span class="midchip" role="button" title="<%= t('modules.click_to_copy_id') %>">
                   <span class="hash">#</span>
                   <span class="mid" data-mid-text><%= moduleId || '—' %></span>
                 </span>
@@ -112,127 +112,127 @@
               <div class="tiles-grid">
                 <% if (moduleType === 'Station') { %>
                   <div class="tile">
-                    <div class="label">E-Stop</div>
+                    <div class="label"><%= t('modules.estop') %></div>
                     <div class="face">
                       <img data-role="st_estop" class="clickable" src="/assets/img/emergency_button.png" alt="E-STOP">
                     </div>
                   </div>
                   <div class="tile">
-                    <div class="label">Next Section Free</div>
+                    <div class="label"><%= t('modules.next_section_free') %></div>
                     <div class="face"><img data-role="st_nsf" src="/assets/img/led_off.png" alt="NSF"></div>
                   </div>
                   <div class="tile">
-                    <div class="label">Dispatch</div>
+                    <div class="label"><%= t('modules.dispatch') %></div>
                     <div class="face"><img data-role="st_dispatch" class="clickable" src="/assets/img/button_green_off.png" alt="Dispatch"></div>
                   </div>
                   <div class="tile">
-                    <div class="label">Gates Open/Closed</div>
+                    <div class="label"><%= t('modules.gates_open_closed') %></div>
                     <div class="face"><img data-role="st_gates" class="clickable" src="/assets/img/switch_0.png" alt="Gates"></div>
                   </div>
                   <div class="tile">
-                    <div class="label">Harness Unlock/Lock</div>
+                    <div class="label"><%= t('modules.harness_unlock_lock') %></div>
                     <div class="face"><img data-role="st_harness" class="clickable" src="/assets/img/switch_0.png" alt="Harness"></div>
                   </div>
 
                 <% } else if (moduleType === 'Switch Track') { %>
                   <div class="tile">
-                    <div class="label">Transfer Mode</div>
+                    <div class="label"><%= t('modules.transfer_mode') %></div>
                     <div class="face"><img data-role="swt_transfer" class="clickable" src="/assets/img/switch_0.png" alt="Transfer"></div>
                   </div>
                   <div class="tile">
-                    <div class="label">Switch Left</div>
+                    <div class="label"><%= t('modules.switch_left') %></div>
                     <div class="face"><img data-role="swt_left" src="/assets/img/led_on.png" alt="Left"></div>
                   </div>
                   <div class="tile">
-                    <div class="label">Switch Right</div>
+                    <div class="label"><%= t('modules.switch_right') %></div>
                     <div class="face"><img data-role="swt_right" src="/assets/img/led_off.png" alt="Right"></div>
                   </div>
 
                 <% } else if (moduleType === 'Light FX') { %>
                   <div class="tile">
-                    <div class="label">Light Switch</div>
+                    <div class="label"><%= t('modules.light_switch') %></div>
                     <div class="face"><img data-role="light_sw" class="clickable" src="/assets/img/switch_0.png" alt="Light Switch"></div>
                   </div>
                   <div class="tile">
-                    <div class="label">Light Status</div>
+                    <div class="label"><%= t('modules.light_status') %></div>
                     <div class="face"><img data-role="light_led" src="/assets/img/led_off.png" alt="Light LED"></div>
                   </div>
 
                 <% } else if (moduleType === 'Launch Track') { %>
                   <div class="tile">
-                    <div class="label">Launch Ready</div>
+                    <div class="label"><%= t('modules.launch_ready') %></div>
                     <div class="face"><img data-role="ln_ready" src="/assets/img/led_off.png" alt="Ready"></div>
                   </div>
                   <div class="tile">
-                    <div class="label">Launch</div>
+                    <div class="label"><%= t('modules.launch') %></div>
                     <div class="face"><img data-role="ln_btn" class="clickable" src="/assets/img/button_green_off.png" alt="Launch"></div>
                   </div>
                   <div class="tile">
-                    <div class="label">Direction</div>
+                    <div class="label"><%= t('modules.direction') %></div>
                     <div class="face">
                       <img data-role="ln_dir" class="clickable" src="/assets/img/switch_0.png" alt="Direction">
-                      <div data-role="ln_dir_lbl" class="direction-text">Forward</div>
+                      <div data-role="ln_dir_lbl" class="direction-text"><%= t('modules.forward') %></div>
                     </div>
                   </div>
                   <div class="tile">
-                    <div class="label">Speed</div>
+                    <div class="label"><%= t('modules.speed') %></div>
                     <div class="face" style="display:grid;place-items:center;gap:8px">
-                      <button data-role="ln_gauge" class="gauge clickable" aria-label="Speed">
+                      <button data-role="ln_gauge" class="gauge clickable" aria-label="<%= t('modules.speed') %>">
                         <span class="gauge-val"><b data-role="ln_speed_val">60</b><small>%</small></span>
                       </button>
                       <div class="g-ctrl">
-                        <button data-role="ln_minus" class="btn-dark" aria-label="Decrease">−</button>
-                        <button data-role="ln_plus"  class="btn-dark" aria-label="Increase">+</button>
+                        <button data-role="ln_minus" class="btn-dark" aria-label="<%= t('modules.decrease') %>">−</button>
+                        <button data-role="ln_plus"  class="btn-dark" aria-label="<%= t('modules.increase') %>">+</button>
                       </div>
                     </div>
                   </div>
                   <div class="tile">
-                    <div class="label">Duration</div>
+                    <div class="label"><%= t('modules.duration') %></div>
                     <div class="face">
-                      <div class="roller" data-role="ln_roll" aria-live="polite" aria-label="Launch duration in seconds">
+                      <div class="roller" data-role="ln_roll" aria-live="polite" aria-label="<%= t('modules.duration') %>">
                         <div class="roller-track" data-role="ln_track"></div>
                         <div class="roller-unit">s</div>
                       </div>
                       <div class="g-ctrl">
-                        <button data-role="ln_dur_minus" class="btn-dark" aria-label="Decrease">−</button>
-                        <button data-role="ln_dur_plus"  class="btn-dark" aria-label="Increase">+</button>
+                        <button data-role="ln_dur_minus" class="btn-dark" aria-label="<%= t('modules.decrease') %>">−</button>
+                        <button data-role="ln_dur_plus"  class="btn-dark" aria-label="<%= t('modules.increase') %>">+</button>
                       </div>
                     </div>
                   </div>
 
                 <% } else if (moduleType === 'Smoke Machine') { %>
                   <div class="tile">
-                    <div class="label">Heater Ready</div>
+                    <div class="label"><%= t('modules.heater_ready') %></div>
                     <div class="face"><img data-role="sm_ready" src="/assets/img/led_off.png" alt="Ready"></div>
                   </div>
                   <div class="tile">
-                    <div class="label">Smoke</div>
+                    <div class="label"><%= t('modules.smoke') %></div>
                     <div class="face"><img data-role="sm_btn" class="clickable" src="/assets/img/button_green_off.png" alt="Smoke"></div>
                   </div>
                   <div class="tile">
-                    <div class="label">Duration</div>
+                    <div class="label"><%= t('modules.duration') %></div>
                     <div class="face">
-                      <div class="roller" data-role="sm_roll" aria-live="polite" aria-label="Duration in seconds">
+                      <div class="roller" data-role="sm_roll" aria-live="polite" aria-label="<%= t('modules.duration') %>">
                         <div class="roller-track" data-role="sm_track"></div>
                         <div class="roller-unit">s</div>
                       </div>
                       <div class="g-ctrl">
-                        <button data-role="sm_minus" class="btn-dark" aria-label="Decrease">−</button>
-                        <button data-role="sm_plus"  class="btn-dark" aria-label="Increase">+</button>
+                        <button data-role="sm_minus" class="btn-dark" aria-label="<%= t('modules.decrease') %>">−</button>
+                        <button data-role="sm_plus"  class="btn-dark" aria-label="<%= t('modules.increase') %>">+</button>
                       </div>
                     </div>
                   </div>
 
                 <% } else if (moduleType === 'Audio Player') { %>
                 <div class="tile">
-                    <div class="label">Playlist</div>
+                    <div class="label"><%= t('modules.playlist') %></div>
                     <div class="face">
                     <div class="playlist" data-role="au_list"></div>
                     </div>
                 </div>
 
                 <div class="tile">
-                    <div class="label">Play</div>
+                    <div class="label"><%= t('modules.play') %></div>
                     <div class="face">
                     <img class="playlamp clickable" data-role="au_play"
                         src="/assets/img/button_green_off.png" alt="Play">
@@ -243,7 +243,7 @@
 
                 <% } else { %>
                   <div class="tile">
-                    <div class="label">Unknown module</div>
+                    <div class="label"><%= t('modules.unknown_module') %></div>
                     <div class="face"><img src="/assets/img/led_off.png" alt="Unknown"></div>
                   </div>
                 <% } %>
@@ -260,11 +260,11 @@
   </div>
   <div id="modalAdd" class="modal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="dlgAddTitle">
-      <h3 id="dlgAddTitle">Add a module</h3>
+      <h3 id="dlgAddTitle"><%= t('modules.add_module_title') %></h3>
 
       <form method="post" action="/modules/claim" autocomplete="off">
         <div class="form-row">
-          <label for="f_mod_id">Module ID</label>
+          <label for="f_mod_id"><%= t('modules.module_id') %></label>
           <input id="f_mod_id" class="input" name="module_id"
                  placeholder="MC-1234-STN" required
                  inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false"
@@ -273,7 +273,7 @@
         </div>
 
         <div class="form-row">
-          <label for="f_mod_code">Module code</label>
+          <label for="f_mod_code"><%= t('modules.module_code') %></label>
           <input id="f_mod_code" class="input" name="module_code"
                  placeholder="AB12-CD34" required maxlength="9"
                  inputmode="text" autocomplete="off" autocapitalize="none" spellcheck="false"
@@ -282,28 +282,28 @@
         </div>
 
         <div class="form-row">
-          <label for="f_mod_name">Display name (optional)</label>
+          <label for="f_mod_name"><%= t('modules.display_name') %></label>
           <input id="f_mod_name" class="input" name="name"
                  placeholder="My Module Name" autocomplete="off" spellcheck="false">
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="btn btn-ghost" id="btnCancelAdd">Cancel</button>
-          <button type="submit" class="btn">Save</button>
+          <button type="button" class="btn btn-ghost" id="btnCancelAdd"><%= t('common.cancel') %></button>
+          <button type="submit" class="btn"><%= t('common.save') %></button>
         </div>
       </form>
     </div>
   </div>
   <div id="modalDelete" class="modal" aria-hidden="true">
     <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="dlgDelTitle">
-      <h3 id="dlgDelTitle">Delete module</h3>
+      <h3 id="dlgDelTitle"><%= t('modules.delete_module_title') %></h3>
       <p id="dlgDelText" class="muted" style="margin:8px 0 16px">…</p>
 
       <form id="deleteForm" method="post">
         <input type="hidden" name="moduleId" id="del_moduleId">
         <div class="modal-actions">
-          <button type="button" class="btn btn-ghost" id="btnCancelDel">Cancel</button>
-          <button type="submit" class="btn btn-danger">Delete</button>
+          <button type="button" class="btn btn-ghost" id="btnCancelDel"><%= t('common.cancel') %></button>
+          <button type="submit" class="btn btn-danger"><%= t('common.delete') %></button>
         </div>
       </form>
     </div>
@@ -312,6 +312,7 @@
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/reconnection-manager.js"></script>
   <script src="/js/global.js"></script>
+  <script src="/js/language.js"></script>
   <script>
     window.MC = { 
       wsCode: '<%= user.code %>',

@@ -16,7 +16,6 @@ function requireAdmin(req, res, next) {
     next();
   } else {
     res.status(403).render('error', {
-      title: 'Accès refusé',
       message: "Vous n'avez pas les permissions nécessaires pour accéder à cette page.",
     });
   }
@@ -28,7 +27,6 @@ router.get('/login', (req, res) => {
   }
   res.render('login', {
     error: null,
-    title: 'MicroCoaster WebApp - Login',
   });
 });
 
@@ -38,7 +36,6 @@ router.get('/register', (req, res) => {
   }
   res.render('register', {
     error: null,
-    title: 'MicroCoaster WebApp - Créer un compte',
   });
 });
 
@@ -77,7 +74,7 @@ router.post('/login', async (req, res) => {
           );
         }
 
-        Logger.activity.info('User authenticated:', user.name, user.is_admin ? '(admin)' : '');
+        Logger.activity.debug('User authenticated:', user.name, user.is_admin ? '(admin)' : '');
         return res.redirect('/dashboard');
       } else {
         error = 'Email ou mot de passe incorrect.';
@@ -90,7 +87,6 @@ router.post('/login', async (req, res) => {
 
   res.render('login', {
     error,
-    title: 'MicroCoaster WebApp - Login',
   });
 });
 
@@ -149,7 +145,6 @@ router.post('/register', async (req, res) => {
 
   res.render('register', {
     error,
-    title: 'MicroCoaster WebApp - Créer un compte',
     formData: { email, name }, // Garder les données du formulaire
   });
 });
@@ -187,7 +182,7 @@ router.get('/profile', requireAuth, async (req, res) => {
     }
 
     res.render('profile', {
-      title: 'MicroCoaster WebApp - Profil',
+      title: req.t('auth.profile_title'),
       user,
       error: null,
       success: null,
@@ -195,7 +190,7 @@ router.get('/profile', requireAuth, async (req, res) => {
   } catch (error) {
     Logger.activity.error('Profile error:', error);
     res.render('error', {
-      title: 'Erreur',
+      title: req.t('common.error'),
       message: 'Erreur lors du chargement du profil.',
     });
   }
@@ -259,7 +254,7 @@ router.post('/profile', requireAuth, async (req, res) => {
 
   const user = await databaseManager.users.findById(req.session.user_id);
   res.render('profile', {
-    title: 'MicroCoaster WebApp - Profil',
+    title: req.t('auth.profile_title'),
     user,
     error,
     success,
@@ -296,7 +291,7 @@ router.post('/change-password', requireAuth, async (req, res) => {
 
   const user = await databaseManager.users.findById(req.session.user_id);
   res.render('profile', {
-    title: 'MicroCoaster WebApp - Profil',
+    title: req.t('auth.profile_title'),
     user,
     error,
     success,

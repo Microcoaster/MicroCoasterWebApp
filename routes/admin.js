@@ -46,7 +46,6 @@ router.get('/', async (req, res) => {
     };
 
     res.render('admin', {
-      title: 'MicroCoaster WebApp - Administration',
       currentPage: 'admin',
       users: allUsersResult.users, // Tous les utilisateurs
       modules: allModulesResult.modules, // Tous les modules
