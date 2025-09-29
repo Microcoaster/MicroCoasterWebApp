@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/timelines.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
 <body>
@@ -54,6 +55,10 @@
         </div>
         
         <div class="timeline-controls">
+          <div class="timeline-viewport-info">
+            <span class="viewport-indicator" id="viewportIndicator">0s - 30s</span>
+            <small class="viewport-help">Shift+molette: naviguer | Ctrl+molette: zoom</small>
+          </div>
           <button class="control-btn" id="clearBtn">
             <i class="bi bi-trash"></i> <%= t('timelines.clear') %>
           </button>
@@ -67,9 +72,11 @@
         </div>
       </div>
 
+
+
       <div class="timeline-workspace">
         <div class="timeline-track" id="timelineTrack">
-          <div class="time-ruler" id="timeRuler">
+          <div class="time-markers" id="timeMarkers">
           </div>
           
           <div class="playback-indicator" id="playbackIndicator"></div>
