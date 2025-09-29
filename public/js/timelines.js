@@ -13,50 +13,135 @@
 
 const MODULE_CONFIGS = {
   'estop-button': {
-    name: 'Emergency Stop', icon: '🛑', color: '#ff4757',
+    name: 'Emergency Stop',
+    icon: '🛑',
+    color: '#ff4757',
     actions: {
-      activate: { name: 'Activer E-Stop', duration: { min: 0.1, max: 5, default: 1 }, params: { force_stop: { type: 'boolean', default: true, label: 'Arrêt immédiat' }}},
-      deactivate: { name: 'Désactiver E-Stop', duration: { min: 0.1, max: 2, default: 0.5 }, params: {} }
-    }
+      activate: {
+        name: 'Activer E-Stop',
+        duration: { min: 0.1, max: 5, default: 1 },
+        params: { force_stop: { type: 'boolean', default: true, label: 'Arrêt immédiat' } },
+      },
+      deactivate: {
+        name: 'Désactiver E-Stop',
+        duration: { min: 0.1, max: 2, default: 0.5 },
+        params: {},
+      },
+    },
   },
   'switch-track': {
-    name: 'Aiguillage', icon: '↔️', color: '#3742fa',
+    name: 'Aiguillage',
+    icon: '↔️',
+    color: '#3742fa',
     actions: {
-      switch_left: { name: 'Basculer à gauche', duration: { min: 0.5, max: 3, default: 1.5 }, params: { speed: { type: 'range', min: 1, max: 100, default: 50, label: 'Vitesse' }}},
-      switch_right: { name: 'Basculer à droite', duration: { min: 0.5, max: 3, default: 1.5 }, params: { speed: { type: 'range', min: 1, max: 100, default: 50, label: 'Vitesse' }}}
-    }
+      switch_left: {
+        name: 'Basculer à gauche',
+        duration: { min: 0.5, max: 3, default: 1.5 },
+        params: { speed: { type: 'range', min: 1, max: 100, default: 50, label: 'Vitesse' } },
+      },
+      switch_right: {
+        name: 'Basculer à droite',
+        duration: { min: 0.5, max: 3, default: 1.5 },
+        params: { speed: { type: 'range', min: 1, max: 100, default: 50, label: 'Vitesse' } },
+      },
+    },
   },
   'speed-control': {
-    name: 'Contrôle Vitesse', icon: '⚡', color: '#ffa502',
+    name: 'Contrôle Vitesse',
+    icon: '⚡',
+    color: '#ffa502',
     actions: {
-      set_speed: { name: 'Définir vitesse', duration: { min: 0.1, max: 10, default: 2 }, params: { target_speed: { type: 'range', min: 0, max: 100, default: 50, label: 'Vitesse cible (%)' }}},
-      gradual_change: { name: 'Changement graduel', duration: { min: 1, max: 20, default: 5 }, params: { from_speed: { type: 'range', min: 0, max: 100, default: 30, label: 'Vitesse initiale (%)' }, to_speed: { type: 'range', min: 0, max: 100, default: 70, label: 'Vitesse finale (%)' }}}
-    }
+      set_speed: {
+        name: 'Définir vitesse',
+        duration: { min: 0.1, max: 10, default: 2 },
+        params: {
+          target_speed: {
+            type: 'range',
+            min: 0,
+            max: 100,
+            default: 50,
+            label: 'Vitesse cible (%)',
+          },
+        },
+      },
+      gradual_change: {
+        name: 'Changement graduel',
+        duration: { min: 1, max: 20, default: 5 },
+        params: {
+          from_speed: {
+            type: 'range',
+            min: 0,
+            max: 100,
+            default: 30,
+            label: 'Vitesse initiale (%)',
+          },
+          to_speed: { type: 'range', min: 0, max: 100, default: 70, label: 'Vitesse finale (%)' },
+        },
+      },
+    },
   },
   'led-control': {
-    name: 'LED Control', icon: '💡', color: '#2ed573',
+    name: 'LED Control',
+    icon: '💡',
+    color: '#2ed573',
     actions: {
-      turn_on: { name: 'Allumer', duration: { min: 0.1, max: 60, default: 5 }, params: { brightness: { type: 'range', min: 10, max: 100, default: 100, label: 'Luminosité (%)' }, color: { type: 'color', default: '#ffffff', label: 'Couleur LED' }}},
+      turn_on: {
+        name: 'Allumer',
+        duration: { min: 0.1, max: 60, default: 5 },
+        params: {
+          brightness: { type: 'range', min: 10, max: 100, default: 100, label: 'Luminosité (%)' },
+          color: { type: 'color', default: '#ffffff', label: 'Couleur LED' },
+        },
+      },
       turn_off: { name: 'Éteindre', duration: { min: 0.1, max: 2, default: 0.2 }, params: {} },
-      blink: { name: 'Clignoter', duration: { min: 1, max: 30, default: 5 }, params: { on_time: { type: 'range', min: 0.1, max: 2, default: 0.5, label: 'Durée allumée (s)', step: 0.1 }, off_time: { type: 'range', min: 0.1, max: 2, default: 0.5, label: 'Durée éteinte (s)', step: 0.1 }}}
-    }
+      blink: {
+        name: 'Clignoter',
+        duration: { min: 1, max: 30, default: 5 },
+        params: {
+          on_time: {
+            type: 'range',
+            min: 0.1,
+            max: 2,
+            default: 0.5,
+            label: 'Durée allumée (s)',
+            step: 0.1,
+          },
+          off_time: {
+            type: 'range',
+            min: 0.1,
+            max: 2,
+            default: 0.5,
+            label: 'Durée éteinte (s)',
+            step: 0.1,
+          },
+        },
+      },
+    },
   },
   'generic-module': {
-    name: 'Module Générique', icon: '⚙️', color: '#747d8c',
+    name: 'Module Générique',
+    icon: '⚙️',
+    color: '#747d8c',
     actions: {
-      activate: { name: 'Activer', duration: { min: 0.1, max: 30, default: 2 }, params: { power: { type: 'range', min: 0, max: 100, default: 100, label: 'Puissance (%)' }}},
-      deactivate: { name: 'Désactiver', duration: { min: 0.1, max: 5, default: 1 }, params: {} }
-    }
-  }
+      activate: {
+        name: 'Activer',
+        duration: { min: 0.1, max: 30, default: 2 },
+        params: {
+          power: { type: 'range', min: 0, max: 100, default: 100, label: 'Puissance (%)' },
+        },
+      },
+      deactivate: { name: 'Désactiver', duration: { min: 0.1, max: 5, default: 1 }, params: {} },
+    },
+  },
 };
 
 // ================================================================================
 // ZOOM SIMPLE AVEC CTRL+MOLETTE
 // ================================================================================
 
-const MIN_ZOOM = 0.2;   // Zoom minimum (plus large)
-const MAX_ZOOM = 5;     // Zoom maximum (plus détaillé) 
-const ZOOM_STEP = 0.1;  // Incrément du zoom
+const MIN_ZOOM = 0.2; // Zoom minimum (plus large)
+const MAX_ZOOM = 5; // Zoom maximum (plus détaillé)
+const ZOOM_STEP = 0.1; // Incrément du zoom
 
 // Configuration du viewport timeline
 const DEFAULT_VIEWPORT_DURATION = 30; // Durée par défaut de la fenêtre (30s)
@@ -85,7 +170,7 @@ class TimelineSequencer {
     // Zoom state simple
     this.zoomLevel = 1; // Facteur de zoom (1 = normal)
     this.pixelsPerSecond = 10; // Base: 10px par seconde
-    
+
     // Viewport timeline infinie
     this.viewportStart = 0; // Début de la fenêtre (en secondes)
     this.viewportDuration = DEFAULT_VIEWPORT_DURATION; // Durée de la fenêtre visible
@@ -108,28 +193,28 @@ class TimelineSequencer {
 
   setupZoom() {
     // Zoom avec Ctrl+molette et navigation avec Shift+molette
-    this.track.addEventListener('wheel', (e) => {
+    this.track.addEventListener('wheel', e => {
       if (e.ctrlKey) {
         // Zoom In/Out avec Ctrl+molette
         e.preventDefault();
-        
+
         const direction = e.deltaY < 0 ? 1 : -1; // Molette vers le haut = zoom in
-        const newZoom = this.zoomLevel + (direction * ZOOM_STEP);
-        
+        const newZoom = this.zoomLevel + direction * ZOOM_STEP;
+
         // Limiter le zoom
         this.zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
-        
+
         this.updateZoom();
       } else if (e.shiftKey) {
         // Navigation dans la timeline avec Shift+molette
         e.preventDefault();
-        
+
         const direction = e.deltaY < 0 ? -1 : 1; // Molette vers le haut = reculer
-        const newStart = this.viewportStart + (direction * SCROLL_STEP);
-        
+        const newStart = this.viewportStart + direction * SCROLL_STEP;
+
         // Empêcher de descendre en dessous de 0
         this.viewportStart = Math.max(0, newStart);
-        
+
         this.updateViewport();
       }
     });
@@ -138,19 +223,19 @@ class TimelineSequencer {
   updateZoom() {
     // Mettre à jour la durée du viewport selon le zoom
     this.viewportDuration = DEFAULT_VIEWPORT_DURATION / this.zoomLevel;
-    
+
     this.updateViewport();
   }
 
   updateViewport() {
     // Mettre à jour les marqueurs temporels
     this.updateTimeMarkers();
-    
+
     // Mettre à jour la position et visibilité des éléments
     this.elements.forEach(el => {
       this.updateElementInViewport(el);
     });
-    
+
     // Mettre à jour l'indicateur de viewport
     this.updateViewportIndicator();
   }
@@ -170,14 +255,14 @@ class TimelineSequencer {
     const duration = elementData.duration;
     const endTime = startTime + duration;
     const trackWidth = this.track.offsetWidth;
-    
+
     // Position relative au viewport
     const relativeStart = startTime - this.viewportStart;
     const relativeEnd = endTime - this.viewportStart;
-    
+
     // Vérifier si l'élément est visible dans le viewport
-    const isVisible = (relativeEnd > 0 && relativeStart < this.viewportDuration);
-    
+    const isVisible = relativeEnd > 0 && relativeStart < this.viewportDuration;
+
     if (isVisible) {
       // Calculer la position et taille en pourcentage de la largeur totale
       const leftPercent = Math.max(0, relativeStart / this.viewportDuration);
@@ -185,10 +270,10 @@ class TimelineSequencer {
         (relativeEnd - Math.max(0, relativeStart)) / this.viewportDuration,
         1
       );
-      
+
       const left = leftPercent * trackWidth;
       const width = widthPercent * trackWidth;
-      
+
       element.style.left = left + 'px';
       element.style.width = Math.max(width, 50) + 'px'; // Minimum 50px
       element.style.display = 'block';
@@ -207,22 +292,24 @@ class TimelineSequencer {
     // Convertir la position en pixels en temps absolu dans la timeline
     const trackWidth = this.track.offsetWidth;
     const relativePosition = pixelPosition / trackWidth; // Position en pourcentage
-    return this.viewportStart + (relativePosition * this.viewportDuration);
+    return this.viewportStart + relativePosition * this.viewportDuration;
   }
 
   updateTimeMarkers() {
     if (!this.timeMarkers) return;
-    
+
     this.timeMarkers.innerHTML = '';
     const trackWidth = this.track.offsetWidth;
-    
+
     // Recalculer pixelsPerSecond pour utiliser toute la largeur
     this.pixelsPerSecond = trackWidth / this.viewportDuration;
-    
+
     // Intervalle des marqueurs selon le zoom
     let interval = 5; // Par défaut 5s
-    if (this.zoomLevel >= 3) interval = 1;         // Zoom élevé: 1s
-    else if (this.zoomLevel >= 1.5) interval = 2;  // Zoom moyen: 2s
+    if (this.zoomLevel >= 3)
+      interval = 1; // Zoom élevé: 1s
+    else if (this.zoomLevel >= 1.5)
+      interval = 2; // Zoom moyen: 2s
     else if (this.zoomLevel <= 0.5) interval = 10; // Zoom faible: 10s
 
     // Calculer le temps de début et fin visibles
@@ -232,7 +319,7 @@ class TimelineSequencer {
     for (let time = startTime; time <= endTime + interval; time += interval) {
       const relativeTime = time - this.viewportStart;
       const position = (relativeTime / this.viewportDuration) * trackWidth;
-      
+
       // Seulement afficher les marqueurs visibles
       if (position >= 0 && position <= trackWidth) {
         const marker = document.createElement('div');
@@ -368,7 +455,7 @@ class TimelineSequencer {
       startTime: timePosition,
       duration: defaultDuration,
       actionType: defaultAction,
-      actionParams: {}
+      actionParams: {},
     });
 
     this.hideInstructions();
@@ -378,7 +465,7 @@ class TimelineSequencer {
     // Stocker les données temporelles sur l'élément
     element.dataset.startTime = startTime;
     element.dataset.duration = duration;
-    
+
     // Trouver l'élément dans notre liste pour le mettre à jour
     const elementData = this.elements.find(e => e.element === element);
     if (elementData) {
@@ -386,10 +473,10 @@ class TimelineSequencer {
       elementData.duration = duration;
       this.updateElementInViewport(elementData);
     }
-    
+
     // Position verticale basée sur l'index
     const elementIndex = this.elements.findIndex(e => e.element === element);
-    element.style.top = Math.max(80, 100 + (elementIndex * 80)) + 'px';
+    element.style.top = Math.max(80, 100 + elementIndex * 80) + 'px';
   }
 
   updateElementPositions() {
@@ -401,9 +488,11 @@ class TimelineSequencer {
   }
 
   selectElement(element) {
-    document.querySelectorAll('.timeline-action.selected, .timeline-element.selected').forEach(el => {
-      el.classList.remove('selected');
-    });
+    document
+      .querySelectorAll('.timeline-action.selected, .timeline-element.selected')
+      .forEach(el => {
+        el.classList.remove('selected');
+      });
     element.classList.add('selected');
     this.selectedElement = element;
   }
@@ -432,9 +521,12 @@ class TimelineSequencer {
           <div class="config-row">
             <label class="config-label">Action</label>
             <select class="config-select" id="actionTypeSelect">
-              ${Object.entries(moduleConfig.actions).map(([key, action]) => 
-                `<option value="${key}" ${key === actionType ? 'selected' : ''}>${action.name}</option>`
-              ).join('')}
+              ${Object.entries(moduleConfig.actions)
+                .map(
+                  ([key, action]) =>
+                    `<option value="${key}" ${key === actionType ? 'selected' : ''}>${action.name}</option>`
+                )
+                .join('')}
             </select>
           </div>
         </div>
@@ -442,7 +534,7 @@ class TimelineSequencer {
         <div class="config-section" id="actionConfigContainer">
           ${this.generateActionConfigUI(moduleType, actionType, {
             duration: parseFloat(timelineElement.element.dataset.duration),
-            ...timelineElement.actionParams
+            ...timelineElement.actionParams,
           })}
         </div>
         
@@ -459,19 +551,21 @@ class TimelineSequencer {
 
     // Events
     modal.querySelector('#cancelConfig').addEventListener('click', () => modal.remove());
-    modal.querySelector('#saveConfig').addEventListener('click', () => this.saveConfig(timelineElement, modal));
-    modal.querySelector('#actionTypeSelect').addEventListener('change', (e) => {
+    modal
+      .querySelector('#saveConfig')
+      .addEventListener('click', () => this.saveConfig(timelineElement, modal));
+    modal.querySelector('#actionTypeSelect').addEventListener('change', e => {
       const container = modal.querySelector('#actionConfigContainer');
       container.innerHTML = this.generateActionConfigUI(moduleType, e.target.value, {
-        duration: parseFloat(timelineElement.element.dataset.duration)
+        duration: parseFloat(timelineElement.element.dataset.duration),
       });
     });
-    modal.addEventListener('click', (e) => {
+    modal.addEventListener('click', e => {
       if (e.target === modal) modal.remove();
     });
 
     // Mise à jour temps réel des ranges
-    modal.addEventListener('input', (e) => {
+    modal.addEventListener('input', e => {
       if (e.target.classList.contains('config-range')) {
         const valueSpan = e.target.parentElement.querySelector('.range-value');
         if (valueSpan) valueSpan.textContent = e.target.value;
@@ -482,7 +576,7 @@ class TimelineSequencer {
   generateActionConfigUI(moduleType, actionType, currentValues = {}) {
     const config = this.getModuleConfig(moduleType);
     if (!config || !config.actions[actionType]) return '';
-    
+
     const action = config.actions[actionType];
     let html = `<div class="action-config-section">
       <div class="config-row">
@@ -491,12 +585,12 @@ class TimelineSequencer {
                min="${action.duration.min}" max="${action.duration.max}" step="0.1" 
                value="${currentValues.duration || action.duration.default}">
       </div>`;
-    
+
     // Paramètres spécifiques
     Object.entries(action.params).forEach(([paramName, paramConfig]) => {
       html += this.generateParameterInput(paramName, paramConfig, currentValues[paramName]);
     });
-    
+
     html += `</div>`;
     return html;
   }
@@ -505,7 +599,7 @@ class TimelineSequencer {
     const value = currentValue !== null ? currentValue : config.default;
     let html = `<div class="config-row">
                   <label class="config-label">${config.label || paramName}</label>`;
-    
+
     switch (config.type) {
       case 'range':
         html += `<div class="range-container">
@@ -531,7 +625,7 @@ class TimelineSequencer {
       default:
         html += `<input type="text" class="config-input" name="${paramName}" value="${value}">`;
     }
-    
+
     html += `</div>`;
     return html;
   }
@@ -539,19 +633,23 @@ class TimelineSequencer {
   saveConfig(timelineElement, modal) {
     const actionType = modal.querySelector('#actionTypeSelect').value;
     const duration = parseFloat(modal.querySelector('.duration-input').value);
-    
+
     const actionParams = {};
-    modal.querySelectorAll('.config-input, .config-range, .config-select, .config-checkbox, .config-color').forEach(input => {
-      if (input.name && input.name !== 'duration') {
-        if (input.type === 'checkbox') {
-          actionParams[input.name] = input.checked;
-        } else if (input.type === 'number' || input.type === 'range') {
-          actionParams[input.name] = parseFloat(input.value);
-        } else {
-          actionParams[input.name] = input.value;
+    modal
+      .querySelectorAll(
+        '.config-input, .config-range, .config-select, .config-checkbox, .config-color'
+      )
+      .forEach(input => {
+        if (input.name && input.name !== 'duration') {
+          if (input.type === 'checkbox') {
+            actionParams[input.name] = input.checked;
+          } else if (input.type === 'number' || input.type === 'range') {
+            actionParams[input.name] = parseFloat(input.value);
+          } else {
+            actionParams[input.name] = input.value;
+          }
         }
-      }
-    });
+      });
 
     // Mise à jour
     timelineElement.element.dataset.actionType = actionType;
@@ -562,7 +660,7 @@ class TimelineSequencer {
 
     const moduleConfig = this.getModuleConfig(timelineElement.element.dataset.moduleType);
     const actionConfig = moduleConfig.actions[actionType];
-    
+
     timelineElement.element.querySelector('.element-duration').textContent = duration + 's';
     timelineElement.element.querySelector('.element-action').textContent = actionConfig.name;
 
@@ -570,7 +668,12 @@ class TimelineSequencer {
     this.positionElement(timelineElement.element, startTime, duration);
 
     modal.remove();
-    console.log('Configuration sauvegardée:', { module: timelineElement.moduleData.name, action: actionType, duration, params: actionParams });
+    console.log('Configuration sauvegardée:', {
+      module: timelineElement.moduleData.name,
+      action: actionType,
+      duration,
+      params: actionParams,
+    });
   }
 
   // ================================================================================
@@ -593,7 +696,7 @@ class TimelineSequencer {
       const y = e.clientY - trackRect.top - offsetY;
 
       const timePosition = Math.max(0, this.pixelToTime(x));
-      
+
       // Mise à jour position
       const duration = parseFloat(this.draggedElement.dataset.duration);
       this.positionElement(this.draggedElement, timePosition, duration);
@@ -643,9 +746,11 @@ class TimelineSequencer {
   }
 
   clearSelection() {
-    document.querySelectorAll('.timeline-action.selected, .timeline-element.selected').forEach(el => {
-      el.classList.remove('selected');
-    });
+    document
+      .querySelectorAll('.timeline-action.selected, .timeline-element.selected')
+      .forEach(el => {
+        el.classList.remove('selected');
+      });
     this.selectedElement = null;
   }
 
@@ -682,7 +787,7 @@ class TimelineSequencer {
 
     const sortedElements = this.elements
       .filter(el => el.moduleId && el.action && el.startTime !== null)
-      .sort((a, b) => (a.startTime + a.delay) - (b.startTime + b.delay));
+      .sort((a, b) => a.startTime + a.delay - (b.startTime + b.delay));
 
     this.scheduleActions(sortedElements);
   }
@@ -698,7 +803,8 @@ class TimelineSequencer {
     });
 
     if (elements.length > 0) {
-      const totalDuration = Math.max(...elements.map(e => e.startTime + e.delay + e.duration)) * 1000;
+      const totalDuration =
+        Math.max(...elements.map(e => e.startTime + e.delay + e.duration)) * 1000;
       this.stopTimeout = setTimeout(() => {
         this.stopSequence();
       }, totalDuration);
@@ -711,7 +817,7 @@ class TimelineSequencer {
       moduleId: element.moduleId,
       action: element.action,
       parameters: element.parameters || {},
-      duration: element.duration
+      duration: element.duration,
     };
 
     this.websocketManager.send(message);
@@ -722,7 +828,7 @@ class TimelineSequencer {
 
     const elapsedTime = (Date.now() - this.startTime) / 1000;
     const trackWidth = this.track.offsetWidth;
-    
+
     // Position relative dans le viewport
     const relativeTime = elapsedTime - this.viewportStart;
     const position = (relativeTime / this.viewportDuration) * trackWidth;
@@ -774,7 +880,7 @@ class TimelineSequencer {
   generateSequence() {
     const sequence = {
       modules: {},
-      totalDuration: 0
+      totalDuration: 0,
     };
 
     this.elements.forEach(element => {
@@ -789,11 +895,14 @@ class TimelineSequencer {
         startTime: element.startTime + element.delay,
         action: element.action,
         parameters: element.parameters || {},
-        duration: element.duration
+        duration: element.duration,
       });
     });
 
-    sequence.totalDuration = Math.max(...this.elements.map(e => e.startTime + e.delay + e.duration), 0);
+    sequence.totalDuration = Math.max(
+      ...this.elements.map(e => e.startTime + e.delay + e.duration),
+      0
+    );
 
     return sequence;
   }
@@ -811,13 +920,13 @@ class TimelineSequencer {
 
   importSequence(file) {
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = e => {
       try {
         const sequence = JSON.parse(e.target.result);
         this.loadSequence(sequence);
       } catch (error) {
-        console.error('Erreur lors de l\'import:', error);
-        this.websocketManager.showAlert('danger', 'Erreur lors de l\'import du fichier');
+        console.error("Erreur lors de l'import:", error);
+        this.websocketManager.showAlert('danger', "Erreur lors de l'import du fichier");
       }
     };
     reader.readAsText(file);
@@ -831,14 +940,16 @@ class TimelineSequencer {
     // Charger les nouveaux éléments
     Object.keys(sequence.modules).forEach(moduleId => {
       const moduleActions = sequence.modules[moduleId];
-      
+
       moduleActions.forEach(actionData => {
         // Retrouver le module et l'action correspondante
-        const moduleConfig = MODULE_CONFIGS.find(config => config.actions.some(action => action.id === actionData.action));
-        
+        const moduleConfig = MODULE_CONFIGS.find(config =>
+          config.actions.some(action => action.id === actionData.action)
+        );
+
         if (moduleConfig) {
           const actionConfig = moduleConfig.actions.find(action => action.id === actionData.action);
-          
+
           if (actionConfig) {
             this.createElement({
               moduleId: moduleId,
@@ -847,7 +958,7 @@ class TimelineSequencer {
               parameters: actionData.parameters,
               startTime: actionData.startTime,
               duration: actionData.duration,
-              delay: 0
+              delay: 0,
             });
           }
         }
