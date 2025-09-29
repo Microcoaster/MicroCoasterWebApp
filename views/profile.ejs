@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<%= language %>">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
-  <title><%= title %></title>
+  <title><%= t('auth.profile_title') %> - <%= t('common.app_name') %></title>
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/dashboard.css">
@@ -44,7 +44,7 @@
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
               <circle cx="12" cy="7" r="4"/>
             </svg>
-            Informations personnelles
+            <%= t('auth.personal_information') %>
           </h2>
           <form method="post" action="/profile" class="profile-form">
             <div class="form-group">
@@ -52,7 +52,7 @@
               <input type="text" id="name" name="name" value="<%= user.name %>" required autocomplete="name">
             </div>
             <div class="form-group">
-              <label for="email">Email</label>
+              <label for="email"><%= t('auth.email') %></label>
               <input type="email" id="email" name="email" value="<%= user.email %>" required autocomplete="email">
             </div>
             <div class="form-actions">
@@ -97,18 +97,18 @@
               <line x1="12" y1="16" x2="12" y2="12"/>
               <line x1="12" y1="8" x2="12.01" y2="8"/>
             </svg>
-            Informations du compte
+            <%= t('auth.account_information') %>
           </h2>
           <dl class="info-grid">
             <div class="info-item">
               <span class="info-label"><%= t('auth.status') %></span>
               <span class="info-value <%= user.is_admin ? 'status-admin' : 'status-user' %>">
-                <%= user.is_admin ? 'Administrateur' : 'Utilisateur' %>
+                <%= user.is_admin ? t('auth.administrator') : t('auth.user') %>
               </span>
             </div>
             <div class="info-item">
-              <span class="info-label">Membre depuis</span>
-              <span class="info-value"><%= new Date(user.created_at).toLocaleDateString('fr-FR') %></span>
+              <span class="info-label"><%= t('auth.member_since') %></span>
+              <span class="info-value"><%= new Date(user.created_at).toLocaleDateString(language === 'en' ? 'en-US' : 'fr-FR') %></span>
             </div>
           </dl>
                 </div>

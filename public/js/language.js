@@ -56,8 +56,8 @@ class LanguageSelector {
     if (!navbarRight) return;
 
     const languages = [
-      { code: 'fr', name: 'Français', flag: '🇫🇷' },
-      { code: 'en', name: 'English', flag: '🇺🇸' }
+      { code: 'fr', name: 'Français', flag: '/assets/flags/fr.svg' },
+      { code: 'en', name: 'English', flag: '/assets/flags/en.svg' }
     ];
 
     const currentLangInfo = languages.find(lang => lang.code === this.currentLanguage) || languages[0];
@@ -71,13 +71,15 @@ class LanguageSelector {
           <path d="M15 9h.01"/>
         </svg>
         <span class="language-current" data-lang="${this.currentLanguage}">
-          ${currentLangInfo.flag} ${currentLangInfo.code.toUpperCase()}
+          <img src="${currentLangInfo.flag}" alt="${currentLangInfo.name}" class="flag-icon">
+          ${currentLangInfo.code.toUpperCase()}
         </span>
         <div class="language-dropdown">
           ${languages.map(lang => `
             <a href="#" class="language-option ${lang.code === this.currentLanguage ? 'active' : ''}" 
                data-lang="${lang.code}">
-              ${lang.flag} ${lang.name}
+              <img src="${lang.flag}" alt="${lang.name}" class="flag-icon">
+              ${lang.name}
             </a>
           `).join('')}
         </div>
@@ -102,11 +104,14 @@ class LanguageSelector {
     if (currentSpan) {
       currentSpan.dataset.lang = this.currentLanguage;
       const languages = [
-        { code: 'fr', name: 'Français', flag: '🇫🇷' },
-        { code: 'en', name: 'English', flag: '🇺🇸' }
+        { code: 'fr', name: 'Français', flag: '/assets/flags/fr.svg' },
+        { code: 'en', name: 'English', flag: '/assets/flags/en.svg' }
       ];
       const currentLangInfo = languages.find(lang => lang.code === this.currentLanguage) || languages[0];
-      currentSpan.textContent = `${currentLangInfo.flag} ${currentLangInfo.code.toUpperCase()}`;
+      currentSpan.innerHTML = `
+        <img src="${currentLangInfo.flag}" alt="${currentLangInfo.name}" class="flag-icon">
+        ${currentLangInfo.code.toUpperCase()}
+      `;
     }
 
     // Update active states
@@ -156,20 +161,20 @@ class LanguageSelector {
         // Update current language
         this.currentLanguage = newLang;
         
-        // Show success message (optional)
-        this.showMessage('Language changed successfully', 'success');
+        // Show success message with proper translation
+        this.showLanguageMessage(newLang, 'success');
         
         // Reload page to apply new language
         setTimeout(() => {
           window.location.reload();
-        }, 500);
+        }, 800);
       } else {
         throw new Error(result.message || 'Failed to change language');
       }
 
     } catch (error) {
       console.error('Error switching language:', error);
-      this.showMessage('Failed to change language', 'error');
+      this.showLanguageMessage(this.currentLanguage, 'error');
     } finally {
       this.setLoadingState(false);
     }
@@ -201,7 +206,66 @@ class LanguageSelector {
   }
 
   /**
-   * Show temporary message to user
+   * Show language change message with proper translation and styling
+   * @param {string} language - Language code for message
+   * @param {string} type - Message type (success, error)
+   */
+  showLanguageMessage(language, type = 'success') {
+    const messages = {
+      fr: {
+        success: 'Langue changée avec succès',
+        error: 'Échec du changement de langue'
+      },
+      en: {
+        success: 'Language changed successfully', 
+        error: 'Failed to change language'
+      }
+    };
+
+    const languages = [
+      { code: 'fr', name: 'Français', flag: '/assets/flags/fr.svg' },
+      { code: 'en', name: 'English', flag: '/assets/flags/en.svg' }
+    ];
+
+    const message = messages[language]?.[type] || messages.fr[type];
+    const langInfo = languages.find(l => l.code === language) || languages[0];
+    
+    // Create custom toast for language change
+    const toast = document.createElement('div');
+    toast.className = `language-toast ${type}`;
+    toast.innerHTML = `
+      <div class="language-toast-content">
+        <div class="language-toast-flag">
+          <img src="${langInfo.flag}" alt="${langInfo.name}" class="flag-icon-large">
+        </div>
+        <div class="language-toast-text">
+          <div class="language-toast-message">${message}</div>
+          <div class="language-toast-lang">${langInfo.name}</div>
+        </div>
+        <div class="language-toast-close" onclick="this.parentElement.parentElement.remove()" title="Fermer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </div>
+      </div>
+    `;
+
+    // Add to page and show
+    document.body.appendChild(toast);
+    
+    // Animate in
+    setTimeout(() => toast.classList.add('show'), 100);
+    
+    // Auto remove
+    setTimeout(() => {
+      toast.classList.remove('show');
+      setTimeout(() => toast.remove(), 300);
+    }, 3000);
+  }
+
+  /**
+   * Show temporary message to user (generic)
    * @param {string} message - Message to show
    * @param {string} type - Message type (success, error, info)
    */

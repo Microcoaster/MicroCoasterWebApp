@@ -59,7 +59,12 @@
     "change_password": "Change password",
     "save_profile": "Save",
     "status": "Status",
-    "password_min_6_chars": "Min. 6 characters"
+    "password_min_6_chars": "Min. 6 characters",
+    "personal_information": "Personal Information",
+    "account_information": "Account Information",
+    "administrator": "Administrator",
+    "user": "User",
+    "member_since": "Member since"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -184,7 +189,9 @@
   },
   "language": {
     "french": "Français",
-    "english": "English"
+    "english": "English",
+    "changed_successfully": "Language changed successfully",
+    "change_failed": "Failed to change language"
   },
   "error": {
     "title": "Oops! An error occurred",

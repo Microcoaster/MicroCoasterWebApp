@@ -62,21 +62,18 @@
     <div class="navbar-right">
       <!-- Language Selector -->
       <div class="nav-link language-selector" id="language-selector">
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <circle cx="12" cy="12" r="10"/>
-          <path d="M8 14s1.5 2 4 2 4-2 4-2"/>
-          <path d="M9 9h.01"/>
-          <path d="M15 9h.01"/>
-        </svg>
         <span class="language-current" data-lang="<%= language %>">
-          <%= language === 'en' ? '🇺🇸 EN' : '🇫🇷 FR' %>
+          <img src="/assets/flags/<%= language %>.svg" alt="<%= language === 'en' ? 'English' : 'Français' %>" class="flag-icon">
+          <%= language.toUpperCase() %>
         </span>
         <div class="language-dropdown">
-          <a href="#" class="language-option" data-lang="fr">
-            🇫🇷 Français
+          <a href="#" class="language-option <%= language === 'fr' ? 'active' : '' %>" data-lang="fr">
+            <img src="/assets/flags/fr.svg" alt="Français" class="flag-icon">
+            Français
           </a>
-          <a href="#" class="language-option" data-lang="en">
-            🇺🇸 English
+          <a href="#" class="language-option <%= language === 'en' ? 'active' : '' %>" data-lang="en">
+            <img src="/assets/flags/en.svg" alt="English" class="flag-icon">
+            English
           </a>
         </div>
       </div>

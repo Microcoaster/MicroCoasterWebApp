@@ -59,7 +59,12 @@
     "change_password": "Changer le mot de passe",
     "save_profile": "Sauvegarder",
     "status": "Statut",
-    "password_min_6_chars": "Min. 6 caractères"
+    "password_min_6_chars": "Min. 6 caractères",
+    "personal_information": "Informations personnelles",
+    "account_information": "Informations du compte",
+    "administrator": "Administrateur",
+    "user": "Utilisateur",
+    "member_since": "Membre depuis"
   },
   "dashboard": {
     "title": "Tableau de bord",
@@ -184,7 +189,9 @@
   },
   "language": {
     "french": "Français",
-    "english": "English"
+    "english": "English",
+    "changed_successfully": "Langue changée avec succès",
+    "change_failed": "Échec du changement de langue"
   },
   "error": {
     "title": "Oops! Une erreur s'est produite",

@@ -1099,3 +1099,193 @@ body.compact .face img {
     min-width: 120px;
   }
 }
+
+/* ============================================================================
+ * ADDITIONAL LANGUAGE STYLES (FLAG ICONS & TOAST)
+ * ============================================================================ */
+
+/* Flag icons */
+.flag-icon {
+  width: 16px;
+  height: 12px;
+  margin-right: 6px;
+  border-radius: 2px;
+  display: inline-block;
+  vertical-align: middle;
+}
+
+.flag-icon-large {
+  width: 32px;
+  height: 24px;
+  border-radius: 4px;
+  display: block;
+}
+
+/* Language current display improvements */
+.language-current {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ============================================================================
+ * LANGUAGE TOAST STYLES
+ * ============================================================================ */
+
+.language-toast {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10000;
+  background: var(--panel);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px var(--shadow);
+  border: 1px solid var(--edge);
+  backdrop-filter: blur(20px);
+  opacity: 0;
+  transform: translateX(100%);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  max-width: 320px;
+}
+
+.language-toast.show {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.language-toast.success {
+  border-left: 4px solid var(--accent);
+  background: linear-gradient(135deg, var(--panel) 0%, rgba(32, 194, 106, 0.05) 100%);
+}
+
+.language-toast.error {
+  border-left: 4px solid #ff4757;
+  background: linear-gradient(135deg, var(--panel) 0%, rgba(255, 71, 87, 0.05) 100%);
+}
+
+.language-toast-content {
+  display: flex;
+  align-items: center;
+  padding: 16px;
+  gap: 12px;
+}
+
+.language-toast-flag {
+  flex-shrink: 0;
+}
+
+.language-toast-text {
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.language-toast-message {
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text);
+  margin-bottom: 2px;
+}
+
+.language-toast-lang {
+  font-size: 12px;
+  color: rgba(247, 247, 247, 0.7);
+}
+
+.language-toast-close {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: bold;
+  line-height: 1;
+  color: rgba(247, 247, 247, 0.7);
+  transition: all 0.2s ease;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.language-toast-close:hover {
+  background: rgba(255, 71, 87, 0.2);
+  color: #ff4757;
+  transform: scale(1.1);
+  border-color: rgba(255, 71, 87, 0.3);
+}
+
+.language-toast-close:active {
+  transform: scale(0.95);
+}
+
+/* Animation improvements for language selector */
+.language-selector.loading .language-current {
+  opacity: 0.6;
+}
+
+.language-selector.loading .language-current::after {
+  content: "";
+  width: 12px;
+  height: 12px;
+  border: 2px solid transparent;
+  border-top: 2px solid var(--accent);
+  border-radius: 50%;
+  animation: language-spin 1s linear infinite;
+  margin-left: 8px;
+}
+
+@keyframes language-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Toast animation enhancements */
+.language-toast.success .language-toast-flag {
+  animation: flagSuccess 0.6s ease-out;
+}
+
+.language-toast.error .language-toast-flag {
+  animation: flagError 0.6s ease-out;
+}
+
+@keyframes flagSuccess {
+  0% {
+    transform: scale(0.8) rotate(-10deg);
+    opacity: 0.5;
+  }
+  50% {
+    transform: scale(1.1) rotate(5deg);
+  }
+  100% {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@keyframes flagError {
+  0%, 20%, 40%, 60%, 80% {
+    transform: translateX(-2px);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(2px);
+  }
+  100% {
+    transform: translateX(0);
+  }
+}
+
+/* Language responsive adjustments */
+@media (max-width: 768px) {
+  .language-toast {
+    right: 10px;
+    left: 10px;
+    max-width: none;
+  }
+  
+  .language-toast-content {
+    padding: 12px;
+  }
+}
