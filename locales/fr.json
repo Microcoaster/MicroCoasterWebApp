@@ -164,6 +164,9 @@
     "no_users_found": "Aucun utilisateur trouvé",
     "no_modules_found": "Aucun module trouvé"
   },
+  "docs": {
+    "title": "Documentation"
+  },
   "timelines": {
     "title": "Chronologies",
     "no_modules_alert": "Aucun module dans la timeline !",
