@@ -9,12 +9,13 @@
   <link rel="stylesheet" href="/css/global.css">
   <link rel="stylesheet" href="/css/login.css">
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
+  <link href="https://fonts.googleapis.com/css?family=Montserrat:400,500,600&display=swap" rel="stylesheet">
 </head>
-<body>
+<body style="font-family: 'Montserrat', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;">
   <div class="center">
     <div class="box">
-      <img src="/assets/img/logo.png" alt="MicroCoaster logo" class="logo">
-      <h1>Connexion</h1>
+  <img src="assets/img/microcoasters_logo_pos.svg" alt="MicroCoaster logo" class="logo">
+  <h1 style="font-weight: bold; font-style: italic;">LOGIN</h1>
 
       <% if (error) { %>
         <div class="error">
@@ -23,13 +24,13 @@
       <% } %>
 
       <form method="post" action="/login" autocomplete="on">
-        <input type="email" id="email" name="email" placeholder="Email" required autocomplete="email">
-        <input type="password" id="password" name="password" placeholder="Mot de passe" required autocomplete="current-password">
-        <button type="submit">Se connecter</button>
+        <input type="email" id="email" name="email" placeholder="Email address" required autocomplete="email">
+        <input type="password" id="password" name="password" placeholder="Password" required autocomplete="current-password">
+  <button type="submit">Login</button>
       </form>
       
-      <div class="register-link">
-        <p>Pas de compte ? <a href="/register">Créer un compte</a></p>
+      <div class="action-link">
+        <span>Don't have an account?</span><a href="/register">Create one</a>
       </div>
     </div>
   </div>
