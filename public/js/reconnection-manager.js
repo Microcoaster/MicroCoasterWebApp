@@ -278,7 +278,10 @@ class ReconnectionManager {
         banner.style.display = 'none';
         break;
       case 'reconnecting':
-        banner.textContent = t('reconnection.reconnecting', { attempts: this.reconnectAttempts, max: this.options.maxReconnectAttempts });
+        banner.textContent = t('reconnection.reconnecting', {
+          attempts: this.reconnectAttempts,
+          max: this.options.maxReconnectAttempts,
+        });
         banner.style.display = 'block';
         break;
       case 'error':

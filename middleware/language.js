@@ -54,12 +54,11 @@ function languageMiddleware(req, res, next) {
   // Detect current language
   const currentLang = detectLanguage(req);
 
-  
   // Store in request for use in routes
   req.language = currentLang;
-  
+
   // Create translation helper function
-  req.t = function(key, params = {}) {
+  req.t = function (key, params = {}) {
     return localeLoader.translate(currentLang, key, params);
   };
 
@@ -67,25 +66,25 @@ function languageMiddleware(req, res, next) {
   res.locals.language = currentLang;
   res.locals.t = req.t;
   res.locals.availableLanguages = localeLoader.getLanguagesInfo();
-  
+
   // Helper for checking current language
-  res.locals.isCurrentLanguage = function(langCode) {
+  res.locals.isCurrentLanguage = function (langCode) {
     return langCode === currentLang;
   };
 
   // Add switchLanguage helper to req
-  req.switchLanguage = function(lang) {
+  req.switchLanguage = function (lang) {
     if (!lang || !localeLoader.isLanguageSupported(lang)) {
       return false;
     }
-    
+
     res.cookie('language', lang, {
       maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax'
+      sameSite: 'lax',
     });
-    
+
     return true;
   };
 
@@ -99,14 +98,11 @@ function switchLanguage(req, res) {
   const { lang } = req.body;
   const referer = req.get('Referer') || '/dashboard';
 
-
-
   // Validate language
   if (!lang || !localeLoader.isLanguageSupported(lang)) {
-
     return res.status(400).json({
       success: false,
-      message: 'Language not supported'
+      message: 'Language not supported',
     });
   }
 
@@ -115,16 +111,14 @@ function switchLanguage(req, res) {
     maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
     httpOnly: false, // Allow JS access for frontend
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
+    sameSite: 'lax',
   });
-
-
 
   // Return success response
   res.json({
     success: true,
     language: lang,
-    message: 'Language changed successfully'
+    message: 'Language changed successfully',
   });
 }
 
@@ -135,7 +129,7 @@ function getLanguageInfo(req, res) {
   res.json({
     currentLanguage: req.language,
     availableLanguages: localeLoader.getLanguagesInfo(),
-    supportedLanguages: localeLoader.getSupportedLanguages()
+    supportedLanguages: localeLoader.getSupportedLanguages(),
   });
 }
 
@@ -143,5 +137,5 @@ module.exports = {
   languageMiddleware,
   switchLanguage,
   getLanguageInfo,
-  detectLanguage
+  detectLanguage,
 };

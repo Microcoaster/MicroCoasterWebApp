@@ -57,7 +57,7 @@ async function loadTranslations() {
 function t(key, params = {}) {
   const keys = key.split('.');
   let value = window.MC.translations;
-  
+
   for (const k of keys) {
     if (value && typeof value === 'object' && k in value) {
       value = value[k];
@@ -65,17 +65,17 @@ function t(key, params = {}) {
       return key; // Return key if not found
     }
   }
-  
+
   if (typeof value !== 'string') {
     return key;
   }
-  
+
   // Simple interpolation for parameters like {{count}}
   let result = value;
   for (const [param, replacement] of Object.entries(params)) {
     result = result.replace(new RegExp(`{{${param}}}`, 'g'), replacement);
   }
-  
+
   return result;
 }
 

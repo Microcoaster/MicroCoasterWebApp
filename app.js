@@ -138,7 +138,7 @@ websocketHandler(io);
 // Fixed: The error was caused by LocaleLoader constructor issue in routes/language.js
 
 // Catch unhandled errors
-process.on('uncaughtException', (error) => {
+process.on('uncaughtException', error => {
   console.error('❌ Uncaught Exception:', error.message);
   console.error('Stack:', error.stack);
   process.exit(1);

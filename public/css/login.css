@@ -16,7 +16,9 @@
   font-weight: 700;
   margin-left: 0.2em;
   text-decoration: none;
-  transition: color 0.2s, text-decoration 0.2s;
+  transition:
+    color 0.2s,
+    text-decoration 0.2s;
 }
 .action-link a:hover {
   color: #1db660;
@@ -61,7 +63,6 @@ body {
   display: block;
   margin-left: auto;
   margin-right: auto;
-
 }
 
 h1 {

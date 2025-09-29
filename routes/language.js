@@ -30,20 +30,20 @@ const LocaleLoader = require('../locales/index');
  */
 router.post('/switch', (req, res) => {
   const { language } = req.body;
-  
+
   if (!language || !['en', 'fr'].includes(language)) {
-    return res.status(400).json({ 
-      error: 'Invalid language. Must be "en" or "fr".' 
+    return res.status(400).json({
+      error: 'Invalid language. Must be "en" or "fr".',
     });
   }
-  
+
   // Use middleware function to switch language
   req.switchLanguage(language);
-  
-  res.json({ 
-    success: true, 
+
+  res.json({
+    success: true,
     language,
-    message: `Language switched to ${language}` 
+    message: `Language switched to ${language}`,
   });
 });
 
@@ -55,7 +55,7 @@ router.get('/info', (req, res) => {
   res.json({
     current: req.language,
     available: ['fr', 'en'],
-    default: 'fr'
+    default: 'fr',
   });
 });
 
@@ -66,10 +66,10 @@ router.get('/info', (req, res) => {
 router.get('/translations', (req, res) => {
   const currentLanguage = req.language || 'fr';
   const translations = LocaleLoader.languages.get(currentLanguage) || {};
-  
+
   res.json({
     language: currentLanguage,
-    translations: translations
+    translations: translations,
   });
 });
 

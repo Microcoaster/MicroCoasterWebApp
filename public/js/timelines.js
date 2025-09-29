@@ -375,7 +375,7 @@ class TimelineSequencer {
 
     document.getElementById('playBtn').classList.add('playing');
     document.getElementById('playIcon').className = 'bi bi-stop-fill';
-        document.getElementById('playText').textContent = t('timelines.stop_timeline');
+    document.getElementById('playText').textContent = t('timelines.stop_timeline');
 
     this.playbackIndicator.classList.add('active');
 

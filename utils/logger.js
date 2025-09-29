@@ -20,7 +20,7 @@ const consoleFormat = winston.format.combine(
   winston.format.printf(({ timestamp, level, message }) => {
     const cleanMessage =
       typeof message === 'string' ? message.replace(/\{.*?\}/g, '').trim() : String(message);
-    
+
     // Emoji selon le niveau de log
     let emoji = '';
     switch (level) {
@@ -39,7 +39,7 @@ const consoleFormat = winston.format.combine(
       default:
         emoji = 'ℹ️';
     }
-    
+
     return ` ${emoji}  ${timestamp} : ${cleanMessage}`;
   })
 );

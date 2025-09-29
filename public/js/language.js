@@ -57,10 +57,11 @@ class LanguageSelector {
 
     const languages = [
       { code: 'fr', name: 'Français', flag: '/assets/flags/fr.svg' },
-      { code: 'en', name: 'English', flag: '/assets/flags/en.svg' }
+      { code: 'en', name: 'English', flag: '/assets/flags/en.svg' },
     ];
 
-    const currentLangInfo = languages.find(lang => lang.code === this.currentLanguage) || languages[0];
+    const currentLangInfo =
+      languages.find(lang => lang.code === this.currentLanguage) || languages[0];
 
     const selectorHTML = `
       <div class="nav-link language-selector" id="language-selector">
@@ -75,13 +76,17 @@ class LanguageSelector {
           ${currentLangInfo.code.toUpperCase()}
         </span>
         <div class="language-dropdown">
-          ${languages.map(lang => `
+          ${languages
+            .map(
+              lang => `
             <a href="#" class="language-option ${lang.code === this.currentLanguage ? 'active' : ''}" 
                data-lang="${lang.code}">
               <img src="${lang.flag}" alt="${lang.name}" class="flag-icon">
               ${lang.name}
             </a>
-          `).join('')}
+          `
+            )
+            .join('')}
         </div>
       </div>
     `;
@@ -105,9 +110,10 @@ class LanguageSelector {
       currentSpan.dataset.lang = this.currentLanguage;
       const languages = [
         { code: 'fr', name: 'Français', flag: '/assets/flags/fr.svg' },
-        { code: 'en', name: 'English', flag: '/assets/flags/en.svg' }
+        { code: 'en', name: 'English', flag: '/assets/flags/en.svg' },
       ];
-      const currentLangInfo = languages.find(lang => lang.code === this.currentLanguage) || languages[0];
+      const currentLangInfo =
+        languages.find(lang => lang.code === this.currentLanguage) || languages[0];
       currentSpan.innerHTML = `
         <img src="${currentLangInfo.flag}" alt="${currentLangInfo.name}" class="flag-icon">
         ${currentLangInfo.code.toUpperCase()}
@@ -125,7 +131,7 @@ class LanguageSelector {
    * Bind event listeners
    */
   bindEvents() {
-    document.addEventListener('click', (e) => {
+    document.addEventListener('click', e => {
       const langItem = e.target.closest('a[data-lang]');
       if (langItem) {
         e.preventDefault();
@@ -152,7 +158,7 @@ class LanguageSelector {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ language: newLang })
+        body: JSON.stringify({ language: newLang }),
       });
 
       const result = await response.json();
@@ -160,10 +166,10 @@ class LanguageSelector {
       if (result.success) {
         // Update current language
         this.currentLanguage = newLang;
-        
+
         // Show success message with proper translation
         this.showLanguageMessage(newLang, 'success');
-        
+
         // Reload page to apply new language
         setTimeout(() => {
           window.location.reload();
@@ -171,7 +177,6 @@ class LanguageSelector {
       } else {
         throw new Error(result.message || 'Failed to change language');
       }
-
     } catch (error) {
       console.error('Error switching language:', error);
       this.showLanguageMessage(this.currentLanguage, 'error');
@@ -214,22 +219,22 @@ class LanguageSelector {
     const messages = {
       fr: {
         success: 'Langue changée avec succès',
-        error: 'Échec du changement de langue'
+        error: 'Échec du changement de langue',
       },
       en: {
-        success: 'Language changed successfully', 
-        error: 'Failed to change language'
-      }
+        success: 'Language changed successfully',
+        error: 'Failed to change language',
+      },
     };
 
     const languages = [
       { code: 'fr', name: 'Français', flag: '/assets/flags/fr.svg' },
-      { code: 'en', name: 'English', flag: '/assets/flags/en.svg' }
+      { code: 'en', name: 'English', flag: '/assets/flags/en.svg' },
     ];
 
     const message = messages[language]?.[type] || messages.fr[type];
     const langInfo = languages.find(l => l.code === language) || languages[0];
-    
+
     // Create custom toast for language change
     const toast = document.createElement('div');
     toast.className = `language-toast ${type}`;
@@ -253,10 +258,10 @@ class LanguageSelector {
 
     // Add to page and show
     document.body.appendChild(toast);
-    
+
     // Animate in
     setTimeout(() => toast.classList.add('show'), 100);
-    
+
     // Auto remove
     setTimeout(() => {
       toast.classList.remove('show');
@@ -283,14 +288,15 @@ class LanguageSelector {
 
     // Add to page and show
     document.body.appendChild(toast);
-    
+
     // Use Bootstrap toast if available, otherwise simple timeout
     if (window.bootstrap?.Toast) {
       const bsToast = new bootstrap.Toast(toast);
       bsToast.show();
       toast.addEventListener('hidden.bs.toast', () => toast.remove());
     } else {
-      toast.style.cssText = 'position:fixed;top:20px;right:20px;z-index:9999;padding:15px;border-radius:5px;';
+      toast.style.cssText =
+        'position:fixed;top:20px;right:20px;z-index:9999;padding:15px;border-radius:5px;';
       setTimeout(() => toast.remove(), 3000);
     }
   }

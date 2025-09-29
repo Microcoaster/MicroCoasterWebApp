@@ -55,16 +55,16 @@ class LocaleLoader {
 
     // Navigate through nested object using dot notation
     const translation = this.getNestedValue(langData, key);
-    
+
     if (translation === undefined) {
       // Try fallback language
       const fallbackData = this.languages.get(this.defaultLanguage);
       const fallbackTranslation = this.getNestedValue(fallbackData, key);
-      
+
       if (fallbackTranslation !== undefined) {
         return this.interpolate(fallbackTranslation, params);
       }
-      
+
       return key; // Ultimate fallback
     }
 
@@ -123,7 +123,7 @@ class LocaleLoader {
   getLanguagesInfo() {
     return [
       { code: 'fr', name: 'Français', flag: '🇫🇷' },
-      { code: 'en', name: 'English', flag: '🇺🇸' }
+      { code: 'en', name: 'English', flag: '🇺🇸' },
     ];
   }
 
