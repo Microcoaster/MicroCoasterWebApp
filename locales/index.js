@@ -1,11 +1,11 @@
 /**
  * ============================================================================
- * LANGUAGE LOADER - MULTILINGUAL SUPPORT
+ * CHARGEUR DE LANGUES - SUPPORT MULTILINGUE
  * ============================================================================
- * Manages loading and caching of language files for internationalization
+ * Gère le chargement et la mise en cache des fichiers de langues pour l'internationalisation
  *
  * @module LocaleLoader
- * @description Provides language loading, fallback, and translation utilities
+ * @description Fournit le chargement des langues, les fallbacks et les utilitaires de traduction
  * ============================================================================
  */
 
@@ -16,12 +16,12 @@ class LocaleLoader {
   constructor() {
     this.languages = new Map();
     this.supportedLanguages = ['fr', 'en'];
-    this.defaultLanguage = 'fr';
+    this.defaultLanguage = 'en';
     this.loadAllLanguages();
   }
 
   /**
-   * Load all language files into memory
+   * Charge tous les fichiers de langues en mémoire
    */
   loadAllLanguages() {
     this.supportedLanguages.forEach(lang => {
@@ -36,28 +36,28 @@ class LocaleLoader {
   }
 
   /**
-   * Get translation for a specific key and language
-   * @param {string} lang - Language code (fr, en)
-   * @param {string} key - Translation key (e.g., "navbar.dashboard")
-   * @param {object} params - Optional parameters for string interpolation
-   * @returns {string} Translated text or fallback
+   * Obtient la traduction pour une clé et une langue spécifiques
+   * @param {string} lang - Code de langue (fr, en)
+   * @param {string} key - Clé de traduction (ex: "navbar.dashboard")
+   * @param {object} params - Paramètres optionnels pour l'interpolation de chaînes
+   * @returns {string} Texte traduit ou fallback
    */
   translate(lang, key, params = {}) {
-    // Validate language
+    // Valider la langue
     if (!this.isLanguageSupported(lang)) {
       lang = this.defaultLanguage;
     }
 
     const langData = this.languages.get(lang);
     if (!langData) {
-      return key; // Fallback to key if language not loaded
+      return key; // Fallback vers la clé si la langue n'est pas chargée
     }
 
-    // Navigate through nested object using dot notation
+    // Naviguer dans l'objet imbriqué en utilisant la notation pointée
     const translation = this.getNestedValue(langData, key);
 
     if (translation === undefined) {
-      // Try fallback language
+      // Essayer la langue de fallback
       const fallbackData = this.languages.get(this.defaultLanguage);
       const fallbackTranslation = this.getNestedValue(fallbackData, key);
 
@@ -65,17 +65,17 @@ class LocaleLoader {
         return this.interpolate(fallbackTranslation, params);
       }
 
-      return key; // Ultimate fallback
+      return key; // Fallback ultime
     }
 
     return this.interpolate(translation, params);
   }
 
   /**
-   * Get nested value from object using dot notation
-   * @param {object} obj - Object to search in
-   * @param {string} path - Dot-separated path (e.g., "navbar.dashboard")
-   * @returns {string|undefined} Value or undefined if not found
+   * Obtient une valeur imbriquée d'un objet en utilisant la notation pointée
+   * @param {object} obj - Objet dans lequel chercher
+   * @param {string} path - Chemin séparé par des points (ex: "navbar.dashboard")
+   * @returns {string|undefined} Valeur ou undefined si non trouvée
    */
   getNestedValue(obj, path) {
     return path.split('.').reduce((current, key) => {
@@ -84,10 +84,10 @@ class LocaleLoader {
   }
 
   /**
-   * Simple string interpolation
-   * @param {string} template - Template string with {{variable}} placeholders
-   * @param {object} params - Parameters to replace
-   * @returns {string} Interpolated string
+   * Interpolation simple de chaînes de caractères
+   * @param {string} template - Chaîne modèle avec des placeholders {{variable}}
+   * @param {object} params - Paramètres à remplacer
+   * @returns {string} Chaîne interpolée
    */
   interpolate(template, params) {
     if (typeof template !== 'string') {
@@ -100,25 +100,25 @@ class LocaleLoader {
   }
 
   /**
-   * Check if language is supported
-   * @param {string} lang - Language code
-   * @returns {boolean} True if supported
+   * Vérifie si la langue est supportée
+   * @param {string} lang - Code de langue
+   * @returns {boolean} True si supportée
    */
   isLanguageSupported(lang) {
     return this.supportedLanguages.includes(lang);
   }
 
   /**
-   * Get all supported languages
-   * @returns {Array} Array of language codes
+   * Obtient toutes les langues supportées
+   * @returns {Array} Tableau des codes de langues
    */
   getSupportedLanguages() {
     return [...this.supportedLanguages];
   }
 
   /**
-   * Get language info for UI
-   * @returns {Array} Array of language objects with code and name
+   * Obtient les informations des langues pour l'interface utilisateur
+   * @returns {Array} Tableau d'objets de langues avec code et nom
    */
   getLanguagesInfo() {
     return [
@@ -128,15 +128,15 @@ class LocaleLoader {
   }
 
   /**
-   * Get default language
-   * @returns {string} Default language code
+   * Obtient la langue par défaut
+   * @returns {string} Code de la langue par défaut
    */
   getDefaultLanguage() {
     return this.defaultLanguage;
   }
 
   /**
-   * Reload languages (useful for development)
+   * Recharge les langues (utile pour le développement)
    */
   reload() {
     this.languages.clear();
@@ -144,7 +144,7 @@ class LocaleLoader {
   }
 }
 
-// Singleton instance
+// Instance singleton
 const localeLoader = new LocaleLoader();
 
 module.exports = localeLoader;
