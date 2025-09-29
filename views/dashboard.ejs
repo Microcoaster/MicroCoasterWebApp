@@ -1,8 +1,7 @@
 <!DOCTYPE html>
 <html lang="<%= language %>">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta charset="viewport" content="width=device-width, initial-scale=1">
   <meta name="env" content="<%= process.env.NODE_ENV || 'production' %>">
   <title><%= t('dashboard.title') %> - <%= t('common.app_name') %></title>
   <link rel="stylesheet" href="/css/bootstrap-grid.min.css">
@@ -25,7 +24,7 @@
                 
                 <div class="dashboard-card welcome-card">
                   <h2><%= t('dashboard.welcome') %>, <%= user.name || 'User' %>!</h2>
-                  <p>Manage your MicroCoaster modules and monitor your theme park systems.</p>
+                  <p><%= t('dashboard.manage_description') %></p>
                   
                   <div class="quick-actions">
                     <a href="/modules" class="quick-action-btn">
@@ -34,7 +33,7 @@
                         <circle cx="9" cy="9" r="2"/>
                         <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                       </svg>
-                      View Modules
+                      <%= t('dashboard.view_modules') %>
                     </a>
                     <button class="quick-action-btn" id="addModuleBtn">
                       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -42,7 +41,7 @@
                         <line x1="12" y1="8" x2="12" y2="16"/>
                         <line x1="8" y1="12" x2="16" y2="12"/>
                       </svg>
-                      Add Module
+                      <%= t('dashboard.add_module') %>
                     </button>
                   </div>
                 </div>
@@ -54,10 +53,10 @@
                       <circle cx="9" cy="9" r="2"/>
                       <path d="M21 15l-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
                     </svg>
-                    Total Modules
+                    <%= t('dashboard.total_modules') %>
                   </h3>
                   <div class="dashboard-stat"><%= stats.totalModules %></div>
-                  <p class="dashboard-description">Modules claimed on your account</p>
+                  <p class="dashboard-description"><%= t('dashboard.total_modules_description') %></p>
                 </div>
 
                 <div class="dashboard-card">
@@ -66,10 +65,10 @@
                       <circle cx="12" cy="12" r="10"/>
                       <polyline points="12,6 12,12 16,14"/>
                     </svg>
-                    Online Modules
+                    <%= t('dashboard.online_modules') %>
                   </h3>
                   <div class="dashboard-stat online"><%= stats.onlineModules %></div>
-                  <p class="dashboard-description">Currently connected and active</p>
+                  <p class="dashboard-description"><%= t('dashboard.online_modules_description') %></p>
                 </div>
 
                 <div class="dashboard-card">
@@ -79,10 +78,10 @@
                       <line x1="12" y1="8" x2="12" y2="12"/>
                       <line x1="12" y1="16" x2="12.01" y2="16"/>
                     </svg>
-                    Offline Modules
+                    <%= t('dashboard.offline_modules') %>
                   </h3>
                   <div class="dashboard-stat offline"><%= stats.offlineModules %></div>
-                  <p class="dashboard-description">Disconnected or unavailable</p>
+                  <p class="dashboard-description"><%= t('dashboard.offline_modules_description') %></p>
                 </div>
 
                 <div class="dashboard-card">
@@ -91,7 +90,7 @@
                       <path d="M12 2L2 7v10c0 5.55 3.84 10 9 10s9-4.45 9-10V7L12 2z"/>
                       <polyline points="8,12 12,16 16,12"/>
                     </svg>
-                    Module Types
+                    <%= t('dashboard.module_types') %>
                   </h3>
                   <div class="module-types">
                     <% Object.entries(stats.moduleTypes).forEach(([type, count]) => { %>
@@ -108,18 +107,18 @@
                     <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                       <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"/>
                     </svg>
-                    System Status
+                    <%= t('dashboard.system_status') %>
                   </h3>
                   <div class="system-status">
                     <div class="status-item">
                       <div class="status-indicator online"></div>
-                      <span class="status-text">WebSocket Connected</span>
+                      <span class="status-text"><%= t('dashboard.websocket_connected') %></span>
                     </div>
                     <div class="status-item">
                       <div class="status-indicator online"></div>
-                      <span class="status-text">Database Connected</span>
+                      <span class="status-text"><%= t('dashboard.database_connected') %></span>
                     </div>
-                    <p class="dashboard-description">All systems operational</p>
+                    <p class="dashboard-description"><%= t('dashboard.all_systems_operational') %></p>
                   </div>
                 </div>
 

@@ -489,7 +489,8 @@ function applySorting(tableType) {
       return cellValue.toLowerCase().includes('admin') ? 1 : 0;
     } else if (column === 'status') {
       // "En ligne" doit être trié avant "Hors ligne"
-      return cellValue.toLowerCase().includes('en ligne') ? 1 : 0;
+      const onlineText = window.t('common.online').toLowerCase();
+      return cellValue.toLowerCase().includes(onlineText) ? 1 : 0;
     }
 
     return cellValue.toLowerCase();
@@ -785,7 +786,7 @@ function updateModuleStatus(moduleId, isOnline) {
   moduleRows.forEach(row => {
     const statusSpan = row.querySelector('.status');
     if (statusSpan) {
-      statusSpan.textContent = isOnline ? 'En ligne' : 'Hors ligne';
+      statusSpan.textContent = isOnline ? window.t('common.online') : window.t('common.offline');
       statusSpan.className = `status ${isOnline ? 'status-online' : 'status-offline'}`;
     }
   });

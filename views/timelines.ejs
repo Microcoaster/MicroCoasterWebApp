@@ -33,7 +33,7 @@
               <div class="module-main-line">
                 <div class="module-name"><%= module.name || module.module_id %></div>
                 <span class="state <%= module.isOnline ? 'online' : 'offline' %>">
-                  <%= module.isOnline ? 'online' : 'offline' %>
+                  <%= module.isOnline ? t('common.online') : t('common.offline') %>
                 </span>
               </div>
               <div class="module-secondary-line">

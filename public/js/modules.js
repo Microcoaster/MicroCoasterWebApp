@@ -1210,7 +1210,7 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 
       const badge = p.querySelector('.state');
       if (badge) {
-        badge.textContent = online ? 'online' : 'offline';
+        badge.textContent = online ? window.t('common.online') : window.t('common.offline');
         badge.classList.toggle('online', online);
         badge.classList.toggle('offline', !online);
       }
