@@ -1,15 +1,39 @@
+/**
+ * Routes de gestion des modules - Interface modules utilisateur
+ * 
+ * Gère la gestion complète des modules IoT incluant l'ajout, suppression,
+ * mise à jour, claim et inférence automatique des types de modules.
+ * 
+ * @module modules
+ * @description Routes de gestion des modules avec claim, CRUD et inférence de types
+ */
+
 const express = require('express');
 const databaseManager = require('../bdd/DatabaseManager');
 const { requireAuth } = require('./auth');
 const Logger = require('../utils/logger');
 const router = express.Router();
 
-// Helper function to infer module type
+/**
+ * Vérifie si une chaîne se termine par un suffixe (insensible à la casse)
+ * @param {string} haystack - Chaîne à vérifier
+ * @param {string} needle - Suffixe recherché
+ * @returns {boolean} True si la chaîne se termine par le suffixe
+ * @private
+ */
 function endsWithCi(haystack, needle) {
   if (needle.length === 0) return true;
   return haystack.toLowerCase().endsWith(needle.toLowerCase());
 }
 
+/**
+ * Infère automatiquement le type d'un module depuis son ID ou nom
+ * Utilise les conventions de nommage MicroCoaster pour déterminer le type
+ * @param {string} moduleId - ID du module (ex: MC-0001-STN)
+ * @param {string} [name=''] - Nom optionnel du module
+ * @returns {string} Type inféré (Station, Launch Track, Switch Track, etc.)
+ * @private
+ */
 function mcInferType(moduleId, name = '') {
   const mid = moduleId?.toUpperCase().trim() || '';
   if (endsWithCi(mid, 'STN')) return 'Station';
@@ -30,12 +54,17 @@ function mcInferType(moduleId, name = '') {
   return 'Unknown';
 }
 
-// Page principale des modules (remplace modules.php)
+/**
+ * Route principale de la page de gestion des modules
+ * Affiche la liste des modules de l'utilisateur avec inférence automatique des types
+ * @param {Request} req - Requête Express avec session utilisateur authentifiée
+ * @param {Response} res - Réponse Express pour rendu de vue modules
+ * @returns {Promise<void>}
+ */
 router.get('/', requireAuth, async (req, res) => {
   try {
     const userId = req.session.user_id;
 
-    // Récupérer les informations utilisateur
     const user = await databaseManager.users.findById(userId);
     if (!user) {
       return res.redirect('/logout');
@@ -73,7 +102,13 @@ router.get('/', requireAuth, async (req, res) => {
   }
 });
 
-// API pour récupérer les modules en JSON (pour AJAX)
+/**
+ * API de récupération des modules en format JSON
+ * Fournit la liste des modules de l'utilisateur pour les requêtes AJAX
+ * @param {Request} req - Requête Express avec session utilisateur authentifiée
+ * @param {Response} res - Réponse JSON avec liste des modules
+ * @returns {Promise<void>}
+ */
 router.get('/api', requireAuth, async (req, res) => {
   try {
     const userId = req.session.user_id;
@@ -93,13 +128,18 @@ router.get('/api', requireAuth, async (req, res) => {
   }
 });
 
-// Claim/Ajouter un module (avec code de sécurité)
+/**
+ * Route de revendication (claim) d'un module avec code de sécurité
+ * Permet à un utilisateur de revendiquer un module avec validation du code sécurisé
+ * @param {Request} req - Requête Express avec données module_id, module_code, name
+ * @param {Response} res - Réponse Express avec redirection et message de statut
+ * @returns {Promise<void>}
+ */
 router.post('/claim', requireAuth, async (req, res) => {
   try {
     const { module_id, module_code, name } = req.body;
     const userId = req.session.user_id;
 
-    // Validations
     if (!module_id || module_id.trim() === '') {
       return res.redirect('/modules?flash=' + encodeURIComponent('Module ID is required'));
     }
@@ -108,14 +148,12 @@ router.post('/claim', requireAuth, async (req, res) => {
       return res.redirect('/modules?flash=' + encodeURIComponent('Module code is required'));
     }
 
-    // Validation du format Module ID
     if (!/^MC-\d{4}-(STN|LFX|AP|SM|ST|LT)$/i.test(module_id.trim())) {
       return res.redirect(
         '/modules?flash=' + encodeURIComponent('Invalid Module ID format (expected MC-XXXX-(type))')
       );
     }
 
-    // Validation du format Module Code
     if (!/^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/.test(module_code.trim())) {
       return res.redirect(
         '/modules?flash=' + encodeURIComponent('Invalid module code format (expected XXXX-XXXX)')
@@ -125,13 +163,10 @@ router.post('/claim', requireAuth, async (req, res) => {
     const moduleIdTrim = module_id.trim();
     const moduleCodeTrim = module_code.trim();
     const nameTrim = name?.trim() || null;
-
-    // Inférer le type
     const type = mcInferType(moduleIdTrim, nameTrim);
 
     const databaseManager = require('../bdd/DatabaseManager');
 
-    // Vérifier si le module existe déjà
     const [existingModules] = await databaseManager.execute(
       'SELECT id, user_id, claimed, module_code FROM modules WHERE module_id = ? LIMIT 1',
       [moduleIdTrim]
@@ -192,7 +227,14 @@ router.post('/claim', requireAuth, async (req, res) => {
   }
 });
 
-// Ajouter un module (ancienne méthode - conservée pour compatibilité)
+/**
+ * Route d'ajout direct d'un module (méthode legacy)
+ * Ajoute directement un module sans validation de code sécurisé (compatibilité)
+ * @param {Request} req - Requête Express avec données module_id, name
+ * @param {Response} res - Réponse Express avec redirection et message de statut
+ * @returns {Promise<void>}
+ * @deprecated Utiliser /claim avec code de sécurité à la place
+ */
 router.post('/add', requireAuth, async (req, res) => {
   try {
     const { module_id, name } = req.body;
@@ -240,7 +282,13 @@ router.post('/add', requireAuth, async (req, res) => {
   }
 });
 
-// Supprimer/Unclaim un module
+/**
+ * Route de suppression/libération d'un module
+ * Libère un module revendiqué (unclaim) plutôt que de le supprimer définitivement
+ * @param {Request} req - Requête Express avec paramètre moduleId
+ * @param {Response} res - Réponse JSON avec confirmation ou erreur
+ * @returns {Promise<void>}
+ */
 router.post('/delete/:moduleId', requireAuth, async (req, res) => {
   try {
     const { moduleId } = req.params;
@@ -284,7 +332,13 @@ router.post('/delete/:moduleId', requireAuth, async (req, res) => {
   }
 });
 
-// Mettre à jour un module
+/**
+ * Route de mise à jour des informations d'un module
+ * Met à jour le nom et/ou le type d'un module appartenant à l'utilisateur
+ * @param {Request} req - Requête Express avec paramètre moduleId et données name, type
+ * @param {Response} res - Réponse JSON avec confirmation ou erreur
+ * @returns {Promise<void>}
+ */
 router.post('/update/:moduleId', requireAuth, async (req, res) => {
   try {
     const { moduleId } = req.params;

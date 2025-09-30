@@ -1,25 +1,30 @@
+/**
+ * Routes d'administration - Interface de gestion système
+ * 
+ * Gère les routes d'administration incluant l'interface principale,
+ * les APIs de statistiques, et la gestion des utilisateurs et modules.
+ * 
+ * @module admin
+ * @description Routes d'administration avec contrôle d'accès et APIs temps réel
+ */
+
 const express = require('express');
 const { requireAdmin } = require('./auth');
 const databaseManager = require('../bdd/DatabaseManager');
 const Logger = require('../utils/logger');
 const router = express.Router();
 
-// Toutes les routes admin nécessitent les permissions administrateur
 router.use(requireAdmin);
 
-// Routes API supprimées - les données sont maintenant intégrées directement dans la page
-
 /**
- * Gestion des actions POST (supprimé - tout est maintenant côté client)
- */
-// POST supprimé - pas de navigation par URL
-
-/**
- * Page principale d'administration - Version simplifiée sans paramètres URL
+ * Route de la page principale d'administration
+ * Récupère tous les utilisateurs et modules pour affichage avec pagination côté client
+ * @param {Request} req - Requête Express avec session admin
+ * @param {Response} res - Réponse Express pour rendu de vue
+ * @returns {Promise<void>}
  */
 router.get('/', async (req, res) => {
   try {
-    // Récupérer TOUTES les données côté serveur - la pagination sera côté client
     const [allUsersResult, allModulesResult] = await Promise.all([
       databaseManager.users.findAll({
         limit: 999999,
@@ -35,25 +40,24 @@ router.get('/', async (req, res) => {
       }),
     ]);
 
-    // Récupérer l'utilisateur connecté
     const user = await databaseManager.users.findById(req.session.user_id);
 
     const stats = {
       totalUsers: allUsersResult.users.length,
-      onlineUsers: 0, // Sera mis à jour en temps réel par WebSocket
+      onlineUsers: 0,
       totalModules: allModulesResult.modules.length,
       onlineModules: allModulesResult.modules.filter(m => m.status === 'online').length,
     };
 
     res.render('admin', {
       currentPage: 'admin',
-      users: allUsersResult.users, // Tous les utilisateurs
-      modules: allModulesResult.modules, // Tous les modules
+      users: allUsersResult.users,
+      modules: allModulesResult.modules,
       stats,
       error: null,
       success: null,
       user: user,
-      nickname: req.session.nickname, // Garder pour compatibilité
+      nickname: req.session.nickname,
     });
   } catch (error) {
     Logger.app.error('Admin page error:', error);
@@ -62,7 +66,11 @@ router.get('/', async (req, res) => {
 });
 
 /**
- * API pour récupérer les statistiques en temps réel
+ * API de récupération des statistiques système en temps réel
+ * Fournit les métriques d'utilisateurs et modules connectés
+ * @param {Request} req - Requête Express avec session admin
+ * @param {Response} res - Réponse JSON avec statistiques
+ * @returns {Promise<void>}
  */
 router.get('/api/stats', async (req, res) => {
   try {
@@ -89,7 +97,11 @@ router.get('/api/stats', async (req, res) => {
 });
 
 /**
- * API pour récupérer la liste des utilisateurs
+ * API de récupération de la liste des utilisateurs
+ * Fournit la liste complète des utilisateurs pour l'interface d'administration
+ * @param {Request} req - Requête Express avec session admin
+ * @param {Response} res - Réponse JSON avec liste utilisateurs
+ * @returns {Promise<void>}
  */
 router.get('/api/users', async (req, res) => {
   try {
@@ -102,7 +114,11 @@ router.get('/api/users', async (req, res) => {
 });
 
 /**
- * API pour récupérer la liste des modules
+ * API de récupération de la liste des modules
+ * Fournit la liste complète des modules pour l'interface d'administration
+ * @param {Request} req - Requête Express avec session admin
+ * @param {Response} res - Réponse JSON avec liste modules
+ * @returns {Promise<void>}
  */
 router.get('/api/modules', async (req, res) => {
   try {

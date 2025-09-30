@@ -1,9 +1,29 @@
+/**
+ * Routes du tableau de bord - Interface utilisateur principale
+ * 
+ * Gère l'affichage du dashboard utilisateur avec statistiques personnalisées,
+ * métriques de modules et APIs de données temps réel.
+ * 
+ * @module dashboard
+ * @description Routes du dashboard avec statistiques utilisateur et APIs de données
+ */
+
 const express = require('express');
 const router = express.Router();
 const databaseManager = require('../bdd/DatabaseManager');
 const Logger = require('../utils/logger');
 
-// Fonction helper pour calculer les statistiques
+/**
+ * Calcule les statistiques personnalisées pour un utilisateur
+ * Génère les métriques de modules et types pour le dashboard
+ * @param {number} userId - ID de l'utilisateur
+ * @returns {Promise<Object>} Statistiques calculées
+ * @returns {number} returns.totalModules - Nombre total de modules
+ * @returns {number} returns.onlineModules - Nombre de modules en ligne
+ * @returns {number} returns.offlineModules - Nombre de modules hors ligne
+ * @returns {Object} returns.moduleTypes - Répartition par types de modules
+ * @private
+ */
 async function calculateStats(userId) {
   const userModules = await databaseManager.modules.findByUserId(userId);
 
@@ -26,10 +46,15 @@ async function calculateStats(userId) {
   return stats;
 }
 
-// Route pour afficher le dashboard
+/**
+ * Route principale d'affichage du tableau de bord
+ * Affiche le dashboard personnalisé avec statistiques utilisateur et métriques modules
+ * @param {Request} req - Requête Express avec session utilisateur
+ * @param {Response} res - Réponse Express pour rendu de vue dashboard
+ * @returns {Promise<void>}
+ */
 router.get('/', async (req, res) => {
   try {
-    // Vérifier que l'utilisateur est connecté
     if (!req.session.user_id) {
       return res.redirect('/');
     }
@@ -56,10 +81,15 @@ router.get('/', async (req, res) => {
   }
 });
 
-// Route API pour récupérer les statistiques en temps réel
+/**
+ * API de récupération des statistiques temps réel
+ * Fournit les métriques actualisées pour le dashboard utilisateur
+ * @param {Request} req - Requête Express avec session utilisateur
+ * @param {Response} res - Réponse JSON avec statistiques
+ * @returns {Promise<void>}
+ */
 router.get('/stats', async (req, res) => {
   try {
-    // Vérifier que l'utilisateur est connecté
     if (!req.session.user_id) {
       return res.status(401).json({ error: 'Not authenticated' });
     }

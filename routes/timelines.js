@@ -1,15 +1,39 @@
+/**
+ * Routes des chronologies - Interface de planification séquentielle
+ * 
+ * Gère l'affichage de l'interface de chronologies pour la planification
+ * et la visualisation des séquences de modules dans le temps.
+ * 
+ * @module timelines
+ * @description Routes de l'interface de chronologies avec modules utilisateur
+ */
+
 const express = require('express');
 const router = express.Router();
 const { requireAuth } = require('./auth');
 const databaseManager = require('../bdd/DatabaseManager');
 const Logger = require('../utils/logger');
 
-// Fonction helper pour déduire le type de module (même que dans modules.js)
+/**
+ * Vérifie si une chaîne se termine par un suffixe (insensible à la casse)
+ * @param {string} haystack - Chaîne à vérifier
+ * @param {string} needle - Suffixe recherché
+ * @returns {boolean} True si la chaîne se termine par le suffixe
+ * @private
+ */
 function endsWithCi(haystack, needle) {
   if (needle.length === 0) return true;
   return haystack.toLowerCase().endsWith(needle.toLowerCase());
 }
 
+/**
+ * Infère automatiquement le type d'un module depuis son ID ou nom
+ * Utilise les conventions de nommage MicroCoaster (dupliqué de modules.js)
+ * @param {string} moduleId - ID du module (ex: MC-0001-STN)
+ * @param {string} [name=''] - Nom optionnel du module
+ * @returns {string} Type inféré (Station, Launch Track, Switch Track, etc.)
+ * @private
+ */
 function mcInferType(moduleId, name = '') {
   const mid = moduleId?.toUpperCase().trim() || '';
   if (endsWithCi(mid, 'STN')) return 'Station';
@@ -30,24 +54,27 @@ function mcInferType(moduleId, name = '') {
   return 'Unknown';
 }
 
-// Route pour afficher les timelines
+/**
+ * Route d'affichage de la page des chronologies
+ * Affiche l'interface de planification temporelle avec les modules utilisateur
+ * @param {Request} req - Requête Express avec session utilisateur authentifiée
+ * @param {Response} res - Réponse Express pour rendu de vue chronologies
+ * @returns {Promise<void>}
+ */
 router.get('/', requireAuth, async (req, res) => {
   try {
     const userId = req.session.user_id;
 
-    // Récupérer les modules de l'utilisateur directement depuis la DB
     const userModules = await databaseManager.modules.findByUserId(userId);
 
-    // Inférer les types manquants et formatter
     const formattedModules = userModules.map(module => ({
       module_id: module.module_id,
       name: module.name || module.module_id,
       type: module.type || mcInferType(module.module_id, module.name),
       claimed: module.claimed || 0,
-      isOnline: false, // Toujours offline par défaut
+      isOnline: false,
     }));
 
-    // Récupérer les informations utilisateur
     const user = await databaseManager.users.findById(userId);
 
     res.render('timelines', {

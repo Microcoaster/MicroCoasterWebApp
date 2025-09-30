@@ -1,8 +1,26 @@
+/**
+ * Routes d'authentification - Gestion utilisateurs et sessions
+ * 
+ * Gère l'authentification, l'enregistrement, les sessions utilisateur,
+ * les profils et les middlewares de sécurité pour l'application.
+ * 
+ * @module auth
+ * @description Routes d'authentification avec gestion des sessions et profils utilisateur
+ */
+
 const express = require('express');
 const databaseManager = require('../bdd/DatabaseManager');
 const Logger = require('../utils/logger');
 const router = express.Router();
 
+/**
+ * Middleware de vérification d'authentification
+ * Redirige vers login si utilisateur non connecté
+ * @param {Request} req - Requête Express avec session
+ * @param {Response} res - Réponse Express
+ * @param {Function} next - Fonction de continuation middleware
+ * @returns {void}
+ */
 function requireAuth(req, res, next) {
   if (req.session.user_id) {
     next();
@@ -11,6 +29,14 @@ function requireAuth(req, res, next) {
   }
 }
 
+/**
+ * Middleware de vérification des droits administrateur
+ * Vérifie que l'utilisateur connecté possède les permissions admin
+ * @param {Request} req - Requête Express avec session
+ * @param {Response} res - Réponse Express
+ * @param {Function} next - Fonction de continuation middleware
+ * @returns {void}
+ */
 function requireAdmin(req, res, next) {
   if (req.session.user_id && req.session.is_admin) {
     next();
@@ -21,6 +47,13 @@ function requireAdmin(req, res, next) {
   }
 }
 
+/**
+ * Route d'affichage de la page de connexion
+ * Redirige vers dashboard si utilisateur déjà connecté
+ * @param {Request} req - Requête Express avec session
+ * @param {Response} res - Réponse Express pour rendu de vue
+ * @returns {void}
+ */
 router.get('/login', (req, res) => {
   if (req.session.user_id) {
     return res.redirect('/dashboard');
@@ -30,6 +63,13 @@ router.get('/login', (req, res) => {
   });
 });
 
+/**
+ * Route d'affichage de la page d'enregistrement
+ * Redirige vers dashboard si utilisateur déjà connecté
+ * @param {Request} req - Requête Express avec session
+ * @param {Response} res - Réponse Express pour rendu de vue
+ * @returns {void}
+ */
 router.get('/register', (req, res) => {
   if (req.session.user_id) {
     return res.redirect('/dashboard');
@@ -39,6 +79,13 @@ router.get('/register', (req, res) => {
   });
 });
 
+/**
+ * Route de traitement de la connexion utilisateur
+ * Valide les identifiants, crée la session et émet un événement temps réel
+ * @param {Request} req - Requête Express avec données de formulaire
+ * @param {Response} res - Réponse Express avec redirection ou erreur
+ * @returns {Promise<void>}
+ */
 router.post('/login', async (req, res) => {
   const { email, password } = req.body;
   let error = null;
@@ -90,6 +137,13 @@ router.post('/login', async (req, res) => {
   });
 });
 
+/**
+ * Route de traitement de l'enregistrement utilisateur
+ * Valide les données, crée le compte, la session et émet un événement temps réel
+ * @param {Request} req - Requête Express avec données de formulaire
+ * @param {Response} res - Réponse Express avec redirection ou erreur
+ * @returns {Promise<void>}
+ */
 router.post('/register', async (req, res) => {
   const { email, password, confirmPassword, name } = req.body;
   let error = null;
@@ -149,6 +203,13 @@ router.post('/register', async (req, res) => {
   });
 });
 
+/**
+ * Route de déconnexion utilisateur
+ * Détruit la session et émet un événement temps réel de déconnexion
+ * @param {Request} req - Requête Express avec session
+ * @param {Response} res - Réponse Express avec redirection
+ * @returns {void}
+ */
 router.get('/logout', (req, res) => {
   const userName = req.session.nickname || 'User';
   const userId = req.session.user_id;
@@ -173,6 +234,13 @@ router.get('/logout', (req, res) => {
   });
 });
 
+/**
+ * Route d'affichage du profil utilisateur
+ * Affiche les informations du profil de l'utilisateur connecté
+ * @param {Request} req - Requête Express avec session authentifiée
+ * @param {Response} res - Réponse Express pour rendu de vue profil
+ * @returns {Promise<void>}
+ */
 router.get('/profile', requireAuth, async (req, res) => {
   try {
     const user = await databaseManager.users.findById(req.session.user_id);
@@ -195,6 +263,13 @@ router.get('/profile', requireAuth, async (req, res) => {
   }
 });
 
+/**
+ * Route de mise à jour du profil utilisateur
+ * Met à jour le nom et l'email de l'utilisateur connecté
+ * @param {Request} req - Requête Express avec données de formulaire
+ * @param {Response} res - Réponse Express avec confirmation ou erreur
+ * @returns {Promise<void>}
+ */
 router.post('/profile', requireAuth, async (req, res) => {
   const { name, email } = req.body;
   let error = null;
@@ -260,6 +335,13 @@ router.post('/profile', requireAuth, async (req, res) => {
   });
 });
 
+/**
+ * Route de changement de mot de passe
+ * Permet à l'utilisateur de modifier son mot de passe après vérification
+ * @param {Request} req - Requête Express avec mots de passe
+ * @param {Response} res - Réponse Express avec confirmation ou erreur
+ * @returns {Promise<void>}
+ */
 router.post('/change-password', requireAuth, async (req, res) => {
   const { currentPassword, newPassword, confirmPassword } = req.body;
   let error = null;
@@ -297,6 +379,13 @@ router.post('/change-password', requireAuth, async (req, res) => {
   });
 });
 
+/**
+ * Route racine de redirection
+ * Redirige vers dashboard si connecté, sinon vers login
+ * @param {Request} req - Requête Express avec session
+ * @param {Response} res - Réponse Express avec redirection
+ * @returns {void}
+ */
 router.get('/', (req, res) => {
   if (req.session.user_id) {
     res.redirect('/dashboard');

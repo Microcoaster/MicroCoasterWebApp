@@ -1,23 +1,11 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - LANGUAGE ROUTES
- * ================================================================================
- *
- * Purpose: Handle language switching API endpoints
- * Author: MicroCoaster Development Team
- * Created: 2024
- *
- * Description:
- * Provides REST API endpoints for:
- * - Language switching (POST /api/language/switch)
- * - Language information retrieval (GET /api/language/info)
- * - Client-side translations (GET /api/language/translations)
- *
- * Dependencies:
- * - middleware/language.js (switchLanguage function)
- * - locales/ (translation files)
- *
- * ================================================================================
+ * Routes de gestion des langues - APIs de changement de langue
+ * 
+ * Gère les APIs de changement de langue incluant la commutation,
+ * la récupération d'informations et les traductions côté client.
+ * 
+ * @module language
+ * @description APIs de gestion des langues avec changement dynamique et traductions
  */
 
 const express = require('express');
@@ -25,8 +13,11 @@ const router = express.Router();
 const LocaleLoader = require('../locales/index');
 
 /**
- * POST /api/language/switch
- * Switch user's language preference
+ * API de changement de langue utilisateur
+ * Permet de basculer entre les langues disponibles (fr/en)
+ * @param {Request} req - Requête Express avec paramètre language
+ * @param {Response} res - Réponse JSON avec confirmation de changement
+ * @returns {void}
  */
 router.post('/switch', (req, res) => {
   const { language } = req.body;
@@ -37,7 +28,6 @@ router.post('/switch', (req, res) => {
     });
   }
 
-  // Use middleware function to switch language
   req.switchLanguage(language);
 
   res.json({
@@ -48,8 +38,11 @@ router.post('/switch', (req, res) => {
 });
 
 /**
- * GET /api/language/info
- * Get current language information
+ * API d'informations sur la langue actuelle
+ * Fournit la langue courante et les langues disponibles
+ * @param {Request} req - Requête Express avec langue actuelle
+ * @param {Response} res - Réponse JSON avec informations de langue
+ * @returns {void}
  */
 router.get('/info', (req, res) => {
   res.json({
@@ -60,8 +53,11 @@ router.get('/info', (req, res) => {
 });
 
 /**
- * GET /api/language/translations
- * Get all translations for current language for client-side use
+ * API de récupération des traductions côté client
+ * Fournit toutes les traductions de la langue actuelle pour utilisation JavaScript
+ * @param {Request} req - Requête Express avec langue actuelle
+ * @param {Response} res - Réponse JSON avec traductions complètes
+ * @returns {void}
  */
 router.get('/translations', (req, res) => {
   const currentLanguage = req.language || 'en';

@@ -1,9 +1,25 @@
+/**
+ * Routes de documentation - Affichage des guides utilisateur
+ * 
+ * Gère l'affichage de la page de documentation et des guides
+ * d'utilisation pour les utilisateurs de l'application.
+ * 
+ * @module documentations
+ * @description Routes de la page de documentation avec accès authentifié
+ */
+
 const express = require('express');
 const { requireAuth } = require('./auth');
 const databaseManager = require('../bdd/DatabaseManager');
 const router = express.Router();
 
-// Route pour afficher les documentations
+/**
+ * Route d'affichage de la page de documentation
+ * Affiche la page de documentation pour les utilisateurs authentifiés
+ * @param {Request} req - Requête Express avec session utilisateur authentifiée
+ * @param {Response} res - Réponse Express pour rendu de vue documentation
+ * @returns {Promise<void>}
+ */
 router.get('/', requireAuth, async (req, res) => {
   try {
     const userId = req.session.user_id;
