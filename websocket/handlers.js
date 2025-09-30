@@ -24,54 +24,11 @@ function getRealTimeAPI(socket) {
 
 // Maps pour stocker les connexions actives (adaptées du serveur WebSocket original)
 // connectedClients géré par EventsManager
-// connectedModules/espById maintenant gérés par ModuleEvents pour éviter les doublons
+// Maps pour la gestion des claims web -> modules
 const codeByModuleId = new Map(); // moduleId -> code (après "claim" par le web)
 
-/* ===================== AUTHENTIFICATION ESP SÉCURISÉE ===================== */
-
-/**
- * Valide l'authentification d'un message ESP
- * @param {Object} socket - Socket ESP
- * @param {Object} data - Données du message
- * @returns {boolean} true si valide, false sinon
- */
-async function validateESPMessage(socket, data) {
-  // Vérifier que le socket est authentifié
-  if (!socket.moduleAuth || !socket.moduleId) {
-    Logger.modules.warn('🚨 Message ESP depuis socket non authentifié');
-    return false;
-  }
-
-  // Vérifier que les credentials sont présents dans le message
-  if (!data.moduleId || !data.password) {
-    Logger.modules.warn(`🚨 Message ESP sans credentials depuis ${socket.moduleId}`);
-    return false;
-  }
-
-  // Vérifier que les credentials correspondent à ceux du socket
-  if (data.moduleId !== socket.moduleId) {
-    Logger.modules.warn(
-      `🚨 Tentative d'usurpation: ${data.moduleId} depuis socket ${socket.moduleId}`
-    );
-    return false;
-  }
-
-  // Valider le password à nouveau (sécurité renforcée)
-  try {
-    const moduleAuth = await databaseManager.modules.validateModuleAuth(
-      data.moduleId,
-      data.password
-    );
-    if (!moduleAuth) {
-      Logger.modules.warn(`🚨 Password invalide pour module ${data.moduleId}`);
-      return false;
-    }
-    return true;
-  } catch (error) {
-    Logger.modules.error('Erreur validation message ESP:', error);
-    return false;
-  }
-}
+// ===== AUTHENTIFICATION ESP SUPPRIMÉE =====
+// Les modules ESP32 n'utilisent plus Socket.IO - voir websocket/esp-server.js
 
 /* ===================== Helpers log (portés du serveur original) ===================== */
 function redact(val) {
@@ -106,11 +63,11 @@ function logRx(socket, event, data, session = null) {
   try {
     // Éviter le spam télémétrie en console
     if (event === 'telemetry') {
-      Logger.esp(`[RX] ${who(socket, session)} ${event}`, { data: redact(data) });
+      Logger.esp.debug(`[RX] ${who(socket, session)} ${event}`, { data: redact(data) });
     } else {
       // Si c'est un module ESP, utiliser le logger ESP
       if (who(socket, session).includes('unknown')) {
-        Logger.esp(`[RX] ${who(socket, session)} ${event}`);
+        Logger.esp.info(`[RX] ${who(socket, session)} ${event}`);
       } else {
         Logger.modules.info(`[RX] ${who(socket, session)} ${event}`);
       }
@@ -125,7 +82,7 @@ function logTx(socket, event, data, session = null) {
   try {
     // Éviter le spam télémétrie et événements fréquents en console
     if (event.includes('telemetry') || event.includes('module_telemetry')) {
-      Logger.esp(`[TX] ${who(socket, session)} ${event}`, { data: redact(data) });
+      Logger.esp.debug(`[TX] ${who(socket, session)} ${event}`, { data: redact(data) });
     } else if (event === 'modules_state' || event === 'module_presence') {
       Logger.modules.debug(`[TX] ${who(socket, session)} ${event}`); // Événements fréquents en debug
     } else {
@@ -135,7 +92,7 @@ function logTx(socket, event, data, session = null) {
         event.includes('esp') ||
         who(socket, session).includes('MC-')
       ) {
-        Logger.esp(`[TX] ${who(socket, session)} ${event}`);
+        Logger.esp.info(`[TX] ${who(socket, session)} ${event}`);
       } else {
         Logger.modules.info(`[TX] ${who(socket, session)} ${event}`);
       }
@@ -176,8 +133,8 @@ function getUserSockets(realTimeAPI, userId) {
   );
 }
 
-module.exports = function (io) {
-  Logger.app.info('🔌 WebSocket handler initialized (Socket.io)');
+module.exports = function (io, socketWSBridge) {
+  Logger.app.info('🔌 WebSocket handler initialized (Socket.io for Web only)');
 
   io.on('connection', socket => {
     const session = socket.request.session;
@@ -194,7 +151,7 @@ module.exports = function (io) {
     if (session && session.user_id) {
       handleClientConnection(socket, session);
     } else {
-      Logger.esp(
+      Logger.esp.debug(
         `🔄 Connection without session - waiting for manual auth or module identification: ${socket.id}`
       );
 
@@ -220,18 +177,23 @@ module.exports = function (io) {
           `✅ Processing manual authentication for user ${data.userId} (${data.userType})`
         );
 
-        // Retirer les listeners module pour éviter les conflits
-        socket.removeAllListeners('module_identify');
-        if (socket._moduleTimeout) {
-          clearTimeout(socket._moduleTimeout);
-        }
+
 
         // Rediriger vers le handler client
         handleClientConnection(socket, fakeSession);
       });
 
-      // Sinon c'est probablement un module ESP32
-      handleModuleConnection(socket);
+      // Les ESP32 n'utilisent plus Socket.IO - seuls les clients web se connectent ici
+      // Si aucune authentification client, déconnecter après timeout
+      const clientTimeout = setTimeout(() => {
+        Logger.activity.warn(`❌ Unauthenticated Socket.IO connection timeout: ${socket.id}`);
+        socket.disconnect();
+      }, 10000);
+
+      // Nettoyer le timeout si authentification client reçue
+      socket.once('client:authenticate', () => {
+        clearTimeout(clientTimeout);
+      });
     }
 
     // Gestion générale des erreurs de socket
@@ -337,7 +299,7 @@ module.exports = function (io) {
       }
     }
 
-    // ===== WEB -> ESP COMMANDES SÉCURISÉES =====
+    // ===== WEB -> ESP COMMANDES VIA BRIDGE =====
     socket.on('send_module_command', data => {
       const { moduleId, command } = data;
 
@@ -348,27 +310,29 @@ module.exports = function (io) {
 
       Logger.activity.info(`🎮 Commande reçue de ${userName}: ${command} -> ${moduleId}`);
 
-      const realTimeAPI = getRealTimeAPI(socket);
-      if (realTimeAPI?.modules) {
-        const result = realTimeAPI.modules.sendSecureCommand(moduleId, command, userId);
+      // NOUVEAU: Utiliser le bridge pour envoyer vers ESP32 WebSocket natif
+      const bridge = io.app?.locals?.socketWSBridge;
+      if (bridge) {
+        const success = bridge.handleWebCommand(socket, moduleId, command, data);
 
-        if (!result.success) {
-          Logger.activity.warn(`🚫 Commande refusée pour ${userName}: ${result.error}`);
-          socket.emit('command_error', {
-            moduleId,
-            command,
-            error: result.error,
-          });
-        } else {
-          Logger.activity.info(`✅ Commande envoyée: ${command} -> ${moduleId}`);
+        if (success) {
+          Logger.activity.info(`✅ Commande transmise via bridge: ${command} -> ${moduleId}`);
           socket.emit('command_sent', {
             moduleId,
             command,
             timestamp: new Date(),
           });
+        } else {
+          Logger.activity.warn(`🚫 Impossible d'envoyer commande à ${moduleId}: module non connecté`);
+          socket.emit('command_error', {
+            moduleId,
+            command,
+            error: 'Module not connected via WebSocket',
+          });
         }
       } else {
-        socket.emit('error', { message: 'Service modules indisponible' });
+        Logger.activity.error('❌ Bridge WebSocket non disponible');
+        socket.emit('error', { message: 'Service WebSocket indisponible' });
       }
     });
 
@@ -404,171 +368,10 @@ module.exports = function (io) {
     });
   }
 
-  // Gestionnaire pour les modules ESP32
-  function handleModuleConnection(socket) {
-    Logger.esp(`🤖 Module attempting connection: ${socket.id}`);
-
-    // Timeout pour identifier le module (éviter les connexions zombies)
-    const identificationTimeout = setTimeout(() => {
-      if (!socket.moduleId) {
-        Logger.esp(`Module ${socket.id} failed to identify within 10 seconds - disconnecting`);
-        socket.emit('error', { message: 'Identification timeout' });
-        socket.disconnect();
-      }
-    }, 10000);
-
-    // Stocker le timeout sur le socket pour pouvoir l'annuler
-    socket._moduleTimeout = identificationTimeout;
-
-    // ===== ESP -> REGISTER ===== (le module doit s'identifier avec auth)
-    socket.on('module_identify', async data => {
-      clearTimeout(identificationTimeout); // Annuler le timeout
-
-      logRx(socket, 'module_identify', data);
-      const { moduleId, password, type, uptime, position } = data;
-
-      // Validation des données requises
-      if (!moduleId || !password) {
-        Logger.modules.warn(
-          `🚨 Tentative d'identification sans credentials: ${moduleId || 'NO_ID'}`
-        );
-        socket.emit('error', { message: 'Module ID et password requis' });
-        return socket.disconnect();
-      }
-
-      try {
-        // AUTHENTIFICATION SÉCURISÉE
-        const moduleAuth = await databaseManager.modules.validateModuleAuth(moduleId, password);
-
-        if (!moduleAuth) {
-          Logger.modules.warn(`🚨 SÉCURITÉ: Authentification échouée pour ${moduleId}`);
-          socket.emit('error', { message: 'Authentification échouée' });
-          return socket.disconnect();
-        }
-
-        Logger.modules.info(`🔒 Module authentifié: ${moduleId} (${type || 'Unknown'})`);
-
-        // Stocker les infos d'auth sur le socket pour validation future
-        socket.moduleId = moduleId;
-        socket.moduleAuth = moduleAuth;
-        socket.moduleType = type || 'Unknown';
-
-        // NOUVEAU: Utiliser ModuleEvents pour la gestion unifiée
-        const realTimeAPI = getRealTimeAPI(socket);
-        if (realTimeAPI?.modules) {
-          // Enregistrer via ModuleEvents avec données d'auth
-          const moduleInfo = realTimeAPI.modules.registerESP(socket, moduleId, type);
-
-          // Mettre à jour le statut en cache
-          databaseManager.modules.updateStatus(moduleId, 'online').catch(Logger.modules.error);
-
-          // Confirmer l'authentification avec état initial
-          socket.emit('connected', {
-            status: 'authenticated',
-            initialState: { uptime, position },
-          });
-
-          Logger.modules.info(
-            `✅ Module ${moduleId} connecté avec état initial: ${position || 'unknown'}`
-          );
-        } else {
-          Logger.modules.error('RealTimeAPI or ModuleEvents not available for ESP registration');
-          socket.emit('error', { message: 'Erreur serveur' });
-          socket.disconnect();
-        }
-
-        // Si déjà claimé par un dashboard, annoncer présence
-        const c = codeByModuleId.get(moduleId);
-        if (c) {
-          broadcastToWebByCode(realTimeAPI, c, 'module_online', {
-            moduleId,
-            type,
-            timestamp: new Date(),
-          });
-        }
-      } catch (error) {
-        Logger.modules.error("Erreur lors de l'authentification ESP:", error);
-        socket.emit('error', { message: 'Erreur authentification' });
-        socket.disconnect();
-      }
-
-      // Connected event already sent in auth success block above
-    });
-
-    // ===== ESP -> TELEMETRY ===== (télémétrie sécurisée depuis les modules)
-    socket.on('telemetry', async data => {
-      // VALIDATION SÉCURISÉE
-      const isValid = await validateESPMessage(socket, data);
-      if (!isValid) {
-        Logger.modules.warn(`🚨 Message telemetry non autorisé depuis ${socket.id}`);
-        socket.disconnect();
-        return;
-      }
-
-      const c = codeByModuleId.get(socket.moduleId);
-      if (!c) return; // pas encore claimé par un web -> on ignore
-
-      logRx(socket, 'telemetry', data);
-
-      // Extraire les données utiles (sécurisé)
-      const telemetryData = {
-        uptime: data.uptime,
-        position: data.position,
-        timestamp: new Date(),
-      };
-
-      // Émettre événement temps réel : télémétrie mise à jour
-      const realTimeAPI = getRealTimeAPI(socket);
-      if (realTimeAPI) {
-        realTimeAPI.emitTelemetryUpdate(socket.moduleId, telemetryData);
-      }
-
-      broadcastToWebByCode(realTimeAPI, c, 'module_telemetry', {
-        moduleId: socket.moduleId,
-        ...telemetryData,
-      });
-
-      // Mettre à jour le statut "last seen" en base
-      databaseManager.modules.updateStatus(socket.moduleId, 'online').catch(Logger.modules.error);
-    });
-
-    // Nettoyage à la déconnexion
-    socket.on('disconnect', reason => {
-      const moduleId = socket.moduleId;
-
-      if (moduleId) {
-        Logger.esp(`🤖 Module disconnected: ${moduleId} (reason: ${reason})`);
-
-        // NOUVEAU: Utiliser ModuleEvents pour la gestion unifiée
-        const realTimeAPI = getRealTimeAPI(socket);
-        if (realTimeAPI?.modules) {
-          const moduleInfo = realTimeAPI.modules.unregisterESP(socket);
-
-          // Mettre à jour le statut BDD seulement si c'était la connexion active
-          if (moduleInfo && !realTimeAPI.modules.isModuleConnected(moduleId)) {
-            databaseManager.modules.updateStatus(moduleId, 'offline').catch(Logger.modules.error);
-          }
-
-          // Notifier les clients web via le système de codes
-          const c = codeByModuleId.get(moduleId);
-          if (c) {
-            broadcastToWebByCode(realTimeAPI, c, 'module_offline', {
-              moduleId,
-              timestamp: new Date(),
-            });
-          }
-        }
-      } else {
-        // Socket non identifié
-        Logger.modules.info(
-          `🤖 Unidentified module socket disconnected: ${socket.id} (reason: ${reason})`
-        );
-      }
-
-      // Nettoyer tous les listeners pour éviter les fuites mémoire
-      socket.removeAllListeners();
-    });
-  }
+  // ===== ESP32 MODULES SUPPRIMÉS =====
+  // Les modules ESP32 n'utilisent plus Socket.IO
+  // Ils se connectent via WebSocket natif sur le path /esp32
+  // Voir websocket/esp-server.js pour la gestion ESP32
 
   // ===== ANCIENNE FONCTION SUPPRIMÉE =====
   // handleModuleCommand() supprimée - remplacée par le système sécurisé sendSecureCommand()

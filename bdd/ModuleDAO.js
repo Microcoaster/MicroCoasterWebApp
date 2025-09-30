@@ -326,7 +326,7 @@ class ModuleDAO extends BaseDAO {
       // Mettre à jour la base de données
       await this.update('UPDATE modules SET last_seen = NOW() WHERE module_id = ?', [moduleId]);
 
-      Logger.esp(`📡 Module ${moduleId} mis à jour: ${status}`);
+      Logger.esp.info(`📡 Module ${moduleId} mis à jour: ${status}`);
       return true;
     } catch (error) {
       Logger.modules.error('Erreur lors de la mise à jour du statut du module:', error);

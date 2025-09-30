@@ -1,165 +1,339 @@
-// sim-switch-track.cjs - S// Fonction sendTelemetry supprimée - pas nécessaire avec Socket.io
-// Socket.io gère auto// -------- Pas de simulation d'activité physique --------
-// L'aiguillage ESP32 réel n'a pas de bouton physique
-// Il ne change de position que via les commandes WebSocket la détection de déconnexionur ESP32 Switch Track sécurisé
-/* eslint-disable no-console */
-const { io } = require('socket.io-client');
+/**
+ * ESP32 Switch Track Simulator - WebSocket Native
+ * Compatible with new MicroCoaster hybrid architecture
+ */
+
+const WebSocket = require('ws');
 
 // Configuration
-const SERVER_URL = process.env.SERVER_URL || 'http://127.0.0.1:3000';
-const MODULE_ID = process.env.MODULE_ID || 'MC-0001-ST';
-const MODULE_PASSWORD = process.env.MODULE_PASSWORD || 'F674iaRftVsHGKOA8hq3TI93HQHUaYqZ';
+const config = {
+  serverUrl: process.env.SERVER_URL || 'ws://127.0.0.1:3000/esp32',
+  moduleId: process.env.MODULE_ID || 'MC-0001-ST',
+  modulePassword: process.env.MODULE_PASSWORD || 'F674iaRftVsHGKOA8hq3TI93HQHUaYqZ',
+  telemetryInterval: 5000,
+  heartbeatInterval: 30000,
+  reconnectDelay: 3000,
+  maxReconnectAttempts: 5
+};
 
-let socket;
-const uptimeStart = Date.now();
-let currentPosition = 'left'; // Position initiale
+// Module state
+let moduleState = {
+  position: 'left',
+  isMoving: false,
+  uptime: Date.now(),
+  lastCommand: null,
+  commandCount: 0,
+  telemetryCount: 0,
+  reconnectAttempts: 0
+};
 
-// -------- Helpers --------
-const log = (...args) => console.log('[SWITCH TRACK]', ...args);
+let ws = null;
+let telemetryTimer = null;
+let heartbeatTimer = null;
+let reconnectTimer = null;
 
-// -------- Télémétrie sécurisée --------
-function createAuthenticatedPayload(additionalData = {}) {
+// Utilities
+const log = (...args) => {
+  const timestamp = new Date().toISOString().substr(11, 8);
+  console.log(`[${timestamp}] [SWITCH-TRACK]`, ...args);
+};
+
+const error = (...args) => {
+  const timestamp = new Date().toISOString().substr(11, 8);
+  console.error(`[${timestamp}] [SWITCH-TRACK] ❌`, ...args);
+};
+
+// Message handling
+function createAuthenticatedMessage(type, data = {}) {
   return {
-    moduleId: MODULE_ID,
-    password: MODULE_PASSWORD,
-    uptime: Date.now() - uptimeStart,
-    position: currentPosition,
-    ...additionalData,
+    type,
+    moduleId: config.moduleId,
+    password: config.modulePassword,
+    timestamp: new Date().toISOString(),
+    ...data
   };
 }
 
-function sendTelemetry() {
-  if (!socket || !socket.connected) return;
+function sendMessage(type, data = {}) {
+  if (!ws || ws.readyState !== WebSocket.OPEN) {
+    error(`Cannot send ${type}: WebSocket not connected`);
+    return false;
+  }
 
-  const payload = createAuthenticatedPayload();
-  socket.emit('telemetry', payload);
-  log(`� Télémétrie envoyée: ${currentPosition}`);
+  const message = createAuthenticatedMessage(type, data);
+  
+  try {
+    ws.send(JSON.stringify(message));
+    return true;
+  } catch (err) {
+    error(`Failed to send ${type}:`, err.message);
+    return false;
+  }
 }
 
-// -------- Gestion des commandes --------
-function handleCommand(cmd) {
-  log(`📡 Commande reçue: ${cmd}`);
+function sendTelemetry() {
+  const uptimeSeconds = Math.floor((Date.now() - moduleState.uptime) / 1000);
+  
+  const telemetryData = {
+    position: moduleState.position,
+    isMoving: moduleState.isMoving,
+    uptime: uptimeSeconds,
+    commandCount: moduleState.commandCount,
+    telemetryCount: ++moduleState.telemetryCount,
+    freeHeap: Math.floor(Math.random() * 50000) + 200000,
+    signalStrength: Math.floor(Math.random() * 30) - 70,
+    temperature: Math.floor(Math.random() * 15) + 20
+  };
 
-  switch (cmd) {
-    case 'switch_left':
+  if (sendMessage('telemetry', telemetryData)) {
+    log(`📡 Télémétrie: position=${moduleState.position}, uptime=${uptimeSeconds}s`);
+  }
+}
+
+function sendHeartbeat() {
+  if (sendMessage('heartbeat', { status: 'alive' })) {
+    log('💓 Heartbeat');
+  }
+}
+
+// Hardware simulation
+function simulateMovement(targetPosition) {
+  if (moduleState.isMoving) {
+    log(`⚠️ Mouvement en cours, commande ignorée`);
+    return false;
+  }
+
+  if (moduleState.position === targetPosition) {
+    log(`ℹ️ Déjà en position ${targetPosition}`);
+    return true;
+  }
+
+  moduleState.isMoving = true;
+  log(`🔄 Mouvement: ${moduleState.position} → ${targetPosition}`);
+  
+  const movementDuration = Math.floor(Math.random() * 1000) + 500;
+  
+  setTimeout(() => {
+    moduleState.position = targetPosition;
+    moduleState.isMoving = false;
+    moduleState.lastCommand = targetPosition;
+    moduleState.commandCount++;
+    
+    log(`✅ Mouvement terminé: ${targetPosition}`);
+    
+    sendMessage('command_response', {
+      command: 'switch',
+      position: targetPosition,
+      success: true,
+      duration: movementDuration
+    });
+    
+  }, movementDuration);
+  
+  return true;
+}
+
+// Command handling
+function handleCommand(data) {
+  log(`🎮 Commande:`, data);
+  
+  // Extraire la commande du format reçu
+  const command = data.data ? data.data.command : data.command;
+  
+  switch (command) {
     case 'left':
-      currentPosition = 'left';
-      log('🔄 Aiguillage basculé vers la GAUCHE');
+    case 'switch_left':
+      simulateMovement('left');
       break;
-    case 'switch_right':
     case 'right':
-      currentPosition = 'right';
-      log('🔄 Aiguillage basculé vers la DROITE');
+    case 'switch_right':
+      simulateMovement('right');
+      break;
+    case 'toggle':
+      const newPosition = moduleState.position === 'left' ? 'right' : 'left';
+      simulateMovement(newPosition);
+      break;
+    case 'get_status':
+      sendMessage('status_response', {
+        position: moduleState.position,
+        isMoving: moduleState.isMoving,
+        uptime: Math.floor((Date.now() - moduleState.uptime) / 1000),
+        commandCount: moduleState.commandCount
+      });
+      break;
+    case 'reset':
+      log('🔄 Reset...');
+      moduleState.commandCount = 0;
+      moduleState.telemetryCount = 0;
+      moduleState.uptime = Date.now();
+      sendMessage('reset_response', { success: true });
       break;
     default:
-      log(`⚠️ Commande inconnue: ${cmd}`);
-      return;
+      log(`⚠️ Commande inconnue: ${command}`);
+      sendMessage('command_error', {
+        command: command,
+        error: 'Unknown command'
+      });
   }
-
-  // Pas besoin d'envoyer de télémétrie - Socket.io surveille automatiquement
-  log(`✅ Commande exécutée: ${currentPosition}`);
 }
 
-// -------- Connexion Socket.io sécurisée --------
+// WebSocket connection
+function handleMessage(rawData) {
+  try {
+    const data = JSON.parse(rawData);
+    
+    switch (data.type) {
+      case 'auth_success':
+        log('✅ Authentifié');
+        startTelemetry();
+        break;
+      case 'auth_error':
+        error('❌ Erreur auth:', data.message);
+        break;
+      case 'command':
+        handleCommand(data);
+        break;
+      case 'ping':
+        sendMessage('pong', { timestamp: data.timestamp });
+        break;
+      default:
+        log(`📥 Message:`, data.type);
+    }
+    
+  } catch (err) {
+    error('Erreur parsing:', err.message);
+  }
+}
+
+function startTelemetry() {
+  telemetryTimer = setInterval(() => {
+    sendTelemetry();
+  }, config.telemetryInterval);
+  
+  heartbeatTimer = setInterval(() => {
+    sendHeartbeat();
+  }, config.heartbeatInterval);
+  
+  setTimeout(() => sendTelemetry(), 100);
+  log(`📡 Télémétrie démarrée (${config.telemetryInterval}ms)`);
+}
+
+function stopTelemetry() {
+  if (telemetryTimer) {
+    clearInterval(telemetryTimer);
+    telemetryTimer = null;
+  }
+  
+  if (heartbeatTimer) {
+    clearInterval(heartbeatTimer);
+    heartbeatTimer = null;
+  }
+  
+  log('📡 Télémétrie arrêtée');
+}
+
 function connect() {
-  log(`🔗 Connexion au serveur ${SERVER_URL}...`);
-  log(`📍 Module ID: ${MODULE_ID}`);
-  log(`🔑 Password: ${MODULE_PASSWORD.substring(0, 8)}...`);
-
-  socket = io(SERVER_URL, {
-    transports: ['websocket'],
-    timeout: 20000,
-    reconnection: true,
-    reconnectionDelay: 2000,
-    reconnectionAttempts: 5,
-  });
-
-  socket.on('connect', () => {
-    log('🟢 Connecté au serveur WebSocket');
-
-    // Authentification avec état initial
-    const authPayload = createAuthenticatedPayload({
-      type: 'Switch Track',
-    });
-
-    socket.emit('module_identify', authPayload);
-    log(`📤 Authentification envoyée avec état initial: ${currentPosition}`);
-  });
-
-  socket.on('connected', data => {
-    log('✅ Module authentifié:', data?.status || 'OK');
-    if (data?.initialState) {
-      log(`📍 État initial confirmé: ${data.initialState.position}`);
-    }
-
-    // Socket.io gère automatiquement les déconnexions - pas de télémétrie nécessaire
-    log('🔗 Connexion établie - Socket.io surveille automatiquement');
-  });
-
-  socket.on('command', data => {
-    if (data && data.command) {
-      handleCommand(data.command);
-    } else {
-      log('⚠️ Commande reçue sans payload valide:', data);
-    }
-  });
-
-  socket.on('disconnect', reason => {
-    // En réalité, l'ESP32 ne peut pas notifier sa déconnexion (coupure courant/wifi)
-    // Socket.io gère automatiquement la détection de déconnexion
-  });
-
-  socket.on('connect_error', error => {
-    log('❌ Erreur de connexion:', error.message);
-  });
-
-  socket.on('error', error => {
-    log('❌ Erreur socket:', error);
-  });
-}
-
-// -------- Démarrage --------
-function main() {
-  log('🚀 Simulateur Switch Track démarrant...');
-  log(`📡 Type: Switch Track`);
-  log(`🆔 Module ID: ${MODULE_ID}`);
-  log(`📍 Position initiale: ${currentPosition}`);
-  log(`🌐 Serveur: ${SERVER_URL}`);
-
-  // Connexion au serveur
-  connect();
-
-  // Pas de simulation d'activité - l'ESP32 réel n'a pas de bouton physique
-}
-
-// -------- Arrêt propre --------
-function shutdown(signal) {
-  // En réalité, l'ESP32 s'arrête brutalement (coupure courant)
-  // Pas de log de déconnexion - simulation réaliste
-
-  if (socket) {
-    socket.disconnect();
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    log('⚠️ Déjà connecté');
+    return;
   }
+  
+  log(`🔌 Connexion à ${config.serverUrl}...`);
+  
+  ws = new WebSocket(config.serverUrl);
+  
+  ws.on('open', () => {
+    log('🔌 WebSocket connecté, authentification...');
+    moduleState.reconnectAttempts = 0;
+    
+    sendMessage('module_identify', {
+      moduleType: 'SwitchTrack',
+      version: '2.1.0',
+      features: ['switch', 'telemetry', 'remote_control']
+    });
+  });
+  
+  ws.on('message', handleMessage);
+  
+  ws.on('close', (code, reason) => {
+    log(`🔌 Connexion fermée (${code}): ${reason || 'Aucune raison'}`);
+    stopTelemetry();
+    attemptReconnect();
+  });
+  
+  ws.on('error', (err) => {
+    error('Erreur WebSocket:', err.message);
+  });
+}
 
+function attemptReconnect() {
+  if (moduleState.reconnectAttempts >= config.maxReconnectAttempts) {
+    error(`Max tentatives atteint (${config.maxReconnectAttempts})`);
+    process.exit(1);
+  }
+  
+  moduleState.reconnectAttempts++;
+  
+  log(`🔄 Reconnexion ${moduleState.reconnectAttempts}/${config.maxReconnectAttempts} dans ${config.reconnectDelay}ms...`);
+  
+  reconnectTimer = setTimeout(() => {
+    connect();
+  }, config.reconnectDelay);
+}
+
+function disconnect() {
+  log('🔌 Déconnexion...');
+  
+  stopTelemetry();
+  
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer);
+    reconnectTimer = null;
+  }
+  
+  if (ws) {
+    ws.close();
+    ws = null;
+  }
+}
+
+// Process management
+function gracefulShutdown() {
+  log('🛑 Arrêt du simulateur...');
+  disconnect();
   process.exit(0);
 }
 
-// -------- Gestion des signaux système --------
-process.on('SIGINT', () => shutdown('SIGINT'));
-process.on('SIGTERM', () => shutdown('SIGTERM'));
+process.on('SIGINT', gracefulShutdown);
+process.on('SIGTERM', gracefulShutdown);
 
-// Gestion des erreurs non capturées
-process.on('uncaughtException', error => {
-  // ESP32 en panne - arrêt brutal sans log
-  shutdown('ERROR');
+process.on('uncaughtException', (err) => {
+  error('Exception:', err);
+  gracefulShutdown();
 });
 
 process.on('unhandledRejection', (reason, promise) => {
-  // ESP32 en panne - arrêt brutal sans log
-  shutdown('ERROR');
+  error('Promesse rejetée:', reason);
 });
 
-// -------- Point d'entrée --------
-main();
+// Main function
+function startSimulator() {
+  log('🚀 Démarrage simulateur ESP32 Switch Track');
+  log(`📍 Module: ${config.moduleId}`);
+  log(`🔗 Serveur: ${config.serverUrl}`);
+  log(`📍 Position initiale: ${moduleState.position}`);
+  
+  connect();
+}
 
-log('✅ Simulateur Switch Track prêt! Ctrl+C pour arrêter.');
+// Entry point
+if (require.main === module) {
+  startSimulator();
+}
+
+module.exports = {
+  startSimulator,
+  disconnect,
+  moduleState,
+  config
+};

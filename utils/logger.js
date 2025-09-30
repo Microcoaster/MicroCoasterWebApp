@@ -89,6 +89,17 @@ const modulesLogger = winston.createLogger({
   ],
 });
 
+// ESP Logger dédié - Spécial pour les modules ESP32 WebSocket natif
+const espLogger = winston.createLogger({
+  level: 'debug',
+  transports: [
+    new winston.transports.File({
+      filename: 'logs/esp.log',
+      format: fileFormat,
+    }),
+  ],
+});
+
 // System Logger - Stats (avec anti-spam), nettoyage, monitoring
 const systemLogger = winston.createLogger({
   level: 'debug',
@@ -189,8 +200,13 @@ const logger = {
     appLogger.debug(msg, meta);
   },
 
-  // Alias pour ESP (rétrocompatibilité)
-  esp: (msg, meta) => modulesLogger.info(msg, meta),
+  // ESP Logger dédié avec toutes les méthodes
+  esp: {
+    info: (msg, meta) => espLogger.info(msg, meta),
+    warn: (msg, meta) => espLogger.warn(msg, meta),
+    error: (msg, meta) => espLogger.error(msg, meta),
+    debug: (msg, meta) => espLogger.debug(msg, meta),
+  },
 };
 
 module.exports = logger;

@@ -269,7 +269,7 @@ class ModuleEvents {
       userId: socket.moduleAuth.userId,
     });
 
-    Logger.esp(`ESP registered: ${moduleId} (${moduleType}) on socket ${socket.id}`);
+    Logger.esp.info(`ESP registered: ${moduleId} (${moduleType}) on socket ${socket.id}`);
     return moduleInfo;
   }
 
@@ -297,17 +297,11 @@ class ModuleEvents {
     }
 
     this.modulesBySocket.delete(socket.id);
-    Logger.esp(`ESP unregistered: ${moduleId} (socket ${socket.id})`);
+    Logger.esp.info(`ESP unregistered: ${moduleId} (socket ${socket.id})`);
     return moduleInfo;
   }
 
-  /**
-   * Get ESP socket by moduleId (DÉPRÉCIÉ - utiliser sendSecureCommand à la place)
-   */
-  getESPSocket(moduleId) {
-    // DÉPRÉCIÉ - pour compatibilité temporaire seulement
-    return this.connectedESPs.get(moduleId);
-  }
+
 
   /**
    * Get module info by socket
@@ -366,7 +360,7 @@ class ModuleEvents {
     }
 
     // Log télémétrie ESP dans fichier séparé (pas de spam console)
-    Logger.esp(`LastSeen updated for module ${moduleId}`, {
+    Logger.esp.debug(`LastSeen updated for module ${moduleId}`, {
       moduleId,
       lastSeen: lastSeen.toISOString(),
       lastSeenFormatted: lastSeen.toLocaleString('fr-FR'),

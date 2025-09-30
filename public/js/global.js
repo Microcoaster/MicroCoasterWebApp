@@ -85,8 +85,6 @@ window.t = t;
 // Auto-load translations when the page loads
 document.addEventListener('DOMContentLoaded', () => {
   loadTranslations().then(() => {
-    console.log('Translations loaded for language:', window.MC.currentLanguage);
-
     // Appliquer les mises à jour de traduction en attente
     if (window.pendingTranslationUpdates && Array.isArray(window.pendingTranslationUpdates)) {
       window.pendingTranslationUpdates.forEach(updateFn => {
@@ -252,7 +250,8 @@ function initializeWebSocket() {
       reconnectionAttempts: 5,
       timeout: 10000,
       forceNew: false, // Réutiliser la connexion si possible
-      transports: ['websocket', 'polling'],
+      transports: ['polling'], // Utiliser SEULEMENT polling pour éviter complètement les conflits WebSocket
+      upgrade: false, // Désactiver l'upgrade WebSocket pour une compatibilité parfaite
     });
 
     socket.on('connect', function () {
@@ -289,7 +288,11 @@ function initializeWebSocket() {
     });
 
     socket.on('connect_error', function (error) {
-      console.error('❌ WebSocket connection error:', error);
+      console.error('❌ Socket.IO connection error:', error);
+      // Ne pas afficher d'erreur si c'est juste un fallback vers polling
+      if (error.message && !error.message.includes('websocket error')) {
+        window.showToast?.('Erreur de connexion: ' + error.message, 'error', 3000);
+      }
     });
 
     socket.on('reconnect', function (attemptNumber) {

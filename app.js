@@ -31,6 +31,8 @@ global.Logger = AppLogger;
 const databaseManager = require('./bdd/DatabaseManager');
 const RealTimeAPI = require('./api');
 const websocketHandler = require('./websocket/handlers');
+const ESP32WebSocketServer = require('./websocket/esp-server');
+const SocketWSBridge = require('./websocket/socket-ws-bridge');
 
 const { router: authRoutes } = require('./routes/auth');
 const adminRoutes = require('./routes/admin');
@@ -54,9 +56,13 @@ const io = new Server(server, {
     origin: process.env.WS_CORS_ORIGIN || '*',
     methods: ['GET', 'POST'],
   },
+  path: '/socket.io/', // Path explicite pour Socket.IO (par défaut mais explicité)
   pingTimeout: 60000,
   pingInterval: 25000,
   connectTimeout: 45000,
+  // Utiliser SEULEMENT polling pour une séparation complète
+  transports: ['polling'],
+  allowEIO3: true // Compatibilité avec différentes versions
 });
 
 // ============================================================================
@@ -129,7 +135,6 @@ app.use((req, res) => {
 // ============================================================================
 
 io.app = app;
-websocketHandler(io);
 
 // ============================================================================
 // ERROR HANDLING
@@ -167,6 +172,9 @@ async function startServer() {
     realTimeAPI.initialize();
     app.locals.realTimeAPI = realTimeAPI;
 
+    // Initialiser les handlers Socket.IO (clients web uniquement)
+    websocketHandler(io, null); // Temporaire: sans bridge
+
     AppLogger.app.info('🔄 Real-time Events API initialized');
 
     databaseManager.startModuleStatusCleanup(1, 5);
@@ -176,6 +184,26 @@ async function startServer() {
       AppLogger.app.info(`🚀 MicroCoaster Server running on port ${PORT}`);
       AppLogger.app.info(`📱 Web interface: http://localhost:${PORT}`);
       AppLogger.app.info(`🔌 WebSocket: ws://localhost:${PORT}`);
+      
+      // Initialiser ESP32 APRÈS que le serveur soit opérationnel
+      setTimeout(() => {
+        try {
+          AppLogger.app.info('🔄 Initializing ESP32 WebSocket Server...');
+          const esp32Server = new ESP32WebSocketServer(server, realTimeAPI);
+          esp32Server.initialize();
+          esp32Server.startHeartbeatChecker();
+
+          AppLogger.app.info('🔄 Initializing Socket-WebSocket Bridge...');
+          const socketWSBridge = new SocketWSBridge(realTimeAPI, esp32Server);
+          app.locals.esp32Server = esp32Server;
+          app.locals.socketWSBridge = socketWSBridge;
+          
+          AppLogger.app.info('✅ ESP32 WebSocket Server initialized successfully');
+          AppLogger.app.info('🌉 Socket.IO ↔ WebSocket Bridge initialized');
+        } catch (error) {
+          AppLogger.app.error('❌ ESP32 initialization failed:', error);
+        }
+      }, 1000); // Délai de 1 seconde après démarrage
     });
   } catch (error) {
     AppLogger.app.error('❌ Failed to start server:', error);
