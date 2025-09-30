@@ -10,20 +10,12 @@
 
 const Logger = require('../utils/logger');
 
-// ================================================================================
-// CLASSE DE GESTION DES ÉVÉNEMENTS MODULES
-// ================================================================================
-
 /**
  * Gestionnaire d'événements pour les modules IoT MicroCoaster
  * @class ModuleEvents
  * @description Gère tous les événements liés aux modules : connexions, déconnexions, télémétrie
  */
 class ModuleEvents {
-  // ================================================================================
-  // INITIALISATION
-  // ================================================================================
-
   /**
    * Constructeur du gestionnaire d'événements modules
    * @param {EventsManager} eventsManager - Gestionnaire d'événements centralisé
@@ -59,10 +51,6 @@ class ModuleEvents {
      */
     this.modulesBySocket = new Map();
   }
-
-  // ================================================================================
-  // GESTION DES ÉTATS DE MODULES
-  // ================================================================================
 
   /**
    * Marque un module comme en ligne et émet les événements appropriés

@@ -1,17 +1,28 @@
 /**
- * ========================================    Logger.esp.info(`🤖 New ESP32 connection from ${clientIP}`);===================================
- * ESP32 WEBSOCKET NATIF SERVER
- * ============================================================================
- * Serveur WebSocket    Logger.esp.debug(`📈 Telemetry from ${ws.moduleId}: ${position || 'unknown'}`);natif dédié aux modules ESP32
- * Fonctionne en parallèle avec Socket.IO pour le web
- * ============================================================================
+ * Serveur WebSocket ESP32 - Communication IoT native
+ * 
+ * Serveur WebSocket natif dédié aux modules ESP32 fonctionnant en parallèle
+ * avec Socket.IO pour assurer la communication directe avec les modules IoT.
+ * 
+ * @module ESP32WebSocketServer
+ * @description Serveur WebSocket natif pour la communication avec les modules ESP32
  */
 
 const WebSocket = require('ws');
 const Logger = require('../utils/logger');
 const databaseManager = require('../bdd/DatabaseManager');
 
+/**
+ * Serveur WebSocket natif pour modules ESP32
+ * Gère les connexions directes et la communication avec les modules IoT
+ * @class ESP32WebSocketServer
+ */
 class ESP32WebSocketServer {
+  /**
+   * Crée une instance du serveur ESP32
+   * @param {Object} server - Serveur HTTP pour WebSocket
+   * @param {RealTimeAPI} realTimeAPI - API temps réel pour événements
+   */
   constructor(server, realTimeAPI) {
     this.server = server;
     this.realTimeAPI = realTimeAPI;
@@ -22,9 +33,10 @@ class ESP32WebSocketServer {
 
   /**
    * Initialise le serveur WebSocket natif pour ESP32
+   * Configure le serveur sur le path /esp32 et les gestionnaires d'événements
+   * @returns {void}
    */
   initialize() {
-    // Créer serveur WebSocket sur le path /esp32
     this.wss = new WebSocket.Server({
       server: this.server,
       path: '/esp32'
@@ -43,18 +55,21 @@ class ESP32WebSocketServer {
 
   /**
    * Gère une nouvelle connexion ESP32
+   * Configure les paramètres TCP, timeouts et gestionnaires d'événements
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @param {Object} req - Requête HTTP de connexion
+   * @returns {void}
+   * @private
    */
   handleESPConnection(ws, req) {
     const clientIP = req.socket.remoteAddress;
     Logger.esp.info(`🤖 New ESP32 connection from ${clientIP}`);
 
-    // Configuration TCP keepalive pour détection rapide
     if (req.socket.setKeepAlive) {
-      req.socket.setKeepAlive(true, 10000); // 10 secondes
-      req.socket.setTimeout(15000); // Timeout après 15s
+      req.socket.setKeepAlive(true, 10000);
+      req.socket.setTimeout(15000);
     }
 
-    // Détection d'erreur de socket TCP
     req.socket.on('error', () => {
       Logger.esp.warn(`🔌 TCP socket error for ${ws.moduleId || clientIP}`);
       this.handleESPDisconnection(ws, 1006, 'TCP socket error');
@@ -66,7 +81,6 @@ class ESP32WebSocketServer {
       req.socket.destroy();
     });
 
-    // Timeout d'identification (10 secondes)
     const identTimeout = setTimeout(() => {
       if (!ws.moduleId) {
         Logger.esp.warn('⏰ ESP32 identification timeout - disconnecting');
@@ -93,7 +107,6 @@ class ESP32WebSocketServer {
       Logger.esp.error('❌ ESP32 WebSocket error:', error);
     });
 
-    // Heartbeat pour détecter les déconnexions
     ws.isAlive = true;
     ws.on('pong', () => {
       ws.isAlive = true;
@@ -102,6 +115,12 @@ class ESP32WebSocketServer {
 
   /**
    * Traite un message reçu d'un ESP32
+   * Route les messages selon leur type (identify, telemetry, pong)
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @param {Object} message - Message JSON reçu
+   * @param {string} message.type - Type de message
+   * @returns {Promise<void>}
+   * @private
    */
   async handleESPMessage(ws, message) {
     const { type, moduleId, password } = message;
@@ -126,7 +145,6 @@ class ESP32WebSocketServer {
         break;
 
       case 'pong':
-        // Réponse au ping personnalisé
         if (ws.pingTimeout) {
           clearTimeout(ws.pingTimeout);
           ws.pingTimeout = null;
@@ -140,7 +158,15 @@ class ESP32WebSocketServer {
   }
 
   /**
-   * Authentification ESP32
+   * Gère l'authentification d'un module ESP32
+   * Vérifie les identifiants et enregistre le module connecté
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @param {Object} message - Message d'identification
+   * @param {string} message.moduleId - ID du module
+   * @param {string} message.password - Mot de passe du module
+   * @returns {Promise<void>}
+   * @throws {Error} Si authentification échouée
+   * @private
    */
   async handleAuthentication(ws, message) {
     const { moduleId, password, moduleType, uptime, position } = message;
@@ -161,7 +187,6 @@ class ESP32WebSocketServer {
         return;
       }
 
-      // Déconnecter ancienne session si elle existe
       const existingWS = this.connectedESPs.get(moduleId);
       if (existingWS && existingWS !== ws) {
         Logger.esp.warn(`⚠️ Disconnecting previous ESP32 session: ${moduleId}`);
@@ -169,7 +194,6 @@ class ESP32WebSocketServer {
         this.modulesBySocket.delete(existingWS);
       }
 
-      // Enregistrer la nouvelle connexion
       ws.moduleId = moduleId;
       ws.moduleAuth = moduleAuth;
       ws.moduleType = moduleType || 'Unknown';
@@ -185,9 +209,7 @@ class ESP32WebSocketServer {
       this.connectedESPs.set(moduleId, ws);
       this.modulesBySocket.set(ws, moduleInfo);
 
-      // Notifier le système via RealTimeAPI
       if (this.realTimeAPI?.modules) {
-        // Créer un pseudo-socket compatible avec l'API existante
         const pseudoSocket = {
           id: `esp32-${moduleId}`,
           moduleId,
@@ -198,19 +220,14 @@ class ESP32WebSocketServer {
         this.realTimeAPI.modules.registerESP(pseudoSocket, moduleId, ws.moduleType);
       }
 
-      // Réponse d'authentification
       this.sendToESP(ws, {
         type: 'connected',
         status: 'authenticated',
         initialState: { uptime, position }
       });
 
-      // Mettre à jour le statut en base
       await databaseManager.modules.updateStatus(moduleId, 'online');
 
-
-
-      // Démarrer ping applicatif personnalisé pour ce module
       this.startCustomPing(ws);
 
       Logger.esp.info(`✅ ESP32 authenticated: ${moduleId} (${ws.moduleType})`);
@@ -222,7 +239,14 @@ class ESP32WebSocketServer {
   }
 
   /**
-   * Gère la télémétrie ESP32
+   * Traite les données de télémétrie d'un module
+   * Met à jour la base de données et diffuse aux clients connectés
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @param {Object} message - Données de télémétrie
+   * @param {number} [message.position] - Position du module
+   * @param {Object} [message.sensors] - Données des capteurs
+   * @returns {Promise<void>}
+   * @private
    */
   async handleTelemetry(ws, message) {
     if (!ws.moduleId || !ws.moduleAuth) {
@@ -243,7 +267,6 @@ class ESP32WebSocketServer {
 
     Logger.esp.info(`📊 [TELEMETRY] Data: ${JSON.stringify(telemetryData)}`);
 
-    // Transmettre aux clients web via RealTimeAPI
     if (this.realTimeAPI?.events) {
       this.realTimeAPI.events.broadcast('module_telemetry', {
         moduleId: ws.moduleId,
@@ -254,7 +277,6 @@ class ESP32WebSocketServer {
       Logger.esp.error(`❌ [TELEMETRY] RealTimeAPI not available!`);
     }
 
-    // Mettre à jour le statut
     await databaseManager.modules.updateStatus(ws.moduleId, 'online');
 
     Logger.esp.debug(`📊 Telemetry from ${ws.moduleId}: ${position || 'unknown'}`);
@@ -262,21 +284,36 @@ class ESP32WebSocketServer {
 
   /**
    * Gère les heartbeats ESP32
+   * Maintient la connexion active et met à jour le statut du module
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @param {Object} message - Données de heartbeat
+   * @param {number} [message.uptime] - Temps de fonctionnement du module
+   * @param {number} [message.position] - Position actuelle
+   * @param {number} [message.wifiRSSI] - Force du signal WiFi
+   * @param {number} [message.freeHeap] - Mémoire libre disponible
+   * @returns {Promise<void>}
+   * @private
    */
   async handleHeartbeat(ws, message) {
     if (!ws.moduleId) return;
 
     const { uptime, position, wifiRSSI, freeHeap } = message;
 
-    // Optionnel : transmettre les heartbeats au web (moins fréquent que télémétrie)
     Logger.esp.debug(`💓 Heartbeat from ${ws.moduleId}`);
 
-    // Mettre à jour le "last seen"
     await databaseManager.modules.updateStatus(ws.moduleId, 'online');
   }
 
   /**
-   * Gère les réponses aux commandes
+   * Gère les réponses aux commandes ESP32
+   * Diffuse les résultats de commandes aux clients web connectés
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @param {Object} message - Réponse de commande
+   * @param {string} message.command - Commande exécutée
+   * @param {string} message.status - Statut d'exécution (success/error)
+   * @param {number} [message.position] - Position après exécution
+   * @returns {Promise<void>}
+   * @private
    */
   async handleCommandResponse(ws, message) {
     if (!ws.moduleId) return;
@@ -298,24 +335,27 @@ class ESP32WebSocketServer {
   }
 
   /**
-   * Gère la déconnexion ESP32
+   * Gère la déconnexion d'un module ESP32
+   * Nettoie les ressources, timeouts et notifie le système
+   * @param {WebSocket} ws - Socket WebSocket déconnecté
+   * @param {number} code - Code de fermeture WebSocket
+   * @param {string} reason - Raison de la déconnexion
+   * @returns {void}
+   * @private
    */
   handleESPDisconnection(ws, code, reason) {
     const moduleInfo = this.modulesBySocket.get(ws);
     
     if (!moduleInfo) {
-      // Déjà nettoyé ou jamais authentifié
       Logger.esp.debug(`🔴 Disconnection ignored - no module info for socket`);
       return;
     }
     
     const { moduleId } = moduleInfo;
     
-    // Nettoyer les maps (idempotent)
     this.connectedESPs.delete(moduleId);
     this.modulesBySocket.delete(ws);
 
-    // Nettoyer les timers de ping personnalisé
     if (ws.pingInterval) {
       clearInterval(ws.pingInterval);
       ws.pingInterval = null;
@@ -325,15 +365,11 @@ class ESP32WebSocketServer {
       ws.pingTimeout = null;
     }
 
-    // Notifier le système
     if (this.realTimeAPI?.modules) {
       const pseudoSocket = { id: `esp32-${moduleId}`, moduleId };
       this.realTimeAPI.modules.unregisterESP(pseudoSocket);
     }
 
-
-
-    // Mettre à jour le statut
     databaseManager.modules.updateStatus(moduleId, 'offline').catch(Logger.esp.error);
 
     Logger.esp.info(`🔴 ESP32 disconnected: ${moduleId} (code: ${code})`);
@@ -341,6 +377,12 @@ class ESP32WebSocketServer {
 
   /**
    * Envoie une commande à un ESP32 spécifique
+   * Vérifie la connexion et transmet la commande au module
+   * @param {string} moduleId - ID du module ESP32 cible
+   * @param {string} command - Commande à exécuter
+   * @param {Object} [params={}] - Paramètres de la commande
+   * @returns {boolean} True si envoyé avec succès, false sinon
+   * @public
    */
   sendCommandToESP(moduleId, command, params = {}) {
     const ws = this.connectedESPs.get(moduleId);
@@ -365,7 +407,12 @@ class ESP32WebSocketServer {
   }
 
   /**
-   * Envoie un message à un ESP32
+   * Envoie un message JSON à un ESP32
+   * Vérifie l'état de la connexion avant l'envoi
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @param {Object} message - Message JSON à envoyer
+   * @returns {void}
+   * @private
    */
   sendToESP(ws, message) {
     if (ws.readyState === WebSocket.OPEN) {
@@ -375,7 +422,11 @@ class ESP32WebSocketServer {
   }
 
   /**
-   * Vérifie si un module ESP32 est connecté
+   * Vérifie si un module ESP32 est connecté et actif
+   * Contrôle la présence et l'état de la connexion WebSocket
+   * @param {string} moduleId - ID du module à vérifier
+   * @returns {boolean} True si connecté et actif, false sinon
+   * @public
    */
   isESPConnected(moduleId) {
     const ws = this.connectedESPs.get(moduleId);
@@ -384,6 +435,11 @@ class ESP32WebSocketServer {
 
   /**
    * Obtient les statistiques de connexion ESP32
+   * Retourne le nombre de modules connectés et authentifiés
+   * @returns {Object} Statistiques des connexions
+   * @returns {number} returns.connectedESPs - Nombre d'ESP32 connectés
+   * @returns {number} returns.authenticatedModules - Nombre de modules authentifiés
+   * @public
    */
   getStats() {
     return {
@@ -393,7 +449,11 @@ class ESP32WebSocketServer {
   }
 
   /**
-   * Ping applicatif personnalisé pour un ESP32 spécifique
+   * Démarre le ping applicatif personnalisé pour un ESP32
+   * Envoie des pings périodiques pour détecter les connexions mortes
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @returns {void}
+   * @private
    */
   startCustomPing(ws) {
     ws.pingInterval = setInterval(() => {
@@ -401,18 +461,20 @@ class ESP32WebSocketServer {
         ws.lastPing = Date.now();
         this.sendToESP(ws, { type: 'ping', timestamp: ws.lastPing });
         
-        // Timeout de 10 secondes pour la réponse (proportionnel à la fréquence réduite)
         ws.pingTimeout = setTimeout(() => {
           Logger.esp.warn(`💔 Custom ping timeout for ${ws.moduleId}`);
           this.handleESPDisconnection(ws, 1006, 'Custom ping timeout');
           ws.close();
         }, 10000);
       }
-    }, 60000); // Ping toutes les 60 secondes (moins agressif pour éviter le clignotement LED ESP32)
+    }, 60000);
   }
 
   /**
-   * Heartbeat checker pour détecter les connexions mortes
+   * Démarre le vérificateur de heartbeat global
+   * Surveille toutes les connexions ESP32 et détecte les connexions mortes
+   * @returns {void}
+   * @public
    */
   startHeartbeatChecker() {
     setInterval(() => {
@@ -420,8 +482,6 @@ class ESP32WebSocketServer {
         if (ws.isAlive === false) {
           Logger.esp.warn(`💔 ESP32 heartbeat timeout: ${ws.moduleId || 'unidentified'}`);
           
-          // CRITIQUE: terminate() ne déclenche pas toujours 'close'
-          // Faire le nettoyage manuellement AVANT terminate
           this.handleESPDisconnection(ws, 1006, 'Heartbeat timeout');
           
           return ws.terminate();
@@ -430,7 +490,7 @@ class ESP32WebSocketServer {
         ws.isAlive = false;
         ws.ping();
       });
-    }, 30000); // Toutes les 30 secondes (moins agressif pour éviter la surcharge ESP32)
+    }, 30000);
   }
 }
 

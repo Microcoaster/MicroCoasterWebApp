@@ -1,30 +1,11 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - GESTIONNAIRES WEBSOCKET
- * ================================================================================
+ * Gestionnaires WebSocket - Clients web Socket.IO
  * 
+ * Gestionnaires des connexions WebSocket pour les clients web incluant
+ * authentification, synchronisation temps réel et passerelle vers ESP32.
+ * 
+ * @module WebSocketHandlers
  * @description Gestionnaires des connexions WebSocket pour les clients web (Socket.IO)
- * @author Équipe MicroCoaster
- * @version 2.0
- * 
- * Fonctionnalités :
- * - Gestion des connexions clients web via Socket.IO
- * - Authentification et enregistrement des clients
- * - Synchronisation des états de modules en temps réel
- * - Passerelle vers les modules ESP32 via WebSocket natif
- * - Gestion des commandes utilisateur vers les modules
- * - Statistiques et monitoring des connexions
- * 
- * Note : Les modules ESP32 utilisent WebSocket natif (esp-server.js),
- *        ce fichier gère uniquement les clients web.
- * 
- * Dépendances :
- * - DatabaseManager (accès aux données des modules)
- * - Logger (journalisation des opérations)
- * - EventsManager (via RealTimeAPI)
- * - ModuleEvents (via RealTimeAPI)
- * 
- * ================================================================================
  */
 
 const databaseManager = require('../bdd/DatabaseManager');
@@ -90,11 +71,12 @@ function who(socket, session = null) {
 }
 
 /**
- * Log des événements reçus (RX)
+ * Journalise les messages reçus (RX) avec masquage des données sensibles
  * @param {Socket} socket - Socket de connexion
  * @param {string} event - Nom de l'événement
  * @param {*} data - Données reçues
- * @param {Object} [session=null] - Session utilisateur
+ * @param {Object} [session=null] - Session utilisateur optionnelle
+ * @returns {void}
  */
 function logRx(socket, event, data, session = null) {
   try {
@@ -114,11 +96,12 @@ function logRx(socket, event, data, session = null) {
 }
 
 /**
- * Log des événements émis (TX)
+ * Journalise les messages émis (TX) avec masquage des données sensibles
  * @param {Socket} socket - Socket de connexion
  * @param {string} event - Nom de l'événement
  * @param {*} data - Données émises
- * @param {Object} [session=null] - Session utilisateur
+ * @param {Object} [session=null] - Session utilisateur optionnelle
+ * @returns {void}
  */
 function logTx(socket, event, data, session = null) {
   try {
@@ -144,11 +127,12 @@ function logTx(socket, event, data, session = null) {
 }
 
 /**
- * Diffuse un événement aux clients web par code utilisateur
- * @param {Object} realTimeAPI - Instance RealTimeAPI
+ * Diffuse un événement à tous les clients web d'un code utilisateur
+ * @param {RealTimeAPI} realTimeAPI - Instance de l'API temps réel
  * @param {string} userCode - Code utilisateur cible
  * @param {string} event - Nom de l'événement
- * @param {Object} data - Données à diffuser
+ * @param {*} data - Données à diffuser
+ * @returns {void}
  */
 function broadcastToWebByCode(realTimeAPI, userCode, event, data) {
   if (!realTimeAPI?.events) return;
@@ -171,10 +155,10 @@ function broadcastToWebByCode(realTimeAPI, userCode, event, data) {
 }
 
 /**
- * Récupère tous les sockets d'un utilisateur
- * @param {Object} realTimeAPI - Instance RealTimeAPI
- * @param {number} userId - Identifiant de l'utilisateur
- * @returns {Array} Liste des clients connectés pour cet utilisateur
+ * Récupère tous les sockets d'un utilisateur connecté
+ * @param {RealTimeAPI} realTimeAPI - Instance de l'API temps réel
+ * @param {number} userId - ID de l'utilisateur
+ * @returns {Socket[]} Liste des sockets de l'utilisateur
  */
 function getUserSockets(realTimeAPI, userId) {
   if (!realTimeAPI?.events) return [];
@@ -207,7 +191,6 @@ module.exports = function (io, socketWSBridge) {
       nickname: session?.nickname,
     });
 
-    // Si l'utilisateur est authentifié (client web)
     if (session && session.user_id) {
       handleClientConnection(socket, session);
     } else {
@@ -254,13 +237,11 @@ module.exports = function (io, socketWSBridge) {
   });
 
   /**
-   * Gestion d'une connexion client web authentifiée
-   * @param {Socket} socket - Socket Socket.IO du client
+   * Gère une connexion client Socket.IO
+   * Enregistre le client, configure les écouteurs et synchronise l'état initial
+   * @param {Socket} socket - Socket client Socket.IO
    * @param {Object} session - Session utilisateur
-   * @param {number} session.user_id - ID de l'utilisateur
-   * @param {string} [session.nickname] - Nom d'utilisateur
-   * @param {boolean} [session.is_admin] - Si l'utilisateur est admin
-   * @param {string} [session.code] - Code utilisateur personnalisé
+   * @returns {Promise<void>}
    */
   async function handleClientConnection(socket, session) {
     const userId = session.user_id;

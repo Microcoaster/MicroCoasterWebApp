@@ -1,15 +1,26 @@
 /**
- * ============================================================================
- * BRIDGE ADAPTATEUR SOCKET.IO ↔ WEBSOCKET NATIF
- * ============================================================================
- * Permet la communication entre clients Socket.IO (web) et ESP32 WebSocket natif
- * Maintient la compatibilité totale avec l'API existante
- * ============================================================================
+ * Bridge Socket.IO ↔ WebSocket - Adaptateur de protocoles
+ * 
+ * Adaptateur permettant la communication entre clients Socket.IO (web)
+ * et modules ESP32 WebSocket natif avec compatibilité totale.
+ * 
+ * @module SocketWSBridge
+ * @description Bridge pour communication entre Socket.IO et WebSocket natif ESP32
  */
 
 const Logger = require('../utils/logger');
 
+/**
+ * Bridge adaptateur entre Socket.IO et WebSocket natif
+ * Permet la communication transparente entre les deux protocoles
+ * @class SocketWSBridge
+ */
 class SocketWSBridge {
+  /**
+   * Crée une instance du bridge
+   * @param {RealTimeAPI} realTimeAPI - API temps réel
+   * @param {ESP32WebSocketServer} esp32Server - Serveur ESP32
+   */
   constructor(realTimeAPI, esp32Server) {
     this.realTimeAPI = realTimeAPI;
     this.esp32Server = esp32Server;
@@ -18,28 +29,34 @@ class SocketWSBridge {
 
   /**
    * Initialise le bridge entre les deux protocoles
+   * Configure les écouteurs pour la communication bidirectionnelle
+   * @returns {void}
+   * @private
    */
   initialize() {
     Logger.app.info('🌉 Socket.IO ↔ WebSocket Bridge initialized');
 
-    // Écouter les événements Socket.IO pour les retransmettre aux ESP32
     this.setupSocketIOListeners();
   }
 
   /**
-   * Configure les listeners Socket.IO pour capturer les commandes destinées aux ESP32
+   * Configure les listeners Socket.IO pour capturer les commandes ESP32
+   * Établit la passerelle entre clients web et modules IoT
+   * @returns {void}
+   * @private
    */
   setupSocketIOListeners() {
-    // Cette méthode sera appelée par les handlers Socket.IO
-    // pour transmettre les commandes aux ESP32 via WebSocket natif
   }
 
   /**
    * Envoie une commande d'un client Socket.IO vers un ESP32 WebSocket
-   * @param {string} moduleId - ID du module ESP32
-   * @param {string} command - Commande à exécuter
-   * @param {object} params - Paramètres additionnels
-   * @param {string} userId - ID de l'utilisateur qui envoie la commande
+   * Fait le pont entre l'interface web et les modules IoT
+   * @param {string} moduleId - ID du module ESP32 cible
+   * @param {string} command - Commande à exécuter (ex: 'move', 'stop')
+   * @param {Object} [params={}] - Paramètres de la commande
+   * @param {string} [userId=null] - ID de l'utilisateur émetteur pour audit
+   * @returns {boolean} True si commande envoyée, false si module déconnecté
+   * @public
    */
   sendCommandToESP(moduleId, command, params = {}, userId = null) {
     try {
@@ -49,14 +66,11 @@ class SocketWSBridge {
         return false;
       }
 
-      // Log de la transmission
       Logger.esp.info(`🌉 Bridge: Forwarding command to ESP32 ${moduleId}: ${command}`);
 
-      // Envoyer la commande via WebSocket natif
       const success = this.esp32Server.sendCommandToESP(moduleId, command, params);
 
       if (success) {
-        // Notifier les clients Socket.IO du succès
         this.realTimeAPI.events.broadcast('command_sent', {
           moduleId,
           command,
@@ -75,12 +89,14 @@ class SocketWSBridge {
 
   /**
    * Retransmet un événement ESP32 vers les clients Socket.IO
-   * @param {string} event - Nom de l'événement
-   * @param {object} data - Données à transmettre
+   * Permet aux événements des modules d'être diffusés aux clients web
+   * @param {string} event - Nom de l'événement (ex: 'telemetry', 'status')
+   * @param {Object} data - Données à transmettre aux clients
+   * @returns {void}
+   * @public
    */
   forwardESPEventToWeb(event, data) {
     try {
-      // Retransmettre via Socket.IO aux clients web
       this.realTimeAPI.events.broadcast(event, data);
       
       Logger.esp.debug(`🌉 Bridge: Forwarded ESP32 event to web: ${event}`);
@@ -107,7 +123,12 @@ class SocketWSBridge {
   }
 
   /**
-   * Obtient les statistiques globales de connexions
+   * Obtient les statistiques globales de toutes les connexions
+   * Compile les données du serveur ESP32 WebSocket
+   * @returns {Object} Statistiques globales
+   * @returns {Object} returns.esp32WebSocket - Stats serveur ESP32
+   * @returns {number} returns.totalESPConnections - Nombre total d'ESP32 connectés
+   * @public
    */
   getGlobalStats() {
     const esp32Stats = this.esp32Server.getStats();
@@ -120,28 +141,33 @@ class SocketWSBridge {
 
   /**
    * Méthode helper pour les handlers Socket.IO
-   * Remplace l'ancienne méthode sendSecureCommand
+   * Traite les commandes web et les transmet aux ESP32 (remplace sendSecureCommand)
+   * @param {Socket} socketIOClient - Client Socket.IO émetteur
+   * @param {string} moduleId - ID du module ESP32 cible
+   * @param {string} command - Commande à exécuter
+   * @param {Object} [params={}] - Paramètres de la commande
+   * @returns {boolean} True si commande transmise, false sinon
+   * @public
    */
   handleWebCommand(socketIOClient, moduleId, command, params = {}) {
-    // Validation de sécurité (réutilise la logique existante)
     if (!moduleId || !command) {
       Logger.esp.warn('🚨 Bridge: Invalid command parameters');
       return false;
     }
 
-    // Log de la requête web
     Logger.esp.info(`🌐 Bridge: Web command received for ${moduleId}: ${command}`);
 
-    // Transmettre via WebSocket natif
     return this.sendCommandToESP(moduleId, command, params, socketIOClient.userId);
   }
 
   /**
-   * Méthode de nettoyage
+   * Nettoie les ressources du bridge
+   * Ferme proprement les connexions et libère la mémoire
+   * @returns {void}
+   * @public
    */
   cleanup() {
     Logger.app.info('🧹 Bridge: Cleaning up resources');
-    // Cleanup logic si nécessaire
   }
 }
 

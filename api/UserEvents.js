@@ -10,23 +10,11 @@
 
 const Logger = require('../utils/logger');
 
-// ================================================================================
-// USER EVENTS CLASS
-// ================================================================================
-
 class UserEvents {
-  // ================================================================================
-  // INITIALIZATION
-  // ================================================================================
-
   constructor(eventsManager) {
     this.events = eventsManager;
     this.Logger = Logger;
   }
-
-  // ================================================================================
-  // AUTHENTICATION EVENTS
-  // ================================================================================
 
   userLoggedIn(userData, sessionId) {
     Logger.activity.debug(`[UserEvents] User logged in: ${userData.name} (ID: ${userData.id})`);
@@ -75,10 +63,6 @@ class UserEvents {
     this.emitStatsToAdmins();
   }
 
-  // ================================================================================
-  // PROFILE MANAGEMENT EVENTS
-  // ================================================================================
-
   userProfileUpdated(userData, sessionId = null) {
     Logger.activity.info(
       `[UserEvents] User profile updated: ${userData.name} (ID: ${userData.id})`
@@ -98,10 +82,6 @@ class UserEvents {
     this.events.emitToUser(userData.id, 'rt_user_profile_updated', eventData);
     this.events.emitToAdmins('rt_user_profile_updated', eventData);
   }
-
-  // ================================================================================
-  // SECURITY EVENTS
-  // ================================================================================
 
   userPasswordChanged(userData) {
     Logger.activity.info(
