@@ -2,25 +2,25 @@
  * ================================================================================
  * MICROCOASTER WEBAPP - SYSTÈME DE JOURNALISATION
  * ================================================================================
- * 
+ *
  * @description Système de logs centralisé utilisant Winston avec séparation par domaines
  * @author Équipe MicroCoaster
  * @version 2.0
- * 
+ *
  * Fonctionnalités :
  * - Logs séparés par domaine (app, activity, modules, esp, system)
- * - Format console avec emojis pour une lecture facile 
+ * - Format console avec emojis pour une lecture facile
  * - Format JSON structuré pour les fichiers
  * - Anti-spam pour les statistiques système
  * - Support des métadonnées et stack traces
- * 
+ *
  * Domaines de logs :
  * - app : Démarrage, arrêt, erreurs critiques de l'application
  * - activity : Connexions utilisateurs, navigation, actions utilisateur
  * - modules : Communications ESP32, télémétrie, états modules
  * - esp : Logs dédiés WebSocket natif ESP32
  * - system : Statistiques, monitoring, nettoyage système
- * 
+ *
  * ================================================================================
  */
 
@@ -176,7 +176,7 @@ let lastSystemStats = null;
  * Détermine si les statistiques système ont changé et méritent d'être loggées
  * @param {Object} currentStats - Statistiques actuelles du système
  * @param {number} currentStats.users - Nombre d'utilisateurs connectés
- * @param {number} currentStats.modules - Nombre de modules connectés  
+ * @param {number} currentStats.modules - Nombre de modules connectés
  * @param {number} currentStats.clients - Nombre de clients WebSocket
  * @param {number} currentStats.esp - Nombre de modules ESP32 connectés
  * @returns {boolean} True si les stats ont changé, false sinon
@@ -212,7 +212,6 @@ function shouldLogSystemStats(currentStats) {
  * @description Interface unifiée pour tous les types de logs de l'application
  */
 const logger = {
-  
   /**
    * Logger de l'application principale
    * @namespace Logger.app
@@ -225,10 +224,9 @@ const logger = {
     debug: (msg, meta) => appLogger.debug(msg, meta),
   },
 
-  
   /**
    * Logger d'activité utilisateur
-   * @namespace Logger.activity  
+   * @namespace Logger.activity
    * @description Logs des connexions, navigation et actions utilisateur
    */
   activity: {
@@ -238,21 +236,21 @@ const logger = {
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     info: (msg, meta) => activityLogger.info(msg, meta),
-    
+
     /**
      * Log d'avertissement d'activité
      * @param {string} msg - Message d'avertissement
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     warn: (msg, meta) => activityLogger.warn(msg, meta),
-    
+
     /**
      * Log d'erreur d'activité
      * @param {string} msg - Message d'erreur
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     error: (msg, meta) => activityLogger.error(msg, meta),
-    
+
     /**
      * Log de débogage d'activité
      * @param {string} msg - Message de debug
@@ -260,7 +258,6 @@ const logger = {
      */
     debug: (msg, meta) => activityLogger.debug(msg, meta),
   },
-
 
   /**
    * Logger des modules IoT
@@ -274,21 +271,21 @@ const logger = {
      * @param {Object} [meta] - Métadonnées (moduleId, command, etc.)
      */
     info: (msg, meta) => modulesLogger.info(msg, meta),
-    
+
     /**
      * Log d'avertissement de module
      * @param {string} msg - Message d'avertissement
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     warn: (msg, meta) => modulesLogger.warn(msg, meta),
-    
+
     /**
      * Log d'erreur de module
      * @param {string} msg - Message d'erreur
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     error: (msg, meta) => modulesLogger.error(msg, meta),
-    
+
     /**
      * Log de débogage de module
      * @param {string} msg - Message de debug
@@ -296,7 +293,6 @@ const logger = {
      */
     debug: (msg, meta) => modulesLogger.debug(msg, meta),
   },
-
 
   /**
    * Logger système et monitoring
@@ -310,28 +306,28 @@ const logger = {
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     info: (msg, meta) => systemLogger.info(msg, meta),
-    
+
     /**
      * Log d'avertissement système
      * @param {string} msg - Message d'avertissement
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     warn: (msg, meta) => systemLogger.warn(msg, meta),
-    
+
     /**
      * Log d'erreur système
      * @param {string} msg - Message d'erreur
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     error: (msg, meta) => systemLogger.error(msg, meta),
-    
+
     /**
      * Log de débogage système
      * @param {string} msg - Message de debug
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     debug: (msg, meta) => systemLogger.debug(msg, meta),
-    
+
     /**
      * Log des statistiques avec système anti-spam
      * @param {string} msg - Message de statistiques
@@ -345,11 +341,10 @@ const logger = {
     },
   },
 
-
   // ============================================================================
   // MÉTHODES DE RÉTROCOMPATIBILITÉ (DÉPRÉCIÉES)
   // ============================================================================
-  
+
   /**
    * @deprecated Utiliser Logger.app.info, Logger.activity.info, etc.
    * @param {string} msg - Message à logger
@@ -359,7 +354,7 @@ const logger = {
     console.warn('⚠️ Logger.info déprécié - utilisez Logger.app.info, Logger.activity.info, etc.');
     appLogger.info(msg, meta);
   },
-  
+
   /**
    * @deprecated Utiliser Logger.app.warn, Logger.activity.warn, etc.
    * @param {string} msg - Message d'avertissement
@@ -369,7 +364,7 @@ const logger = {
     console.warn('⚠️ Logger.warn déprécié - utilisez Logger.app.warn, Logger.activity.warn, etc.');
     appLogger.warn(msg, meta);
   },
-  
+
   /**
    * @deprecated Utiliser Logger.app.error, Logger.activity.error, etc.
    * @param {string} msg - Message d'erreur
@@ -381,7 +376,7 @@ const logger = {
     );
     appLogger.error(msg, meta);
   },
-  
+
   /**
    * @deprecated Utiliser Logger.app.debug, Logger.activity.debug, etc.
    * @param {string} msg - Message de débogage
@@ -393,7 +388,6 @@ const logger = {
     );
     appLogger.debug(msg, meta);
   },
-
 
   /**
    * Logger ESP32 dédié
@@ -407,21 +401,21 @@ const logger = {
      * @param {Object} [meta] - Métadonnées (socketId, moduleId, etc.)
      */
     info: (msg, meta) => espLogger.info(msg, meta),
-    
+
     /**
      * Log d'avertissement ESP32
      * @param {string} msg - Message d'avertissement
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     warn: (msg, meta) => espLogger.warn(msg, meta),
-    
+
     /**
      * Log d'erreur ESP32
      * @param {string} msg - Message d'erreur
      * @param {Object} [meta] - Métadonnées supplémentaires
      */
     error: (msg, meta) => espLogger.error(msg, meta),
-    
+
     /**
      * Log de débogage ESP32
      * @param {string} msg - Message de debug
@@ -435,11 +429,11 @@ const logger = {
  * Export du logger principal
  * @module Logger
  * @description Système de journalisation centralisé pour l'application MicroCoaster
- * 
+ *
  * @example
  * // Utilisation recommandée avec domaines spécifiques
  * const Logger = require('./utils/logger');
- * 
+ *
  * Logger.app.info('Application démarrée');
  * Logger.activity.info('Utilisateur connecté', { userId: 123 });
  * Logger.modules.debug('Commande envoyée', { moduleId: 'MC-001', command: 'start' });

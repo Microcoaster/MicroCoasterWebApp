@@ -1,36 +1,23 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - MODULES CONTROL PAGE
- * ================================================================================
+ * Interface de contrôle des modules - Contrôles interactifs temps réel
  *
- * Purpose: Interactive module control interface with real-time status updates
- * Author: MicroCoaster Development Team
- * Created: 2024
+ * Gère l'interface de contrôle des modules incluant les contrôleurs de station,
+ * de monte-charge, de blocs et cartes de modules interactives avec communication WebSocket.
  *
- * Description:
- * Manages the modules control interface including station controllers, lift
- * controllers, block controllers, and interactive module cards. Provides
- * real-time WebSocket communication for module commands and status updates.
- *
- * Dependencies:
- * - global.js (WebSocket connection and utilities)
- * - Socket.io (for real-time module communication)
- *
- * ================================================================================
+ * @module modules
+ * @description Interface de contrôle des modules IoT avec mises à jour temps réel
  */
-
-// ================================================================================
-// MODULE CONTROL SYSTEM
-// ================================================================================
 
 window.ws_sendCommand = window.ws_sendCommand || function () {};
 
 const controllersByMid = new Map();
 
-// ================================================================================
-// MODULE CONTROLLERS
-// ================================================================================
-
+/**
+ * Crée un contrôleur de station interactif
+ * Génère l'interface de contrôle pour un module de type station avec boutons et indicateurs
+ * @param {HTMLElement} panel - Élément DOM du panneau de la station
+ * @returns {Object} Objet contrôleur avec méthodes de gestion
+ */
 function makeStationController(panel) {
   const IMG = {
     ON: urlImg('button_green_on.png'),
@@ -61,13 +48,32 @@ function makeStationController(panel) {
     harnessCooldown = false;
   let estop = false;
 
+  /**
+   * Met à jour l'image d'un commutateur selon son état
+   * @param {HTMLElement} img - Élément image du commutateur
+   * @param {boolean} isB - True pour position B, false pour position A
+   * @returns {void}
+   * @private
+   */
   const setSwitch = (img, isB) => {
     if (img) img.src = isB ? IMG.SW_B : IMG.SW_A;
   };
+
+  /**
+   * Met à jour l'indicateur Next Section Free
+   * @param {boolean} on - État de la section suivante (libre ou occupée)
+   * @returns {void}
+   * @private
+   */
   const setNSF = on => {
     if (nsfImg) nsfImg.src = on ? IMG.LED_ON : IMG.LED_OFF;
   };
 
+  /**
+   * Met à jour l'état verrouillé/déverrouillé du panneau de station
+   * @returns {void}
+   * @private
+   */
   function updateDisabled() {
     const lock = estop || inDispatch;
     panel.classList.toggle('locked', lock);
@@ -75,9 +81,20 @@ function makeStationController(panel) {
     if (estopImg) estopImg.style.pointerEvents = isOffline ? 'none' : 'auto';
   }
 
+  /**
+   * Applique l'état visuel de la lampe de dispatch (clignotante)
+   * @returns {void}
+   * @private
+   */
   function applyDispatchLamp() {
     if (dispatchImg) dispatchImg.src = blinkOn ? IMG.ON : IMG.OFF;
   }
+
+  /**
+   * Démarre le clignotement de la lampe de dispatch
+   * @returns {void}
+   * @private
+   */
   function startBlink() {
     if (blinkTmr || inDispatch || estop) return;
     blinkOn = false;
@@ -87,6 +104,12 @@ function makeStationController(panel) {
       applyDispatchLamp();
     }, 800);
   }
+  /**
+   * Arrête le clignotement de la lampe de dispatch
+   * @param {boolean} [forceOff=true] - Force l'état éteint
+   * @returns {void}
+   * @private
+   */
   function stopBlink(forceOff = true) {
     if (blinkTmr) {
       clearInterval(blinkTmr);
@@ -96,9 +119,19 @@ function makeStationController(panel) {
     applyDispatchLamp();
   }
 
+  /**
+   * Vérifie si le dispatch est autorisé selon les conditions de sécurité
+   * @returns {boolean} True si le dispatch est possible
+   * @private
+   */
   const canDispatch = () =>
     !estop && nextSectionFree && gatesClosed && harnessLocked && !inDispatch;
 
+  /**
+   * Réévalue tous les états et met à jour l'interface de la station
+   * @returns {void}
+   * @private
+   */
   function reevaluate() {
     setNSF(nextSectionFree && !estop);
     setSwitch(gatesImg, gatesClosed);
@@ -150,16 +183,35 @@ function makeStationController(panel) {
     }, 10000);
   });
 
+  /**
+   * Callback exécuté lorsque le module station passe en ligne
+   * Met à jour l'état de l'interface et réévalue les conditions
+   * @returns {void}
+   * @private
+   */
   function onPresenceOnline() {
     updateDisabled();
     reevaluate();
   }
+  /**
+   * Callback exécuté lorsque le module station passe hors ligne
+   * Arrête le clignotement et remet l'interface en mode sécurisé
+   * @returns {void}
+   * @private
+   */
   function onPresenceOffline() {
     stopBlink(true);
     setNSF(false);
     updateDisabled();
   }
 
+  /**
+   * Met à jour l'état de la station avec les données de télémétrie
+   * Synchronise l'interface avec l'état réel du module physique
+   * @param {Object} [t={}] - Données de télémétrie (gates, harness, nsf, estop)
+   * @returns {void}
+   * @private
+   */
   function updateTelemetry(t = {}) {
     if ('gates' in t) gatesClosed = !!t.gates;
     if ('harness' in t) harnessLocked = !!t.harness;
@@ -184,6 +236,12 @@ function makeStationController(panel) {
   };
 }
 
+/**
+ * Crée un contrôleur d'aiguillage interactif
+ * Génère l'interface de contrôle pour un module de type aiguillage avec indicateurs de position
+ * @param {HTMLElement} root - Élément DOM racine du panneau d'aiguillage
+ * @returns {Object} Objet contrôleur avec méthodes de gestion d'aiguillage
+ */
 function makeSwitchController(root) {
   const transfer = root.querySelector('[data-role="swt_transfer"]');
   const ledL = root.querySelector('[data-role="swt_left"]');
@@ -191,12 +249,33 @@ function makeSwitchController(root) {
   let left = true,
     lock = false;
 
+  /**
+   * Met à jour l'état visuel d'une LED
+   * @param {HTMLElement} img - Élément image de la LED
+   * @param {boolean} on - État de la LED (allumée/éteinte)
+   * @returns {void}
+   * @private
+   */
   const setLED = (img, on) => {
     if (img) img.src = on ? urlImg('led_on.png') : urlImg('led_off.png');
   };
+
+  /**
+   * Met à jour la position visuelle du commutateur d'aiguillage
+   * @param {boolean} isB - Position du commutateur (true=position B, false=position A)
+   * @returns {void}
+   * @private
+   */
   const setSW = isB => {
     if (transfer) transfer.src = isB ? urlImg('switch_1.png') : urlImg('switch_0.png');
   };
+
+  /**
+   * Met à jour l'affichage complet de l'aiguillage
+   * Synchronise les LEDs et la position du commutateur
+   * @returns {void}
+   * @private
+   */
   const update = () => {
     setLED(ledL, left);
     setLED(ledR, !left);
@@ -212,13 +291,31 @@ function makeSwitchController(root) {
     setTimeout(() => (lock = false), 3000);
   });
 
+  /**
+   * Callback exécuté lorsque l'aiguillage passe en ligne
+   * @returns {void}
+   * @private
+   */
   function onPresenceOnline() {
     update();
   }
+
+  /**
+   * Callback exécuté lorsque l'aiguillage passe hors ligne
+   * @returns {void}
+   * @private
+   */
   function onPresenceOffline() {
     setLED(ledL, false);
     setLED(ledR, false);
   }
+
+  /**
+   * Met à jour l'état de l'aiguillage avec les données de télémétrie
+   * @param {Object} payload - Données reçues (position)
+   * @returns {void}
+   * @private
+   */
   function updateTelemetry(payload) {
     if (payload.position) {
       left = String(payload.position).toLowerCase() === 'left';
@@ -230,6 +327,12 @@ function makeSwitchController(root) {
   return { onPresenceOnline, onPresenceOffline, updateTelemetry, destroy() {} };
 }
 
+/**
+ * Crée un contrôleur d'éclairage interactif
+ * Génère l'interface de contrôle pour un module d'éclairage avec réglage de luminosité
+ * @param {HTMLElement} panel - Élément DOM du panneau d'éclairage
+ * @returns {Object} Objet contrôleur avec méthodes de gestion d'éclairage
+ */
 function makeLightController(panel) {
   const IMG = {
     A: urlImg('switch_0.png'),
@@ -243,12 +346,32 @@ function makeLightController(panel) {
   const sw = panel.querySelector('[data-role="light_sw"]');
   const led = panel.querySelector('[data-role="light_led"]');
 
+  /**
+   * Met à jour l'état visuel de la LED d'éclairage
+   * @param {boolean} on - État de la LED (allumée/éteinte)
+   * @returns {void}
+   * @private
+   */
   const setLED = on => {
     if (led) led.src = on ? IMG.LED_ON : IMG.LED_OFF;
   };
+
+  /**
+   * Met à jour l'état visuel du commutateur d'éclairage
+   * @param {boolean} on - État du commutateur (activé/désactivé)
+   * @returns {void}
+   * @private
+   */
   const setSW = on => {
     if (sw) sw.src = on ? IMG.B : IMG.A;
   };
+
+  /**
+   * Applique l'état visuel complet du contrôleur d'éclairage
+   * Synchronise le commutateur et la LED selon l'état actuel
+   * @returns {void}
+   * @private
+   */
   const apply = () => {
     setSW(lightOn);
     setLED(lightOn);
@@ -263,13 +386,31 @@ function makeLightController(panel) {
     setTimeout(() => (cooldown = false), 3000);
   });
 
+  /**
+   * Callback exécuté lorsque le module d'éclairage passe en ligne
+   * @returns {void}
+   * @private
+   */
   function onPresenceOnline() {
     apply();
   }
+
+  /**
+   * Callback exécuté lorsque le module d'éclairage passe hors ligne
+   * @returns {void}
+   * @private
+   */
   function onPresenceOffline() {
     lightOn = false;
     apply();
   }
+
+  /**
+   * Met à jour l'état de l'éclairage avec les données de télémétrie
+   * @param {Object} payload - Données reçues (led, light, on)
+   * @returns {void}
+   * @private
+   */
   function updateTelemetry(payload) {
     const on = payload.led ?? payload.light ?? payload.on;
     if (on !== undefined) {
@@ -282,6 +423,12 @@ function makeLightController(panel) {
   return { onPresenceOnline, onPresenceOffline, updateTelemetry, destroy() {} };
 }
 
+/**
+ * Crée un contrôleur de lanceur interactif
+ * Génère l'interface de contrôle pour un module de type lanceur avec contrôles de vitesse et direction
+ * @param {HTMLElement} panel - Élément DOM du panneau de lanceur
+ * @returns {Object} Objet contrôleur avec méthodes de gestion de lanceur
+ */
 function makeLaunchController(panel) {
   const IMG = {
     BTN_ON: urlImg('button_green_on.png'),
@@ -320,11 +467,30 @@ function makeLaunchController(panel) {
   const lnPlus = panel.querySelector('[data-role="ln_dur_plus"]');
   const lnMinus = panel.querySelector('[data-role="ln_dur_minus"]');
 
+  /**
+   * Met à jour l'état verrouillé du panneau de lanceur
+   * @param {boolean} on - True pour verrouiller, false pour déverrouiller
+   * @returns {void}
+   * @private
+   */
   const setLocked = on => panel.classList.toggle('locked', on);
+
+  /**
+   * Met à jour l'état de la LED de prêt du lanceur
+   * @param {boolean} on - État de la LED (allumée/éteinte)
+   * @returns {void}
+   * @private
+   */
   const setLED = on => {
     if (ledImg) ledImg.src = on ? IMG.LED_ON : IMG.LED_OFF;
   };
 
+  /**
+   * Met à jour l'interface de direction du lanceur
+   * Synchronise l'image et le label de direction avec traduction
+   * @returns {void}
+   * @private
+   */
   function setDirUI() {
     if (!dirImg || !dirLbl) return;
     dirImg.src = direction === 'forward' ? IMG.SW_A : IMG.SW_B;
@@ -342,14 +508,31 @@ function makeLaunchController(panel) {
       });
     }
   }
+  /**
+   * Met à jour l'affichage de la vitesse du lanceur
+   * Synchronise la valeur affichée et la jauge visuelle
+   * @returns {void}
+   * @private
+   */
   function setSpeedUI() {
     if (spVal) spVal.textContent = speed;
     if (gauge) gauge.style.setProperty('--p', speed);
   }
 
+  /**
+   * Applique l'état visuel de la lampe de lancement
+   * @returns {void}
+   * @private
+   */
   function applyLamp() {
     if (btnImg) btnImg.src = blinkOn ? IMG.BTN_ON : IMG.BTN_OFF;
   }
+
+  /**
+   * Démarre le clignotement de la lampe de lancement
+   * @returns {void}
+   * @private
+   */
   function startBlink() {
     if (blinkTmr || inLaunch) return;
     blinkOn = false;
@@ -359,6 +542,13 @@ function makeLaunchController(panel) {
       applyLamp();
     }, 800);
   }
+
+  /**
+   * Arrête le clignotement de la lampe de lancement
+   * @param {boolean} [forceOff=true] - Force l'état éteint
+   * @returns {void}
+   * @private
+   */
   function stopBlink(forceOff = true) {
     if (blinkTmr) {
       clearInterval(blinkTmr);
@@ -368,7 +558,18 @@ function makeLaunchController(panel) {
     applyLamp();
   }
 
+  /**
+   * Calcule si le lanceur est prêt à être utilisé
+   * @returns {boolean} True si prêt (vitesse > 0 et pas en cours de lancement)
+   * @private
+   */
   const computeReady = () => speed > 0 && !inLaunch;
+
+  /**
+   * Réévalue tous les états du lanceur et met à jour l'interface
+   * @returns {void}
+   * @private
+   */
   function reevaluate() {
     const ok = computeReady();
     setLED(ok);
@@ -384,6 +585,12 @@ function makeLaunchController(panel) {
     setTimeout(() => (dirCooldown = false), 3000);
   });
 
+  /**
+   * Modifie la vitesse du lanceur par incrément
+   * @param {number} d - Incrément de vitesse (positif ou négatif)
+   * @returns {void}
+   * @private
+   */
   function stepSpeed(d) {
     speed = Math.max(0, Math.min(100, speed + d));
     setSpeedUI();
@@ -391,6 +598,14 @@ function makeLaunchController(panel) {
     window.ws_sendCommand(panel, 'speed', { value: speed });
   }
 
+  /**
+   * Configure un contrôle avec support tap/hold pour un élément
+   * @param {HTMLElement} el - Élément à configurer
+   * @param {Function} onTap - Callback pour un tap simple
+   * @param {Function} onHoldStep - Callback répété pendant le hold
+   * @returns {void}
+   * @private
+   */
   function pressControl(el, onTap, onHoldStep) {
     if (!el) return;
     let pressed = false,
@@ -433,8 +648,19 @@ function makeLaunchController(panel) {
   );
   gauge?.addEventListener('click', () => stepSpeed(+10));
 
+  /**
+   * Contraint une valeur dans les limites de durée de lancement
+   * @param {number} v - Valeur à contraindre
+   * @returns {number} Valeur limitée entre MIN_LDUR et MAX_LDUR
+   * @private
+   */
   const lnClamp = v => Math.max(MIN_LDUR, Math.min(MAX_LDUR, v));
 
+  /**
+   * Crée les éléments numériques pour le sélecteur de durée
+   * @returns {void}
+   * @private
+   */
   function ensureNumbers() {
     if (!lnTrack || lnTrack.children.length) return;
     const frag = document.createDocumentFragment();
@@ -448,6 +674,12 @@ function makeLaunchController(panel) {
     lnTrack.appendChild(frag);
   }
 
+  /**
+   * Calibre le sélecteur de durée rotatif
+   * Calcule les dimensions et positions pour l'animation
+   * @returns {void}
+   * @private
+   */
   function lnCalibrate() {
     if (!lnRoll || !lnTrack || !lnTrack.firstElementChild) return;
     lnTrack.style.transform = 'translateY(0px)';
@@ -459,6 +691,12 @@ function makeLaunchController(panel) {
     LN_BASE = Math.round(center - firstCenter);
   }
 
+  /**
+   * Met à jour l'interface du sélecteur de durée
+   * Position le sélecteur et met à jour les états des boutons
+   * @returns {void}
+   * @private
+   */
   function lnSetUI() {
     if (!lnRoll || !lnTrack) return;
     lDuration = lnClamp(lDuration);
@@ -471,6 +709,12 @@ function makeLaunchController(panel) {
     if (lnMinus) lnMinus.disabled = lDuration <= MIN_LDUR;
   }
 
+  /**
+   * Modifie la durée de lancement par incrément
+   * @param {number} d - Incrément de durée (positif ou négatif)
+   * @returns {boolean} True si la modification a été appliquée
+   * @private
+   */
   function lnNudge(d) {
     const next = lnClamp(lDuration + d);
     if (next === lDuration) return false;
@@ -560,10 +804,22 @@ function makeLaunchController(panel) {
   setSpeedUI();
   if (lnRoll && lnTrack) {
     ensureNumbers();
+    /**
+     * Actualise l'affichage du sélecteur rotatif de durée
+     * Recalibre et met à jour l'interface lors des changements de taille
+     * @returns {void}
+     * @private
+     */
     const refreshRoller = () => {
       lnCalibrate();
       lnSetUI();
     };
+    /**
+     * Tente d'actualiser le sélecteur lorsqu'il devient visible
+     * Utilise requestAnimationFrame pour attendre que l'élément soit rendu
+     * @returns {void}
+     * @private
+     */
     const tryWhenVisible = () => {
       const vis = lnRoll.offsetParent !== null && lnRoll.getBoundingClientRect().height > 0;
       if (vis) refreshRoller();
@@ -591,6 +847,12 @@ function makeLaunchController(panel) {
   };
 }
 
+/**
+ * Crée un contrôleur de machine à fumée interactive
+ * Gère l'interface de contrôle pour modules de type Smoke Machine avec durée ajustable
+ * @param {HTMLElement} panel - Élément DOM du panneau du contrôleur de fumée
+ * @returns {Object} Objet contrôleur avec méthodes de gestion d'état et télémétrie
+ */
 function makeSmokeController(panel) {
   const IMG = {
     BTN_ON: urlImg('button_green_on.png'),
@@ -617,15 +879,46 @@ function makeSmokeController(panel) {
   const plus = panel.querySelector('[data-role="sm_plus"]');
   const minus = panel.querySelector('[data-role="sm_minus"]');
 
+  /**
+   * Contraint une valeur dans les limites de durée de fumée
+   * @param {number} v - Valeur à contraindre
+   * @returns {number} Valeur limitée entre MIN et MAX
+   * @private
+   */
   const clamp = v => Math.max(MIN, Math.min(MAX, v));
+
+  /**
+   * Met à jour l'état verrouillé du panneau de fumée
+   * @param {boolean} on - True pour verrouiller, false pour déverrouiller
+   * @returns {void}
+   * @private
+   */
   const setLocked = on => panel.classList.toggle('locked', on);
+
+  /**
+   * Met à jour l'état de la LED de prêt de la machine à fumée
+   * @param {boolean} on - État de la LED (allumée/éteinte)
+   * @returns {void}
+   * @private
+   */
   const setLED = on => {
     if (led) led.src = on ? IMG.LED_ON : IMG.LED_OFF;
   };
 
+  /**
+   * Applique l'état visuel du bouton de fumée
+   * @returns {void}
+   * @private
+   */
   function applyBtn() {
     if (btn) btn.src = blinkOn ? IMG.BTN_ON : IMG.BTN_OFF;
   }
+
+  /**
+   * Démarre le clignotement du bouton de fumée
+   * @returns {void}
+   * @private
+   */
   function startBlink() {
     if (blinkTmr || inRun) return;
     blinkOn = false;
@@ -635,6 +928,13 @@ function makeSmokeController(panel) {
       applyBtn();
     }, 800);
   }
+
+  /**
+   * Arrête le clignotement du bouton de fumée
+   * @param {boolean} [forceOff=true] - Force l'état éteint
+   * @returns {void}
+   * @private
+   */
   function stopBlink(forceOff = true) {
     if (blinkTmr) {
       clearInterval(blinkTmr);
@@ -643,7 +943,19 @@ function makeSmokeController(panel) {
     blinkOn = !forceOff;
     applyBtn();
   }
+
+  /**
+   * Calcule si la machine à fumée est prête à être utilisée
+   * @returns {boolean} True si prête (pas en cours, ready et durée > 0)
+   * @private
+   */
   const computeReady = () => !inRun && ready && duration > 0;
+
+  /**
+   * Réévalue tous les états de la machine à fumée et met à jour l'interface
+   * @returns {void}
+   * @private
+   */
   function reevaluate() {
     const ok = computeReady();
     setLED(ok);
@@ -659,6 +971,11 @@ function makeSmokeController(panel) {
     }
   }
 
+  /**
+   * Calibre le sélecteur de durée rotatif de la machine à fumée
+   * @returns {void}
+   * @private
+   */
   function calibrate() {
     if (!roll || !track || !track.firstElementChild) return;
     track.style.transform = 'translateY(0px)';
@@ -669,6 +986,12 @@ function makeSmokeController(panel) {
     const firstCenter = rFirst.top - rTrack.top + STEP / 2;
     BASE = Math.round(center - firstCenter);
   }
+
+  /**
+   * Met à jour l'interface du sélecteur de durée de fumée
+   * @returns {void}
+   * @private
+   */
   function setRollUI() {
     if (!roll || !track) return;
     duration = clamp(duration);
@@ -680,6 +1003,13 @@ function makeSmokeController(panel) {
     if (plus) plus.disabled = duration >= MAX;
     if (minus) minus.disabled = duration <= MIN;
   }
+
+  /**
+   * Modifie la durée de fumée par incrément
+   * @param {number} d - Incrément de durée (positif ou négatif)
+   * @returns {boolean} True si la modification a été appliquée
+   * @private
+   */
   function nudge(d) {
     const next = clamp(duration + d);
     if (next === duration) return false;
@@ -689,18 +1019,28 @@ function makeSmokeController(panel) {
     return true;
   }
 
+  /**
+   * Configure un contrôle avec support tap/hold pour la fumée
+   * @param {HTMLElement} el - Élément à configurer
+   * @param {number} delta - Incrément pour les actions
+   * @returns {void}
+   * @private
+   */
   function bindHold(el, delta) {
     if (!el) return;
     let pressed = false,
       holdT = null,
       repT = null,
       holding = false;
+    /** Callback pour tap simple - incrémente la durée */
     const tap = () => {
       nudge(delta);
     };
+    /** Callback pour répétition - incrémente continuellement */
     const rep = () => {
       if (!nudge(delta)) clearInterval(repT);
     };
+    /** Callback de début d'interaction - gère tap et hold */
     const start = e => {
       if (e.pointerType && e.pointerType !== 'mouse') e.preventDefault();
       if (pressed || inRun) return;
@@ -712,6 +1052,7 @@ function makeSmokeController(panel) {
         repT = setInterval(rep, 90);
       }, 300);
     };
+    /** Callback de fin d'interaction - nettoie les timers */
     const end = () => {
       if (!pressed) return;
       clearTimeout(holdT);
@@ -773,6 +1114,12 @@ function makeSmokeController(panel) {
     }
   }
 
+  /**
+   * Actualise l'affichage du sélecteur de durée de fumée
+   * Recalibre et met à jour l'interface lors des changements de taille
+   * @returns {void}
+   * @private
+   */
   const refreshSmoke = () => {
     calibrate();
     setRollUI();
@@ -799,6 +1146,12 @@ function makeSmokeController(panel) {
   };
 }
 
+/**
+ * Crée un contrôleur de lecteur audio interactif
+ * Gère la lecture de pistes audio avec playlist dynamique et contrôles de lecture
+ * @param {HTMLElement} panel - Élément DOM du panneau du contrôleur audio
+ * @returns {Object} Objet contrôleur avec méthodes de gestion de playlist et état
+ */
 function makeAudioController(panel) {
   const list = panel.querySelector('[data-role="au_list"]');
   const btn = panel.querySelector('[data-role="au_play"]');
@@ -826,10 +1179,21 @@ function makeAudioController(panel) {
   let blinkTimer = null,
     lampOn = false;
 
+  /**
+   * Met à jour l'état visuel de la lampe du lecteur audio
+   * @param {boolean} on - État de la lampe (allumée/éteinte)
+   * @returns {void}
+   * @private
+   */
   const setLamp = on => {
     if (btn) btn.src = on ? IMG.ON : IMG.OFF;
   };
 
+  /**
+   * Démarre le clignotement de la lampe du lecteur audio
+   * @returns {void}
+   * @private
+   */
   function startBlink() {
     if (blinkTimer || cooldown) return;
     lampOn = false;
@@ -839,6 +1203,13 @@ function makeAudioController(panel) {
       setLamp(lampOn);
     }, 800);
   }
+
+  /**
+   * Arrête le clignotement de la lampe du lecteur audio
+   * @param {boolean} [forceOff=true] - Force l'état éteint
+   * @returns {void}
+   * @private
+   */
   function stopBlink(forceOff = true) {
     if (blinkTimer) {
       clearInterval(blinkTimer);
@@ -848,6 +1219,11 @@ function makeAudioController(panel) {
     setLamp(!forceOff);
   }
 
+  /**
+   * Affiche la liste des pistes audio disponibles
+   * @returns {void}
+   * @private
+   */
   function render() {
     if (!list) return;
     list.innerHTML = '';
@@ -864,11 +1240,23 @@ function makeAudioController(panel) {
       list.appendChild(el);
     });
   }
+
+  /**
+   * Marque la piste actuellement sélectionnée dans la liste
+   * @returns {void}
+   * @private
+   */
   function mark() {
     if (!list) return;
     [...list.children].forEach((el, i) => el.classList.toggle('active', i === index));
   }
 
+  /**
+   * Charge une piste audio dans le lecteur
+   * @param {boolean} autoplay - Lance automatiquement la lecture
+   * @returns {void}
+   * @private
+   */
   function load(autoplay) {
     const t = tracks[index];
     if (!t) return;
@@ -882,6 +1270,11 @@ function makeAudioController(panel) {
     }
   }
 
+  /**
+   * Démarre une période de refroidissement du lecteur audio
+   * @returns {void}
+   * @private
+   */
   function beginCooldown() {
     cooldown = true;
     panel.classList.add('locked');
@@ -915,15 +1308,33 @@ function makeAudioController(panel) {
     if (!cooldown) startBlink();
   });
 
+  /**
+   * Callback exécuté lorsque le module audio passe en ligne
+   * @returns {void}
+   * @private
+   */
   function onPresenceOnline() {
     panel.classList.remove('locked');
     if (tag.paused) startBlink();
   }
+
+  /**
+   * Callback exécuté lorsque le module audio passe hors ligne
+   * @returns {void}
+   * @private
+   */
   function onPresenceOffline() {
     panel.classList.add('locked');
     stopBlink(true);
   }
 
+  /**
+   * Met à jour l'état du lecteur audio avec les données de télémétrie
+   * Gère la playlist, la piste courante et l'état de lecture
+   * @param {Object} [payload={}] - Données de télémétrie (playlist, current, track, playing)
+   * @returns {void}
+   * @private
+   */
   function updateTelemetry(payload = {}) {
     if (payload.playlist) {
       const arr = Array.isArray(payload.playlist) ? payload.playlist : [];
@@ -981,10 +1392,11 @@ function makeAudioController(panel) {
   };
 }
 
-// ================================================================================
-// CONTROLLER BOOTSTRAP
-// ================================================================================
-
+/**
+ * Initialise les contrôleurs pour tous les panneaux de modules
+ * Bootstrap automatique des interfaces selon le type de module détecté
+ * @returns {void}
+ */
 (function bootstrapPanels() {
   const panels = document.querySelectorAll('.panel[data-mid]');
   panels.forEach(panel => {
@@ -1024,10 +1436,6 @@ function makeAudioController(panel) {
   });
 })();
 
-// ================================================================================
-// UI INTERACTIONS
-// ================================================================================
-
 document.querySelectorAll('.midchip[role="button"]').forEach(chip => {
   chip.addEventListener('click', () => {
     const id = chip.querySelector('.mid')?.textContent?.trim();
@@ -1050,10 +1458,11 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
   }
 });
 
-// ================================================================================
-// FILTERS SYSTEM
-// ================================================================================
-
+/**
+ * Système de filtrage des modules
+ * Gère les filtres par statut en ligne et recherche textuelle
+ * @returns {void}
+ */
 (function () {
   const KEY_ONLINE = 'mc:onlineOnly';
   const KEY_QUERY = 'mc:moduleSearch';
@@ -1064,6 +1473,12 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
   const clrBtn =
     document.querySelector('.searchbar .search-clear') || document.querySelector('.search-clear');
 
+  /**
+   * Applique les filtres de recherche et de statut aux modules
+   * Gère le filtrage par statut en ligne et par recherche textuelle
+   * @returns {void}
+   * @private
+   */
   function applyFilters() {
     const only = !!cb?.checked;
     const q = (qInp?.value || '').trim().toLowerCase();
@@ -1128,6 +1543,11 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     const savedQ = localStorage.getItem(KEY_QUERY) || '';
     if (savedQ) qInp.value = savedQ;
 
+    /**
+     * Met à jour la visibilité du bouton de nettoyage de recherche
+     * @returns {void}
+     * @private
+     */
     function updateClearButton() {
       if (clrBtn) {
         clrBtn.classList.toggle('show', qInp.value.length > 0);
@@ -1160,20 +1580,34 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
   requestAnimationFrame(applyFilters);
 })();
 
-// ================================================================================
-// WEBSOCKET COMMUNICATION
-// ================================================================================
-
+/**
+ * Gestion de la communication WebSocket pour les modules
+ * Établit et maintient la connexion temps réel avec le serveur pour les mises à jour de statut
+ * @returns {void}
+ */
 (() => {
   let socket;
 
+  /**
+   * Affiche ou masque la bannière d'état du serveur
+   * @param {boolean} show - True pour afficher, false pour masquer
+   * @returns {void}
+   * @private
+   */
   function setServerBanner(show) {
     const el = document.getElementById('serverState');
     if (el) el.hidden = !show;
     window.__serverDown = !!show;
     window.applyOnlineFilter?.();
   }
+
   let showDownTimer = null;
+
+  /**
+   * Programme l'affichage de la bannière de serveur déconnecté
+   * @returns {void}
+   * @private
+   */
   function scheduleDownBanner() {
     if (showDownTimer) return;
     showDownTimer = setTimeout(() => {
@@ -1181,6 +1615,12 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       setServerBanner(true);
     }, 8000);
   }
+
+  /**
+   * Masque immédiatement la bannière de serveur déconnecté
+   * @returns {void}
+   * @private
+   */
   function hideDownBanner() {
     if (showDownTimer) {
       clearTimeout(showDownTimer);
@@ -1189,6 +1629,12 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     setServerBanner(false);
   }
 
+  /**
+   * Marque tous les modules comme hors ligne
+   * Met à jour l'interface et notifie les contrôleurs
+   * @returns {void}
+   * @private
+   */
   function markAllOffline() {
     document.querySelectorAll('.panel[data-mid]').forEach(p => {
       p.classList.remove('online');
@@ -1213,9 +1659,17 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     p.classList.add('offline', 'disabled');
   });
 
+  /**
+   * Met à jour l'état de présence d'un module spécifique
+   * Gère l'affichage visuel et les événements de connexion/déconnexion
+   * @param {string} moduleId - Identifiant unique du module
+   * @param {boolean} online - Statut de connexion (true=en ligne, false=hors ligne)
+   * @returns {void}
+   * @private
+   */
   function setPresence(moduleId, online) {
     const panels = document.querySelectorAll(`.panel[data-mid="${moduleId}"]`);
-    
+
     panels.forEach(p => {
       p.classList.toggle('online', online);
       p.classList.toggle('offline', !online);
@@ -1241,6 +1695,14 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     window.applyOnlineFilter?.();
   }
 
+  /**
+   * Met à jour les données de télémétrie d'un module
+   * Transmet les données au contrôleur associé pour mise à jour de l'interface
+   * @param {string} moduleId - Identifiant du module concerné
+   * @param {Object} payload - Données de télémétrie à appliquer
+   * @returns {void}
+   * @private
+   */
   function updateTelemetry(moduleId, payload) {
     const panels = document.querySelectorAll(`.panel[data-mid="${moduleId}"]`);
     panels.forEach(() => {
@@ -1251,6 +1713,12 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 
   // Plus besoin de reconnectionManager - global.js s'en charge
 
+  /**
+   * Établit la connexion WebSocket pour les modules
+   * Utilise la connexion globale et configure les événements spécifiques
+   * @returns {void}
+   * @private
+   */
   function connectSocket() {
     // AUCUNE gestion WebSocket - utiliser seulement la connexion globale
     if (!window.socket) {
@@ -1268,19 +1736,24 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     // Enregistrer cette page si la connexion est active
     if (socket.connected) {
       socket.emit('register_page', { page: 'modules' });
-      
+
       // Demander synchronisation initiale des statuts
       requestInitialSync();
     } else {
       socket.on('connect', () => {
         socket.emit('register_page', { page: 'modules' });
-        
+
         // Demander synchronisation initiale après connexion
         requestInitialSync();
       });
     }
   }
 
+  /**
+   * Demande la synchronisation initiale des états de modules
+   * @returns {void}
+   * @private
+   */
   function requestInitialSync() {
     // Demander l'état actuel de tous les modules connectés
     if (socket && socket.connected) {
@@ -1288,9 +1761,14 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     }
   }
 
+  /**
+   * Configure tous les événements WebSocket pour les modules
+   * @param {Object} socket - Instance Socket.io
+   * @returns {void}
+   * @private
+   */
   function setupSocketEvents(socket) {
     // Setting up socket events...
-
 
     socket.on('user:module:online', data => {
       setPresence(data.moduleId, true);
@@ -1313,8 +1791,6 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
         });
       }
     });
-
-
 
     // Télémétrie des modules
     socket.on('module_telemetry', data => {
@@ -1371,7 +1847,6 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       }
     });
 
-
     // Télémétrie mise à jour en temps réel
     socket.on('rt_telemetry_updated', data => {
       // Real-time: Telemetry updated
@@ -1379,7 +1854,16 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     });
   }
 
-  // Fonction pour envoyer des commandes (remplace l'ancienne ws_sendCommand)
+  /**
+   * Fonction globale pour envoyer des commandes aux modules via WebSocket
+   * Remplace l'ancienne implémentation ws_sendCommand avec sécurité renforcée
+   * @param {HTMLElement} panel - Panneau du module cible
+   * @param {string} command - Commande à envoyer au module
+   * @param {Object} [params={}] - Paramètres de la commande
+   * @param {HTMLElement} [buttonElement=null] - Élément bouton pour effet visuel
+   * @returns {void}
+   * @global
+   */
   window.ws_sendCommand = function (panel, command, params = {}, buttonElement = null) {
     if (!socket || !socket.connected) {
       console.warn('🔌 Socket.io not connected');
@@ -1418,7 +1902,12 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     connectSocket();
   }
 
-  // expose reconnect pour debug
+  /**
+   * Fonction globale de reconnexion WebSocket pour débogage
+   * Force la reconnexion du socket et masque la bannière de déconnexion
+   * @returns {void}
+   * @global
+   */
   window.mc_socketReconnect = () => {
     hideDownBanner();
     if (socket) {
@@ -1430,9 +1919,10 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
   };
 })();
 
-/* =========================================================
- * Modal Add module (open/close)
- * =======================================================*/
+/**
+ * Modal d'ajout de module - Gestion ouverture/fermeture
+ * Interface pour ajouter de nouveaux modules au système
+ */
 const modalAdd = document.getElementById('modalAdd');
 const openAddBtn = document.getElementById('openModal');
 const cancelAdd = document.getElementById('btnCancelAdd');
@@ -1499,11 +1989,21 @@ if (codeField) {
   });
 }
 
+/**
+ * Ouvre le modal d'ajout de module
+ * Active l'affichage du modal et place le focus sur le champ ID
+ * @returns {void}
+ */
 function openAddModal() {
   modalAdd?.classList.add('open');
   modalAdd?.setAttribute('aria-hidden', 'false');
   setTimeout(() => idField?.focus(), 50);
 }
+/**
+ * Ferme le modal d'ajout de module
+ * Masque le modal et remet à zéro le formulaire d'ajout
+ * @returns {void}
+ */
 function closeAddModal() {
   modalAdd?.classList.remove('open');
   modalAdd?.setAttribute('aria-hidden', 'true');
@@ -1520,9 +2020,10 @@ window.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeAddModal();
 });
 
-/* =========================================================
- * Modal Delete module (claim/unclaim system)
- * =======================================================*/
+/**
+ * Modal de suppression de module
+ * Interface pour supprimer des modules existants du système
+ */
 const modalDel = document.getElementById('modalDelete');
 const delText = document.getElementById('dlgDelText');
 const delForm = document.getElementById('deleteForm');

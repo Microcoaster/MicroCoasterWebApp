@@ -13,7 +13,7 @@ const config = {
   telemetryInterval: 5000,
   heartbeatInterval: 30000,
   reconnectDelay: 3000,
-  maxReconnectAttempts: 5
+  maxReconnectAttempts: 5,
 };
 
 // Module state
@@ -24,7 +24,7 @@ let moduleState = {
   lastCommand: null,
   commandCount: 0,
   telemetryCount: 0,
-  reconnectAttempts: 0
+  reconnectAttempts: 0,
 };
 
 let ws = null;
@@ -50,7 +50,7 @@ function createAuthenticatedMessage(type, data = {}) {
     moduleId: config.moduleId,
     password: config.modulePassword,
     timestamp: new Date().toISOString(),
-    ...data
+    ...data,
   };
 }
 
@@ -61,7 +61,7 @@ function sendMessage(type, data = {}) {
   }
 
   const message = createAuthenticatedMessage(type, data);
-  
+
   try {
     ws.send(JSON.stringify(message));
     return true;
@@ -73,7 +73,7 @@ function sendMessage(type, data = {}) {
 
 function sendTelemetry() {
   const uptimeSeconds = Math.floor((Date.now() - moduleState.uptime) / 1000);
-  
+
   const telemetryData = {
     position: moduleState.position,
     isMoving: moduleState.isMoving,
@@ -82,7 +82,7 @@ function sendTelemetry() {
     telemetryCount: ++moduleState.telemetryCount,
     freeHeap: Math.floor(Math.random() * 50000) + 200000,
     signalStrength: Math.floor(Math.random() * 30) - 70,
-    temperature: Math.floor(Math.random() * 15) + 20
+    temperature: Math.floor(Math.random() * 15) + 20,
   };
 
   if (sendMessage('telemetry', telemetryData)) {
@@ -110,36 +110,35 @@ function simulateMovement(targetPosition) {
 
   moduleState.isMoving = true;
   log(`🔄 Mouvement: ${moduleState.position} → ${targetPosition}`);
-  
+
   const movementDuration = Math.floor(Math.random() * 1000) + 500;
-  
+
   setTimeout(() => {
     moduleState.position = targetPosition;
     moduleState.isMoving = false;
     moduleState.lastCommand = targetPosition;
     moduleState.commandCount++;
-    
+
     log(`✅ Mouvement terminé: ${targetPosition}`);
-    
+
     sendMessage('command_response', {
       command: 'switch',
       position: targetPosition,
       success: true,
-      duration: movementDuration
+      duration: movementDuration,
     });
-    
   }, movementDuration);
-  
+
   return true;
 }
 
 // Command handling
 function handleCommand(data) {
   log(`🎮 Commande:`, data);
-  
+
   // Extraire la commande du format reçu
   const command = data.data ? data.data.command : data.command;
-  
+
   switch (command) {
     case 'left':
     case 'switch_left':
@@ -158,7 +157,7 @@ function handleCommand(data) {
         position: moduleState.position,
         isMoving: moduleState.isMoving,
         uptime: Math.floor((Date.now() - moduleState.uptime) / 1000),
-        commandCount: moduleState.commandCount
+        commandCount: moduleState.commandCount,
       });
       break;
     case 'reset':
@@ -172,7 +171,7 @@ function handleCommand(data) {
       log(`⚠️ Commande inconnue: ${command}`);
       sendMessage('command_error', {
         command: command,
-        error: 'Unknown command'
+        error: 'Unknown command',
       });
   }
 }
@@ -181,7 +180,7 @@ function handleCommand(data) {
 function handleMessage(rawData) {
   try {
     const data = JSON.parse(rawData);
-    
+
     switch (data.type) {
       case 'auth_success':
         log('✅ Authentifié');
@@ -200,7 +199,6 @@ function handleMessage(rawData) {
       default:
         log(`📥 Message:`, data.type);
     }
-    
   } catch (err) {
     error('Erreur parsing:', err.message);
   }
@@ -210,11 +208,11 @@ function startTelemetry() {
   telemetryTimer = setInterval(() => {
     sendTelemetry();
   }, config.telemetryInterval);
-  
+
   heartbeatTimer = setInterval(() => {
     sendHeartbeat();
   }, config.heartbeatInterval);
-  
+
   setTimeout(() => sendTelemetry(), 100);
   log(`📡 Télémétrie démarrée (${config.telemetryInterval}ms)`);
 }
@@ -224,12 +222,12 @@ function stopTelemetry() {
     clearInterval(telemetryTimer);
     telemetryTimer = null;
   }
-  
+
   if (heartbeatTimer) {
     clearInterval(heartbeatTimer);
     heartbeatTimer = null;
   }
-  
+
   log('📡 Télémétrie arrêtée');
 }
 
@@ -238,31 +236,31 @@ function connect() {
     log('⚠️ Déjà connecté');
     return;
   }
-  
+
   log(`🔌 Connexion à ${config.serverUrl}...`);
-  
+
   ws = new WebSocket(config.serverUrl);
-  
+
   ws.on('open', () => {
     log('🔌 WebSocket connecté, authentification...');
     moduleState.reconnectAttempts = 0;
-    
+
     sendMessage('module_identify', {
       moduleType: 'SwitchTrack',
       version: '2.1.0',
-      features: ['switch', 'telemetry', 'remote_control']
+      features: ['switch', 'telemetry', 'remote_control'],
     });
   });
-  
+
   ws.on('message', handleMessage);
-  
+
   ws.on('close', (code, reason) => {
     log(`🔌 Connexion fermée (${code}): ${reason || 'Aucune raison'}`);
     stopTelemetry();
     attemptReconnect();
   });
-  
-  ws.on('error', (err) => {
+
+  ws.on('error', err => {
     error('Erreur WebSocket:', err.message);
   });
 }
@@ -272,11 +270,13 @@ function attemptReconnect() {
     error(`Max tentatives atteint (${config.maxReconnectAttempts})`);
     process.exit(1);
   }
-  
+
   moduleState.reconnectAttempts++;
-  
-  log(`🔄 Reconnexion ${moduleState.reconnectAttempts}/${config.maxReconnectAttempts} dans ${config.reconnectDelay}ms...`);
-  
+
+  log(
+    `🔄 Reconnexion ${moduleState.reconnectAttempts}/${config.maxReconnectAttempts} dans ${config.reconnectDelay}ms...`
+  );
+
   reconnectTimer = setTimeout(() => {
     connect();
   }, config.reconnectDelay);
@@ -284,14 +284,14 @@ function attemptReconnect() {
 
 function disconnect() {
   log('🔌 Déconnexion...');
-  
+
   stopTelemetry();
-  
+
   if (reconnectTimer) {
     clearTimeout(reconnectTimer);
     reconnectTimer = null;
   }
-  
+
   if (ws) {
     ws.close();
     ws = null;
@@ -308,7 +308,7 @@ function gracefulShutdown() {
 process.on('SIGINT', gracefulShutdown);
 process.on('SIGTERM', gracefulShutdown);
 
-process.on('uncaughtException', (err) => {
+process.on('uncaughtException', err => {
   error('Exception:', err);
   gracefulShutdown();
 });
@@ -323,7 +323,7 @@ function startSimulator() {
   log(`📍 Module: ${config.moduleId}`);
   log(`🔗 Serveur: ${config.serverUrl}`);
   log(`📍 Position initiale: ${moduleState.position}`);
-  
+
   connect();
 }
 
@@ -336,5 +336,5 @@ module.exports = {
   startSimulator,
   disconnect,
   moduleState,
-  config
+  config,
 };

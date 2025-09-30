@@ -1,28 +1,19 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - ADMIN PAGE
- * ================================================================================
+ * Interface d'administration - Gestion utilisateurs et système côté client
  *
- * Purpose: Administrative interface for user and system management
- * Author: MicroCoaster Development Team
- * Created: 2024
+ * Gère l'interface d'administration incluant statistiques temps réel, gestion utilisateur,
+ * surveillance système et supervision des modules avec communication WebSocket.
  *
- * Description:
- * Manages the administrative interface including real-time statistics, user
- * management, system monitoring, and module oversight. Provides WebSocket-based
- * real-time updates and interactive administrative controls.
- *
- * Dependencies:
- * - global.js (WebSocket connection and utilities)
- * - Socket.io (for real-time admin updates)
- *
- * ================================================================================
+ * @module admin
+ * @description Interface d'administration avec contrôles interactifs et mises à jour temps réel
  */
 
-// ================================================================================
-// UTILITY FUNCTIONS
-// ================================================================================
-
+/**
+ * Génère un badge HTML avec icône et style pour un type de module donné
+ * Crée l'affichage visuel standardisé pour les types de modules dans l'interface admin
+ * @param {string} moduleType - Type du module (station, launch-track, switch-track, etc.)
+ * @returns {string} HTML du badge avec classe CSS et icône appropriées
+ */
 function getTypeBadge(moduleType) {
   if (!moduleType) return getTypeBadge('unknown');
 
@@ -99,7 +90,10 @@ function getTypeBadge(moduleType) {
 }
 
 /**
- * Initialise les badges de types pour tous les modules visibles
+ * Initialise les badges de types pour tous les modules visibles dans l'interface
+ * Parcourt les éléments avec l'attribut data-module-type et génère les badges appropriés
+ * @returns {void}
+ * @public
  */
 function initializeModuleTypeBadges() {
   // Chercher tous les éléments qui ont besoin d'un badge de type
@@ -115,7 +109,10 @@ function initializeModuleTypeBadges() {
 }
 
 /**
- * Initialise les fonctionnalités de pagination
+ * Initialise les fonctionnalités de pagination avec préférences sauvegardées
+ * Restaure les paramètres de pagination depuis localStorage pour modules et utilisateurs
+ * @returns {void}
+ * @public
  */
 function initializePagination() {
   // Restaurer les préférences depuis le localStorage
@@ -137,7 +134,10 @@ function initializePagination() {
 }
 
 /**
- * Initialise les filtres de la page admin
+ * Initialise les filtres de colonnes pour les tables d'administration
+ * Configure les événements de filtrage et les boutons de réinitialisation
+ * @returns {void}
+ * @public
  */
 function initializeFilters() {
   // Tous les filtres de colonnes (inputs et selects)
@@ -168,7 +168,10 @@ function initializeFilters() {
 }
 
 /**
- * Efface tous les filtres d'une table
+ * Efface tous les filtres d'une table spécifique
+ * @param {string} tableType - Type de table à réinitialiser ('users' ou 'modules')
+ * @returns {void}
+ * @public
  */
 function clearFilters(tableType) {
   const prefix = tableType === 'users' ? 'user' : 'module';
@@ -183,7 +186,10 @@ function clearFilters(tableType) {
 }
 
 /**
- * Applique les filtres sélectionnés (côté client uniquement)
+ * Applique tous les filtres sélectionnés aux tables (côté client uniquement)
+ * Met à jour le tri, la pagination et l'affichage des résultats filtrés
+ * @returns {void}
+ * @public
  */
 function applyFilters() {
   // Filtrer les utilisateurs
@@ -208,7 +214,11 @@ function applyFilters() {
 }
 
 /**
- * Filtre une table spécifique basée sur ses filtres de colonnes
+ * Filtre une table spécifique basée sur ses filtres de colonnes actifs
+ * Cache/affiche les rangées selon les critères de filtrage définis
+ * @param {string} tableType - Type de table à filtrer ('users' ou 'modules')
+ * @returns {void}
+ * @public
  */
 function filterTable(tableType) {
   const table = document.querySelector(`.admin-table[data-table="${tableType}"]`);
@@ -344,7 +354,10 @@ function showNoResultsMessage(table, visibleCount) {
 }
 
 /**
- * Initialise le système de tri par colonnes
+ * Initialise le système de tri interactif pour les tables d'administration
+ * Configure les écouteurs d'événements sur les en-têtes et applique le tri par défaut
+ * @returns {void}
+ * @public
  */
 function initializeSorting() {
   // Écouter les clics sur les en-têtes sortables
@@ -372,7 +385,12 @@ function initializeSorting() {
 }
 
 /**
- * Gère le clic sur un en-tête de tri
+ * Gère les clics sur les en-têtes de tri et met à jour l'ordre des colonnes
+ * Bascule entre tri ascendant/descendant ou définit un nouveau tri
+ * @param {string} tableType - Type de table ('users' ou 'modules')
+ * @param {string} column - Nom de la colonne à trier
+ * @returns {void}
+ * @public
  */
 function handleSort(tableType, column) {
   const currentSort = sortingState[tableType];
@@ -398,7 +416,11 @@ function handleSort(tableType, column) {
 }
 
 /**
- * Applique le tri sur une table
+ * Applique le tri sur une table selon l'état de tri actuel
+ * Gère le tri spécialisé pour dates, nombres et statuts avec parsing intelligent
+ * @param {string} tableType - Type de table à trier ('users' ou 'modules')
+ * @returns {void}
+ * @public
  */
 function applySorting(tableType) {
   const table = document.querySelector(`.admin-table[data-table="${tableType}"]`);
@@ -513,7 +535,13 @@ function applySorting(tableType) {
 }
 
 /**
- * Met à jour les flèches de tri
+ * Met à jour l'affichage visuel des flèches de tri dans les en-têtes
+ * Réinitialise toutes les flèches puis active celle de la colonne courante
+ * @param {string} tableType - Type de table ('users' ou 'modules')
+ * @param {string} activeColumn - Colonne actuellement triée
+ * @param {string} order - Ordre de tri ('asc' ou 'desc')
+ * @returns {void}
+ * @private
  */
 function updateSortArrows(tableType, activeColumn, order) {
   const table = document.querySelector(`.admin-table[data-table="${tableType}"]`);
@@ -534,8 +562,11 @@ function updateSortArrows(tableType, activeColumn, order) {
 
 /**
  * Met à jour un badge de type de module dynamiquement
- * @param {HTMLElement} element - L'élément à mettre à jour
+ * Remplace le contenu HTML et l'attribut data du badge existant
+ * @param {HTMLElement} element - L'élément badge à mettre à jour
  * @param {string} newType - Le nouveau type de module
+ * @returns {void}
+ * @public
  */
 function updateModuleTypeBadge(element, newType) {
   if (!element) return;
@@ -546,7 +577,10 @@ function updateModuleTypeBadge(element, newType) {
 }
 
 /**
- * Convertit les anciens badges en nouveaux badges avec icônes
+ * Convertit les anciens badges CSS en nouveaux badges avec icônes
+ * Analyse le texte des badges existants pour déterminer le type et les remplace
+ * @returns {void}
+ * @public
  */
 function convertLegacyBadges() {
   const legacyBadges = document.querySelectorAll(
@@ -572,7 +606,10 @@ function convertLegacyBadges() {
 }
 
 /**
- * Initialise tout après le chargement de la page
+ * Initialise tous les composants de l'interface d'administration
+ * Point d'entrée principal pour l'initialisation complète du système admin
+ * @returns {void}
+ * @public
  */
 function initializeAll() {
   // Attendre un peu pour s'assurer que le DOM est complètement chargé
@@ -592,7 +629,10 @@ function initializeAll() {
 }
 
 /**
- * Initialise la pagination côté client
+ * Initialise la pagination côté client avec gestion des événements
+ * Configure les contrôles de pagination et sauvegarde des préférences
+ * @returns {void}
+ * @public
  */
 function initializeClientSidePagination() {
   // Restaurer les préférences depuis le localStorage
@@ -691,7 +731,11 @@ window.navigatePage = function (table, direction, event) {
 };
 
 /**
- * Applique la pagination côté client
+ * Applique la pagination côté client aux lignes visibles d'une table
+ * Masque toutes les lignes puis affiche uniquement celles de la page courante
+ * @param {string} tableType - Type de table à paginer ('users' ou 'modules')
+ * @returns {void}
+ * @public
  */
 function applyClientSidePagination(tableType) {
   const table = document.querySelector(`.admin-table[data-table="${tableType}"]`);
@@ -723,7 +767,11 @@ function applyClientSidePagination(tableType) {
 }
 
 /**
- * Met à jour les contrôles de pagination
+ * Met à jour l'état visuel des contrôles de pagination
+ * Calcule et affiche les informations de page et gère l'état des boutons
+ * @param {string} tableType - Type de table ('users' ou 'modules')
+ * @returns {void}
+ * @public
  */
 function updatePaginationControls(tableType) {
   const table = document.querySelector(`.admin-table[data-table="${tableType}"]`);
@@ -769,68 +817,80 @@ function updatePaginationControls(tableType) {
 }
 
 /**
-
-// showRealTimeNotification supprimée - utilisation directe de window.showToast
-
-/**
- * Met à jour le statut d'un module en temps réel - VERSION SIMPLE ET CORRECTE
+ * Met à jour le statut d'un module en temps réel dans le tableau
+ * Change le texte et les classes CSS avec animation visuelle
+ * @param {string} moduleId - Identifiant unique du module
+ * @param {boolean} isOnline - État de connexion du module
+ * @returns {void}
+ * @public
  */
 function updateModuleStatus(moduleId, isOnline) {
   const moduleRow = document.querySelector(`tr[data-module-id="${moduleId}"]`);
   if (!moduleRow) return;
-  
+
   const statusCell = moduleRow.cells[4];
   if (!statusCell) return;
-  
+
   const statusSpan = statusCell.querySelector('.status');
   if (!statusSpan) return;
-  
+
   // Mise à jour simple et directe
   const newText = isOnline ? 'En ligne' : 'Hors ligne';
   const newClass = `status ${isOnline ? 'status-online' : 'status-offline'}`;
-  
+
   statusSpan.textContent = newText;
   statusSpan.className = newClass;
-  
+
   // Animation simple
   statusSpan.classList.add(isOnline ? 'statusChangeOnline' : 'statusChangeOffline');
   setTimeout(() => {
     statusSpan.classList.remove('statusChangeOnline', 'statusChangeOffline');
   }, 3000);
-  
+
   statusSpan.textContent = newText;
   statusSpan.className = newClass;
-  
+
   // Tri automatique après mise à jour
   applySorting('modules');
 }
 
 /**
- * Met à jour visuellement la dernière activité d'un module dans le tableau
+ * Met à jour visuellement l'horodatage de dernière activité d'un module
+ * Formate la date au format français et met à jour la cellule correspondante
+ * @param {string} moduleId - Identifiant unique du module
+ * @param {Date} timestamp - Horodatage de la dernière activité
+ * @returns {void}
+ * @public
  */
 function updateModuleLastSeenInTable(moduleId, timestamp) {
   const moduleRow = document.querySelector(`tr[data-module-id="${moduleId}"]`);
   if (!moduleRow) return;
-  
-  const lastActivityCell = moduleRow.cells[5]; 
+
+  const lastActivityCell = moduleRow.cells[5];
   if (!lastActivityCell) return;
-  
+
   // Utiliser la VRAIE timestamp de la télémétrie
   const realTimestamp = timestamp || new Date();
   const formattedDate = realTimestamp.toLocaleString('fr-FR', {
     day: '2-digit',
-    month: '2-digit', 
+    month: '2-digit',
     year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
-    second: '2-digit'
+    second: '2-digit',
   });
-  
+
   lastActivityCell.textContent = formattedDate;
 }
 
 /**
- * Met à jour la dernière activité d'un module en temps réel
+ * Met à jour l'affichage de dernière activité d'un module dans toutes les lignes
+ * Gère le formatage automatique si aucun format n'est fourni
+ * @param {string} moduleId - Identifiant unique du module
+ * @param {Date|string} lastSeen - Date de dernière activité
+ * @param {string} [lastSeenFormatted] - Date déjà formatée (optionnel)
+ * @returns {void}
+ * @public
  */
 function updateModuleLastSeen(moduleId, lastSeen, lastSeenFormatted) {
   const moduleRows = document.querySelectorAll(`tr[data-module-id="${moduleId}"]`);
@@ -848,7 +908,11 @@ function updateModuleLastSeen(moduleId, lastSeen, lastSeenFormatted) {
 }
 
 /**
- * Met à jour les statistiques simples (version qui fonctionne, comme le log)
+ * Met à jour les statistiques temps réel dans l'interface d'administration
+ * Reçoit et affiche le nombre d'utilisateurs et modules en ligne
+ * @param {Object} data - Données statistiques {users: {online: number}, modules: {online: number}}
+ * @returns {void}
+ * @public
  */
 function updateSimpleStats(data) {
   // Format simple direct des WebSocket stats : { users: { online: X }, modules: { online: Y } }
@@ -865,7 +929,11 @@ function updateSimpleStats(data) {
 }
 
 /**
- * Met à jour les données d'un utilisateur dans le tableau en temps réel
+ * Met à jour complètement les données d'un utilisateur dans le tableau
+ * Synchronise nom, email et rôle avec les données reçues en temps réel
+ * @param {Object} user - Objet utilisateur avec propriétés id, name, email, isAdmin
+ * @returns {void}
+ * @public
  */
 function updateUserInTable(user) {
   // Chercher la ligne utilisateur par ID
@@ -897,7 +965,12 @@ function updateUserInTable(user) {
 }
 
 /**
- * Met à jour la dernière connexion d'un utilisateur dans le tableau
+ * Met à jour l'horodatage de dernière connexion d'un utilisateur
+ * Formate automatiquement la date au format local français
+ * @param {string} userId - Identifiant unique de l'utilisateur
+ * @param {Date} loginTime - Horodatage de la connexion
+ * @returns {void}
+ * @public
  */
 function updateUserLastLogin(userId, loginTime) {
   // Chercher la ligne utilisateur par ID
@@ -923,12 +996,11 @@ window.initializeModuleTypeBadges = initializeModuleTypeBadges;
 // Export admin functions for global.js
 window.updateSimpleStats = updateSimpleStats;
 
-// ================================================================================
-// GESTION DES ÉVÉNEMENTS TEMPS RÉEL
-// ================================================================================
-
 /**
- * Initialise les écouteurs d'événements WebSocket pour la page admin
+ * Initialise les écouteurs d'événements WebSocket pour l'interface d'administration
+ * Configure la réception des événements temps réel modules et utilisateurs
+ * @returns {void}
+ * @public
  */
 function initializeRealTimeEvents() {
   // Attendre que la connexion WebSocket soit prête
@@ -947,56 +1019,64 @@ function initializeRealTimeEvents() {
 }
 
 /**
- * Configure les événements liés aux modules ESP32
+ * Configure les écouteurs d'événements spécifiques aux modules ESP32
+ * Gère télémétrie, réponses de commandes et mises à jour de statut
+ * @returns {void}
+ * @private
  */
 function setupModuleEvents() {
-  // Événements module_online/offline maintenant gérés dans global.js pour toutes les pages
-
-  // Télémétrie module
-  window.socket.on('module_telemetry', (data) => {
+  // Gestion de la télémétrie des modules
+  window.socket.on('module_telemetry', data => {
     // La télémétrie implique que le module est en ligne
     updateModuleStatus(data.moduleId, true);
-    
+
     // Mise à jour avec la VRAIE timestamp de télémétrie
     const telemetryTimestamp = data.timestamp ? new Date(data.timestamp) : new Date();
     updateModuleLastSeenInTable(data.moduleId, telemetryTimestamp);
-    
+
     // Forcer le tri pour repositionner par activité récente
     applySorting('modules');
   });
 
   // Réponses aux commandes
-  window.socket.on('module_command_response', (data) => {
+  window.socket.on('module_command_response', data => {
     window.showToast?.(`✅ ${data.moduleId}: ${data.command} → ${data.status}`, 'success', 3000);
   });
 }
 
 /**
- * Configure les événements liés aux utilisateurs
+ * Configure les écouteurs d'événements de connexion/déconnexion utilisateur
+ * Affiche des notifications toast pour les changements d'état utilisateur
+ * @returns {void}
+ * @private
  */
 function setupUserEvents() {
-  // Utilisateur connecté (déjà géré dans global.js)
-  window.socket.on('rt_user_logged_in', (data) => {
-    window.showToast?.(`👤 ${data.user.name} connecté${data.user.isNewUser ? ' (nouveau)' : ''}`, 'info', 3000);
+  // Gestion des connexions utilisateur
+  window.socket.on('rt_user_logged_in', data => {
+    window.showToast?.(
+      `👤 ${data.user.name} connecté${data.user.isNewUser ? ' (nouveau)' : ''}`,
+      'info',
+      3000
+    );
   });
 
-  // Utilisateur déconnecté (déjà géré dans global.js)
-  window.socket.on('rt_user_logged_out', (data) => {
+  // Gestion des déconnexions utilisateur
+  window.socket.on('rt_user_logged_out', data => {
     window.showToast?.(`👤 ${data.user.name} déconnecté`, 'info', 3000);
   });
 }
 
 /**
- * Met à jour le statut visuel d'un module dans la liste
- */
-// FONCTION SUPPRIMÉE - Version correcte définie plus haut dans le fichier
-
-/**
- * Met à jour la dernière activité d'un module
+ * Met à jour l'affichage de dernière activité avec tooltip informatif
+ * Trouve tous les éléments du module et met à jour leur affichage
+ * @param {string} moduleId - Identifiant unique du module
+ * @param {Date} timestamp - Horodatage de la dernière activité
+ * @returns {void}
+ * @public
  */
 function updateModuleLastActivity(moduleId, timestamp) {
   const moduleRows = document.querySelectorAll(`[data-module-id="${moduleId}"]`);
-  
+
   moduleRows.forEach(row => {
     const lastActivityCell = row.querySelector('.module-last-activity');
     if (lastActivityCell) {
@@ -1007,7 +1087,11 @@ function updateModuleLastActivity(moduleId, timestamp) {
 }
 
 /**
- * Affiche une notification temps réel dans l'interface admin
+ * Affiche une notification temps réel dans l'interface d'administration
+ * Utilise le système toast global et une zone de notifications spécialisée
+ * @param {string} message - Message à afficher dans la notification
+ * @returns {void}
+ * @public
  */
 function showRealTimeNotification(message) {
   // Utiliser le système de toast global s'il est disponible
@@ -1024,9 +1108,9 @@ function showRealTimeNotification(message) {
       <span class="notification-time">${new Date().toLocaleTimeString()}</span>
       <span class="notification-message">${message}</span>
     `;
-    
+
     notificationArea.insertBefore(notification, notificationArea.firstChild);
-    
+
     // Garder seulement les 10 dernières notifications
     const notifications = notificationArea.querySelectorAll('.admin-notification');
     if (notifications.length > 10) {
@@ -1041,7 +1125,6 @@ function showRealTimeNotification(message) {
   }
 }
 
-// Notifications maintenant globales via window.showToast dans global.js
-window.updateModuleStatus = updateModuleStatus;
+// Export des fonctions pour utilisation globale
 window.updateModuleStatus = updateModuleStatus;
 window.updateModuleLastSeen = updateModuleLastSeen;

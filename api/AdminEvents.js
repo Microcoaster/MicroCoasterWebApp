@@ -1,9 +1,9 @@
 /**
  * Événements administratifs - Gestion temps réel
- * 
+ *
  * Gestionnaire des événements administratifs incluant les statistiques système,
  * actions de gestion utilisateurs, contrôles de maintenance et monitoring.
- * 
+ *
  * @module AdminEvents
  * @description Gestionnaire temps réel pour les opérations administratives et surveillance système
  */
@@ -122,8 +122,6 @@ class AdminEvents {
 
     this.events.emitToPage('admin', 'admin:performance:updated', eventData);
   }
-
-
 }
 
 module.exports = AdminEvents;

@@ -1,30 +1,22 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - LOGIN PAGE
- * ================================================================================
+ * Page de connexion - Gestion interface et animations
  *
- * Purpose: Login page functionality and animations
- * Author: MicroCoaster Development Team
- * Created: 2024
+ * Gère l'interface de la page de connexion incluant la gestion du focus
+ * des formulaires et les animations d'entrée pour une expérience utilisateur améliorée.
  *
- * Description:
- * Manages the login page interface including form focus management and
- * entrance animations for enhanced user experience.
- *
- * Dependencies:
- * - None (standalone login functionality)
- *
- * ================================================================================
+ * @module login
+ * @description Interface de connexion avec animations et gestion de formulaires
  */
-
-// ================================================================================
-// LOGIN PAGE INITIALIZATION
-// ================================================================================
 
 document.addEventListener('DOMContentLoaded', function () {
   initializeLoginPage();
 });
 
+/**
+ * Initialise la fonctionnalité de la page de connexion
+ * Configure les gestionnaires d'événements et animations pour l'interface de login
+ * @returns {void}
+ */
 function initializeLoginPage() {
   const codeInput = document.querySelector('input[name="code"]');
   if (!codeInput) return;

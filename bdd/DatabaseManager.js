@@ -1,9 +1,9 @@
 /**
  * Gestionnaire de base de données - Manager principal
- * 
+ *
  * Gestionnaire principal centralisant l'accès aux DAO, la gestion des connexions
  * et l'initialisation de la base de données avec création automatique des tables.
- * 
+ *
  * @module DatabaseManager
  * @description Gestionnaire principal de la base de données et des DAO
  */

@@ -1,9 +1,9 @@
 /**
  * DAO utilisateurs - Gestion des comptes utilisateurs
- * 
+ *
  * DAO spécialisé pour la gestion des utilisateurs incluant authentification,
  * chiffrement des mots de passe, validation et opérations CRUD sécurisées.
- * 
+ *
  * @module UserDAO
  * @description DAO pour la gestion complète des utilisateurs et authentification
  */

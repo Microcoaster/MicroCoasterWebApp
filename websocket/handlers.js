@@ -1,9 +1,9 @@
 /**
  * Gestionnaires WebSocket - Clients web Socket.IO
- * 
+ *
  * Gestionnaires des connexions WebSocket pour les clients web incluant
  * authentification, synchronisation temps réel et passerelle vers ESP32.
- * 
+ *
  * @module WebSocketHandlers
  * @description Gestionnaires des connexions WebSocket pour les clients web (Socket.IO)
  */
@@ -194,9 +194,7 @@ module.exports = function (io, socketWSBridge) {
     if (session && session.user_id) {
       handleClientConnection(socket, session);
     } else {
-      Logger.esp.debug(
-        `🔄 Connection without session - waiting for manual auth: ${socket.id}`
-      );
+      Logger.esp.debug(`🔄 Connection without session - waiting for manual auth: ${socket.id}`);
 
       socket.on('client:authenticate', data => {
         Logger.activity.info(`🔐 Manual client authentication attempt: ${socket.id}`, data);
@@ -284,13 +282,13 @@ module.exports = function (io, socketWSBridge) {
 
     socket.on('request_module_states', () => {
       const realTimeAPI = getRealTimeAPI(socket);
-      
+
       if (realTimeAPI?.modules) {
         const moduleStates = realTimeAPI.modules.getCurrentStates();
-        
+
         socket.emit('module_states_sync', {
           states: moduleStates,
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
     });

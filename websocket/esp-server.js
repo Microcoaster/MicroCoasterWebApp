@@ -1,9 +1,9 @@
 /**
  * Serveur WebSocket ESP32 - Communication IoT native
- * 
+ *
  * Serveur WebSocket natif dédié aux modules ESP32 fonctionnant en parallèle
  * avec Socket.IO pour assurer la communication directe avec les modules IoT.
- * 
+ *
  * @module ESP32WebSocketServer
  * @description Serveur WebSocket natif pour la communication avec les modules ESP32
  */
@@ -39,7 +39,7 @@ class ESP32WebSocketServer {
   initialize() {
     this.wss = new WebSocket.Server({
       server: this.server,
-      path: '/esp32'
+      path: '/esp32',
     });
 
     Logger.esp.info('🔌 ESP32 WebSocket Server initialized on path /esp32');
@@ -48,7 +48,7 @@ class ESP32WebSocketServer {
       this.handleESPConnection(ws, req);
     });
 
-    this.wss.on('error', (error) => {
+    this.wss.on('error', error => {
       Logger.esp.error('❌ WebSocket Server error:', error);
     });
   }
@@ -88,7 +88,7 @@ class ESP32WebSocketServer {
       }
     }, 10000);
 
-    ws.on('message', async (data) => {
+    ws.on('message', async data => {
       try {
         const message = JSON.parse(data.toString());
         await this.handleESPMessage(ws, message);
@@ -103,7 +103,7 @@ class ESP32WebSocketServer {
       this.handleESPDisconnection(ws, code, reason);
     });
 
-    ws.on('error', (error) => {
+    ws.on('error', error => {
       Logger.esp.error('❌ ESP32 WebSocket error:', error);
     });
 
@@ -203,7 +203,7 @@ class ESP32WebSocketServer {
         moduleType: ws.moduleType,
         userId: moduleAuth.userId,
         connectedAt: new Date(),
-        authenticated: true
+        authenticated: true,
       };
 
       this.connectedESPs.set(moduleId, ws);
@@ -214,7 +214,7 @@ class ESP32WebSocketServer {
           id: `esp32-${moduleId}`,
           moduleId,
           moduleAuth,
-          moduleType: ws.moduleType
+          moduleType: ws.moduleType,
         };
 
         this.realTimeAPI.modules.registerESP(pseudoSocket, moduleId, ws.moduleType);
@@ -223,7 +223,7 @@ class ESP32WebSocketServer {
       this.sendToESP(ws, {
         type: 'connected',
         status: 'authenticated',
-        initialState: { uptime, position }
+        initialState: { uptime, position },
       });
 
       await databaseManager.modules.updateStatus(moduleId, 'online');
@@ -231,7 +231,6 @@ class ESP32WebSocketServer {
       this.startCustomPing(ws);
 
       Logger.esp.info(`✅ ESP32 authenticated: ${moduleId} (${ws.moduleType})`);
-
     } catch (error) {
       Logger.esp.error('❌ ESP32 authentication error:', error);
       ws.close(1011, 'Server error');
@@ -256,13 +255,13 @@ class ESP32WebSocketServer {
     }
 
     Logger.esp.info(`📊 [TELEMETRY] Received from ${ws.moduleId}`);
-    
+
     const { uptime, position, status } = message;
     const telemetryData = {
       uptime,
       position,
       status,
-      timestamp: new Date()
+      timestamp: new Date(),
     };
 
     Logger.esp.info(`📊 [TELEMETRY] Data: ${JSON.stringify(telemetryData)}`);
@@ -270,7 +269,7 @@ class ESP32WebSocketServer {
     if (this.realTimeAPI?.events) {
       this.realTimeAPI.events.broadcast('module_telemetry', {
         moduleId: ws.moduleId,
-        ...telemetryData
+        ...telemetryData,
       });
       Logger.esp.info(`📊 [TELEMETRY] Broadcasted to web clients for ${ws.moduleId}`);
     } else {
@@ -327,7 +326,7 @@ class ESP32WebSocketServer {
         command,
         status,
         position,
-        timestamp: new Date()
+        timestamp: new Date(),
       });
     }
 
@@ -345,14 +344,14 @@ class ESP32WebSocketServer {
    */
   handleESPDisconnection(ws, code, reason) {
     const moduleInfo = this.modulesBySocket.get(ws);
-    
+
     if (!moduleInfo) {
       Logger.esp.debug(`🔴 Disconnection ignored - no module info for socket`);
       return;
     }
-    
+
     const { moduleId } = moduleInfo;
-    
+
     this.connectedESPs.delete(moduleId);
     this.modulesBySocket.delete(ws);
 
@@ -386,7 +385,7 @@ class ESP32WebSocketServer {
    */
   sendCommandToESP(moduleId, command, params = {}) {
     const ws = this.connectedESPs.get(moduleId);
-    
+
     if (!ws || ws.readyState !== WebSocket.OPEN) {
       Logger.esp.warn(`❌ Cannot send command to ${moduleId}: not connected`);
       return false;
@@ -396,9 +395,9 @@ class ESP32WebSocketServer {
       type: 'command',
       data: {
         command,
-        ...params
+        ...params,
       },
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
 
     this.sendToESP(ws, message);
@@ -444,7 +443,9 @@ class ESP32WebSocketServer {
   getStats() {
     return {
       connectedESPs: this.connectedESPs.size,
-      authenticatedModules: Array.from(this.modulesBySocket.values()).filter(info => info.authenticated).length
+      authenticatedModules: Array.from(this.modulesBySocket.values()).filter(
+        info => info.authenticated
+      ).length,
     };
   }
 
@@ -460,7 +461,7 @@ class ESP32WebSocketServer {
       if (ws.readyState === WebSocket.OPEN) {
         ws.lastPing = Date.now();
         this.sendToESP(ws, { type: 'ping', timestamp: ws.lastPing });
-        
+
         ws.pingTimeout = setTimeout(() => {
           Logger.esp.warn(`💔 Custom ping timeout for ${ws.moduleId}`);
           this.handleESPDisconnection(ws, 1006, 'Custom ping timeout');
@@ -478,12 +479,12 @@ class ESP32WebSocketServer {
    */
   startHeartbeatChecker() {
     setInterval(() => {
-      this.wss.clients.forEach((ws) => {
+      this.wss.clients.forEach(ws => {
         if (ws.isAlive === false) {
           Logger.esp.warn(`💔 ESP32 heartbeat timeout: ${ws.moduleId || 'unidentified'}`);
-          
+
           this.handleESPDisconnection(ws, 1006, 'Heartbeat timeout');
-          
+
           return ws.terminate();
         }
 

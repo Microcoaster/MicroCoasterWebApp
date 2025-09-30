@@ -1,9 +1,9 @@
 /**
  * Routes de documentation - Affichage des guides utilisateur
- * 
+ *
  * Gère l'affichage de la page de documentation et des guides
  * d'utilisation pour les utilisateurs de l'application.
- * 
+ *
  * @module documentations
  * @description Routes de la page de documentation avec accès authentifié
  */

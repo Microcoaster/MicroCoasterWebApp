@@ -1,35 +1,16 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - DASHBOARD PAGE
- * ================================================================================
+ * Tableau de bord - Interface de surveillance temps réel des modules
  *
- * Purpose: Dashboard functionality for real-time module monitoring
- * Author: MicroCoaster Development Team
- * Created: 2024
+ * Gère l'interface du dashboard incluant les mises à jour de statut temps réel,
+ * compteurs de statistiques, gestion d'événements WebSocket et éléments interactifs.
  *
- * Description:
- * Manages the dashboard interface including real-time module status updates,
- * statistics counters, WebSocket event handling, and interactive elements.
- * Provides live updates for online/offline module counts and visual feedback.
- *
- * Dependencies:
- * - global.js (WebSocket connection and utilities)
- * - Socket.io (for real-time updates)
- *
- * ================================================================================
+ * @module dashboard
+ * @description Interface de surveillance avec mises à jour temps réel et statistiques
  */
-
-// ================================================================================
-// DASHBOARD STATE MANAGEMENT
-// ================================================================================
 
 const moduleStatus = new Map();
 let onlineModules = 0;
 let offlineModules = 0;
-
-// ================================================================================
-// INITIALIZATION
-// ================================================================================
 
 document.addEventListener('DOMContentLoaded', function () {
   initializeDashboard();
@@ -41,14 +22,20 @@ document.addEventListener('DOMContentLoaded', function () {
   }
 });
 
+/**
+ * Redirige vers la page d'ajout de modules
+ * Navigation vers l'interface de gestion des modules avec ancrage d'ajout
+ * @returns {void}
+ */
 function addNewModule() {
   window.location.href = '/modules#add';
 }
 
-// ================================================================================
-// DASHBOARD SETUP
-// ================================================================================
-
+/**
+ * Initialise l'interface du tableau de bord
+ * Configure les statistiques initiales et lance les animations d'entrée des cartes
+ * @returns {void}
+ */
 function initializeDashboard() {
   const onlineElement = document.querySelector('.dashboard-stat.online');
   const offlineElement = document.querySelector('.dashboard-stat.offline');
@@ -71,13 +58,20 @@ function initializeDashboard() {
   });
 }
 
-// ================================================================================
-// WEBSOCKET INTEGRATION
-// ================================================================================
-
+/**
+ * Initialise la connexion WebSocket pour le dashboard
+ * Configure les écouteurs d'événements temps réel avec fallback polling
+ * @returns {void}
+ */
 function initializeDashboardWebSocket() {
   let webSocketReady = false;
 
+  /**
+   * Configure les écouteurs d'événements WebSocket
+   * Établit la communication temps réel pour les mises à jour de statut
+   * @returns {boolean} True si WebSocket prêt, false sinon
+   * @private
+   */
   function setupWebSocketListeners() {
     if (typeof window.socket !== 'undefined' && window.socket && window.socket.connected) {
       window.socket.on('user:module:online', function (data) {
@@ -87,7 +81,6 @@ function initializeDashboardWebSocket() {
       window.socket.on('user:module:offline', function (data) {
         updateModuleStatus(data.moduleId, false);
       });
-
 
       webSocketReady = true;
       return true;
@@ -114,10 +107,11 @@ function initializeDashboardWebSocket() {
   }, 2000);
 }
 
-// ================================================================================
-// STATISTICS MANAGEMENT
-// ================================================================================
-
+/**
+ * Démarre le sondage périodique des statistiques
+ * Fallback pour mise à jour des compteurs en l'absence de WebSocket
+ * @returns {void}
+ */
 function startStatsPolling() {
   setInterval(async () => {
     try {
@@ -134,6 +128,14 @@ function startStatsPolling() {
   }, 10000);
 }
 
+/**
+ * Met à jour les compteurs de statistiques depuis les données du serveur
+ * Compare les valeurs actuelles avec les nouvelles et anime les changements
+ * @param {Object} stats - Objet contenant les statistiques des modules
+ * @param {number} stats.onlineModules - Nombre de modules en ligne
+ * @param {number} stats.offlineModules - Nombre de modules hors ligne
+ * @returns {void}
+ */
 function updateCountersFromStats(stats) {
   const onlineElement = document.querySelector('.dashboard-stat.online');
   const offlineElement = document.querySelector('.dashboard-stat.offline');
@@ -154,6 +156,13 @@ function updateCountersFromStats(stats) {
   }
 }
 
+/**
+ * Met à jour le statut d'un module spécifique et ajuste les compteurs
+ * Gère les transitions d'état en temps réel avec animation des compteurs
+ * @param {string} moduleId - Identifiant unique du module
+ * @param {boolean} isOnline - Nouveau statut du module (true=en ligne, false=hors ligne)
+ * @returns {void}
+ */
 function updateModuleStatus(moduleId, isOnline) {
   const onlineElement = document.querySelector('.dashboard-stat.online');
   const offlineElement = document.querySelector('.dashboard-stat.offline');
@@ -189,10 +198,13 @@ function updateModuleStatus(moduleId, isOnline) {
   }
 }
 
-// ================================================================================
-// VISUAL EFFECTS
-// ================================================================================
-
+/**
+ * Anime la mise à jour d'un compteur avec effet de zoom
+ * Applique une transition visuelle avec échelle et changement de valeur
+ * @param {HTMLElement} element - Élément DOM du compteur à animer
+ * @param {number} newValue - Nouvelle valeur à afficher
+ * @returns {void}
+ */
 function animateCounterUpdate(element, newValue) {
   element.style.transform = 'scale(1.1)';
   element.style.transition = 'transform 0.2s ease';

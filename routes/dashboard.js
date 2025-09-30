@@ -1,9 +1,9 @@
 /**
  * Routes du tableau de bord - Interface utilisateur principale
- * 
+ *
  * Gère l'affichage du dashboard utilisateur avec statistiques personnalisées,
  * métriques de modules et APIs de données temps réel.
- * 
+ *
  * @module dashboard
  * @description Routes du dashboard avec statistiques utilisateur et APIs de données
  */

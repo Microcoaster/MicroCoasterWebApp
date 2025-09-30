@@ -1,22 +1,32 @@
 /**
- * ============================================================================
- * LANGUAGE SELECTOR - CLIENT-SIDE LANGUAGE SWITCHING
- * ============================================================================
- * Handles language selection UI and dynamic language switching
+ * Sélecteur de langue - Changement de langue dynamique côté client
  *
- * @module LanguageClient
- * @description Client-side language switching without page reload
- * ============================================================================
+ * Gère l'interface de sélection de langue et le changement dynamique
+ * sans rechargement de page avec mise à jour temps réel.
+ *
+ * @module language
+ * @description Changement de langue côté client sans rechargement de page
  */
 
+/**
+ * Classe de gestion du sélecteur de langue
+ * Gère l'interface utilisateur et les événements de changement de langue
+ * @class LanguageSelector
+ */
 class LanguageSelector {
+  /**
+   * Crée une instance du sélecteur de langue
+   * Initialise la langue courante depuis les cookies et configure l'interface
+   */
   constructor() {
     this.currentLanguage = this.getCurrentLanguage();
     this.init();
   }
 
   /**
-   * Initialize language selector
+   * Initialise le sélecteur de langue
+   * Configure l'interface, les événements et met à jour l'affichage
+   * @returns {void}
    */
   init() {
     this.createLanguageSelector();
@@ -25,8 +35,9 @@ class LanguageSelector {
   }
 
   /**
-   * Get current language from cookie or default
-   * @returns {string} Current language code
+   * Récupère la langue courante depuis les cookies ou défaut
+   * Analyse les cookies pour trouver la préférence de langue utilisateur
+   * @returns {string} Code de langue courante (fr/en)
    */
   getCurrentLanguage() {
     const cookies = document.cookie.split(';');
@@ -40,13 +51,13 @@ class LanguageSelector {
   }
 
   /**
-   * Create language selector dropdown in navbar
+   * Crée le sélecteur de langue dans la barre de navigation
+   * Génère l'interface dropdown ou met à jour l'élément existant
+   * @returns {void}
    */
   createLanguageSelector() {
-    // Check if selector already exists in the DOM (from server-side rendering)
     const existingSelector = document.getElementById('language-selector');
     if (existingSelector) {
-      // Just update the existing selector
       this.updateExistingSelector(existingSelector);
       return;
     }
@@ -101,7 +112,11 @@ class LanguageSelector {
   }
 
   /**
-   * Update existing language selector from server-side rendering
+   * Met à jour un sélecteur de langue existant depuis le rendu côté serveur
+   * Synchronise l'affichage du sélecteur avec la langue courante
+   * @param {HTMLElement} selector - Élément sélecteur à mettre à jour
+   * @returns {void}
+   * @public
    */
   updateExistingSelector(selector) {
     // Update current language display
@@ -128,7 +143,10 @@ class LanguageSelector {
   }
 
   /**
-   * Bind event listeners
+   * Lie les écouteurs d'événements pour les interactions du sélecteur
+   * Configure la gestion des clics sur les options de langue
+   * @returns {void}
+   * @public
    */
   bindEvents() {
     document.addEventListener('click', e => {
@@ -142,8 +160,12 @@ class LanguageSelector {
   }
 
   /**
-   * Switch to new language
-   * @param {string} newLang - New language code
+   * Bascule vers une nouvelle langue
+   * Effectue la requête API et recharge la page avec la nouvelle langue
+   * @param {string} newLang - Code de la nouvelle langue
+   * @returns {Promise<void>}
+   * @throws {Error} Si la requête de changement de langue échoue
+   * @public
    */
   async switchLanguage(newLang) {
     if (newLang === this.currentLanguage) return;
@@ -186,7 +208,10 @@ class LanguageSelector {
   }
 
   /**
-   * Update UI to reflect current language
+   * Met à jour l'interface utilisateur pour refléter la langue courante
+   * Synchronise tous les éléments d'interface avec la langue sélectionnée
+   * @returns {void}
+   * @public
    */
   updateUI() {
     const selector = document.getElementById('language-selector');
@@ -196,8 +221,11 @@ class LanguageSelector {
   }
 
   /**
-   * Set loading state for language selector
-   * @param {boolean} isLoading - Loading state
+   * Définit l'état de chargement du sélecteur de langue
+   * Affiche/masque l'indicateur de chargement pendant le changement de langue
+   * @param {boolean} isLoading - État de chargement
+   * @returns {void}
+   * @public
    */
   setLoadingState(isLoading) {
     const selector = document.getElementById('language-selector');
@@ -211,9 +239,12 @@ class LanguageSelector {
   }
 
   /**
-   * Show language change message with proper translation and styling
-   * @param {string} language - Language code for message
-   * @param {string} type - Message type (success, error)
+   * Affiche un message de changement de langue avec traduction et style appropriés
+   * Crée un toast personnalisé pour notifier du changement de langue
+   * @param {string} language - Code de langue pour le message
+   * @param {string} [type='success'] - Type de message ('success', 'error')
+   * @returns {void}
+   * @public
    */
   showLanguageMessage(language, type = 'success') {
     const messages = {
@@ -270,9 +301,12 @@ class LanguageSelector {
   }
 
   /**
-   * Show temporary message to user (generic)
-   * @param {string} message - Message to show
-   * @param {string} type - Message type (success, error, info)
+   * Affiche un message temporaire à l'utilisateur (générique)
+   * Crée une notification toast avec Bootstrap ou style personnalisé
+   * @param {string} message - Message à afficher
+   * @param {string} [type='info'] - Type de message ('success', 'error', 'info')
+   * @returns {void}
+   * @public
    */
   showMessage(message, type = 'info') {
     // Create toast notification (using Bootstrap toast if available)

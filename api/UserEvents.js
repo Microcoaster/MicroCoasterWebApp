@@ -1,9 +1,9 @@
 /**
  * Événements utilisateurs - Gestion temps réel
- * 
+ *
  * Gestionnaire des événements utilisateurs incluant authentification, activités,
  * mises à jour de profil et suivi de sessions pour la sécurité et monitoring.
- * 
+ *
  * @module UserEvents
  * @description Gestionnaire temps réel pour l'authentification et activité utilisateur
  */

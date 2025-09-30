@@ -62,7 +62,7 @@ const io = new Server(server, {
   connectTimeout: 45000,
   // Utiliser SEULEMENT polling pour une séparation complète
   transports: ['polling'],
-  allowEIO3: true // Compatibilité avec différentes versions
+  allowEIO3: true, // Compatibilité avec différentes versions
 });
 
 // ============================================================================
@@ -184,7 +184,7 @@ async function startServer() {
       AppLogger.app.info(`🚀 MicroCoaster Server running on port ${PORT}`);
       AppLogger.app.info(`📱 Web interface: http://localhost:${PORT}`);
       AppLogger.app.info(`🔌 WebSocket: ws://localhost:${PORT}`);
-      
+
       // Initialiser ESP32 APRÈS que le serveur soit opérationnel
       setTimeout(() => {
         try {
@@ -197,7 +197,7 @@ async function startServer() {
           const socketWSBridge = new SocketWSBridge(realTimeAPI, esp32Server);
           app.locals.esp32Server = esp32Server;
           app.locals.socketWSBridge = socketWSBridge;
-          
+
           AppLogger.app.info('✅ ESP32 WebSocket Server initialized successfully');
         } catch (error) {
           AppLogger.app.error('❌ ESP32 initialization failed:', error);

@@ -1,9 +1,9 @@
 /**
  * Événements modules - Gestionnaire IoT temps réel
- * 
+ *
  * Gestionnaire d'événements temps réel pour les modules IoT incluant gestion
  * des états, télémétrie, synchronisation et monitoring des connexions ESP32.
- * 
+ *
  * @module ModuleEvents
  * @description Gestionnaire d'événements temps réel pour les modules IoT
  */
@@ -26,25 +26,25 @@ class ModuleEvents {
      * @type {EventsManager}
      */
     this.events = eventsManager;
-    
+
     /**
      * Logger pour les opérations de modules
      * @type {Logger}
      */
     this.Logger = Logger;
-    
+
     /**
      * États actuels de tous les modules
      * @type {Map<string, Object>} moduleId -> {online, lastSeen, moduleInfo}
      */
     this.moduleStates = new Map();
-    
+
     /**
      * Connexions ESP32 actives
      * @type {Map<string, WebSocket>} moduleId -> socket WebSocket
      */
     this.connectedESPs = new Map();
-    
+
     /**
      * Informations modules par socket
      * @type {Map<string, Object>} socket.id -> {moduleId, userId, ...}
@@ -302,7 +302,9 @@ class ModuleEvents {
   registerESP(socket, moduleId, moduleType = 'Unknown') {
     // Vérifier l'authentification valide du socket
     if (!socket.moduleAuth || socket.moduleId !== moduleId) {
-      Logger.modules.error(`🚨 Tentative d'enregistrement ESP sans authentification valide : ${moduleId}`);
+      Logger.modules.error(
+        `🚨 Tentative d'enregistrement ESP sans authentification valide : ${moduleId}`
+      );
       return null;
     }
 
@@ -360,17 +362,17 @@ class ModuleEvents {
 
     // Vérifier que c'est bien la connexion active (pas une ancienne session)
     const currentSocket = this.connectedESPs.get(moduleId);
-    
+
     if (currentSocket && currentSocket.id === socket.id) {
       // Supprimer la connexion active
       this.connectedESPs.delete(moduleId);
       Logger.modules.debug(`Suppression de ${moduleId} de la carte des ESPs connectés`);
 
       // Marquer le module comme hors ligne avec toutes les informations
-      this.moduleOffline(moduleId, { 
-        moduleType, 
+      this.moduleOffline(moduleId, {
+        moduleType,
         userId: moduleInfo.userId,
-        timestamp: new Date() 
+        timestamp: new Date(),
       });
     } else if (currentSocket) {
       Logger.modules.debug(
@@ -383,8 +385,6 @@ class ModuleEvents {
     Logger.esp.info(`ESP désenregistré : ${moduleId} (socket ${socket.id})`);
     return moduleInfo;
   }
-
-
 
   /**
    * Récupère les informations d'un module par son socket

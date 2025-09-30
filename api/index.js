@@ -1,9 +1,9 @@
 /**
  * API temps réel - Point d'entrée principal
- * 
+ *
  * Orchestrateur central pour tous les gestionnaires d'événements WebSocket
  * de l'application MicroCoaster (modules IoT, utilisateurs, administration).
- * 
+ *
  * @module RealTimeAPI
  * @description Orchestrateur central pour les événements WebSocket et fonctionnalités temps réel
  */
@@ -61,7 +61,6 @@ class RealTimeAPI {
    * @public
    */
   handleClientEvents(socket) {
-
     socket.on('client:authenticate', data => {
       this._authenticateClient(socket, data);
     });

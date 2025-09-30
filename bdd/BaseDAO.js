@@ -1,9 +1,9 @@
 /**
  * DAO de base - Classe abstraite pour accès base de données
- * 
+ *
  * Classe de base pour tous les DAO fournissant les opérations communes
  * et la gestion centralisée de la connexion à la base de données.
- * 
+ *
  * @module BaseDAO
  * @description Classe de base pour tous les DAO avec opérations communes et gestion de connexion
  */

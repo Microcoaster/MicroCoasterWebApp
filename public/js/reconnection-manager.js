@@ -1,28 +1,30 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - RECONNECTION MANAGER
- * ================================================================================
+ * Gestionnaire de reconnexion - Reconnexion automatique WebSocket
  *
- * Purpose: Automatic WebSocket reconnection and state synchronization
- * Author: MicroCoaster Development Team
- * Created: 2024
+ * Gère la récupération de connexion WebSocket avec backoff exponentiel,
+ * préservation d'état pendant les déconnexions et synchronisation automatique.
  *
- * Description:
- * Manages WebSocket connection recovery with exponential backoff, state
- * preservation during disconnections, and automatic synchronization after
- * reconnection. Provides visual feedback and callback system for applications.
- *
- * Dependencies:
- * - global.js (toast notifications)
- *
- * ================================================================================
+ * @module reconnection-manager
+ * @description Gestionnaire de reconnexion WebSocket avec résilience et synchronisation
  */
 
-// ================================================================================
-// RECONNECTION MANAGER CLASS
-// ================================================================================
-
+/**
+ * Classe de gestion des reconnexions WebSocket
+ * Gère la reconnexion automatique avec backoff exponentiel et synchronisation d'état
+ * @class ReconnectionManager
+ */
 class ReconnectionManager {
+  /**
+   * Crée une instance du gestionnaire de reconnexion
+   * Configure les paramètres de reconnexion avec backoff exponentiel
+   * @param {Function} socketInitializer - Fonction d'initialisation du socket
+   * @param {Object} [options={}] - Options de configuration
+   * @param {number} [options.maxReconnectAttempts=10] - Nombre max de tentatives
+   * @param {number} [options.reconnectDelay=2000] - Délai initial en ms
+   * @param {number} [options.maxReconnectDelay=30000] - Délai maximum en ms
+   * @param {number} [options.reconnectDelayMultiplier=1.5] - Multiplicateur de délai
+   * @param {boolean} [options.syncOnReconnect=true] - Synchronisation automatique
+   */
   constructor(socketInitializer, options = {}) {
     this.socketInitializer = socketInitializer;
     this.options = {
@@ -48,14 +50,29 @@ class ReconnectionManager {
   // CALLBACK MANAGEMENT
   // ================================================================================
 
+  /**
+   * Enregistre un callback pour les reconnexions réussies
+   * @param {Function} callback - Fonction à exécuter lors de la reconnexion
+   * @returns {void}
+   */
   onReconnect(callback) {
     this.onReconnectCallbacks.push(callback);
   }
 
+  /**
+   * Enregistre un callback pour les déconnexions
+   * @param {Function} callback - Fonction à exécuter lors de la déconnexion
+   * @returns {void}
+   */
   onDisconnect(callback) {
     this.onDisconnectCallbacks.push(callback);
   }
 
+  /**
+   * Enregistre un callback pour la fin de synchronisation
+   * @param {Function} callback - Fonction à exécuter après synchronisation
+   * @returns {void}
+   */
   onSyncComplete(callback) {
     this.onSyncCompleteCallbacks.push(callback);
   }
@@ -64,6 +81,12 @@ class ReconnectionManager {
   // STATE MANAGEMENT
   // ================================================================================
 
+  /**
+   * Sauvegarde l'état actuel pour restauration
+   * Préserve les données importantes pendant les déconnexions
+   * @param {Object} stateData - Données d'état à sauvegarder
+   * @returns {void}
+   */
   saveState(stateData) {
     this.lastKnownState.clear();
     if (stateData && typeof stateData === 'object') {
@@ -73,6 +96,11 @@ class ReconnectionManager {
     }
   }
 
+  /**
+   * Récupère le dernier état connu sauvegardé
+   * Permet la restauration des données après reconnexion
+   * @returns {Object} Objet contenant le dernier état sauvegardé
+   */
   getLastKnownState() {
     const state = {};
     this.lastKnownState.forEach((value, key) => {
@@ -85,6 +113,12 @@ class ReconnectionManager {
   // RECONNECTION LOGIC
   // ================================================================================
 
+  /**
+   * Démarre le processus de reconnexion avec backoff exponentiel
+   * Gère les tentatives multiples avec délai croissant entre chaque tentative
+   * @returns {void}
+   * @public
+   */
   startReconnection() {
     if (this.isReconnecting) {
       console.warn('🔄 Reconnexion déjà en cours...');
@@ -119,7 +153,11 @@ class ReconnectionManager {
   }
 
   /**
-   * Tente une reconnexion
+   * Tente une reconnexion en utilisant la fonction d'initialisation fournie
+   * Vérifie la connexion et déclenche les callbacks appropriés
+   * @returns {Promise<void>}
+   * @throws {Error} Si la reconnexion échoue
+   * @private
    */
   async attemptReconnection() {
     try {
@@ -144,7 +182,11 @@ class ReconnectionManager {
   }
 
   /**
-   * Gère le succès de la reconnexion
+   * Gère le succès de la reconnexion et déclenche la synchronisation
+   * Remet à zéro les compteurs et exécute les callbacks de reconnexion
+   * @param {Object} socket - Instance du socket reconnecté
+   * @returns {Promise<void>}
+   * @private
    */
   async onReconnectionSuccess(socket) {
     this.isReconnecting = false;
@@ -170,7 +212,11 @@ class ReconnectionManager {
   }
 
   /**
-   * Synchronise l'état après reconnexion
+   * Synchronise l'état de l'application après reconnexion
+   * Demande l'état actuel au serveur et met à jour l'interface
+   * @param {Object} socket - Instance du socket pour la communication
+   * @returns {Promise<void>}
+   * @private
    */
   async synchronizeState(socket) {
     console.log("🔄 Synchronisation de l'état après reconnexion...");
@@ -203,7 +249,10 @@ class ReconnectionManager {
   }
 
   /**
-   * Gère la déconnexion
+   * Gère les événements de déconnexion et lance la reconnexion automatique
+   * Exécute les callbacks de déconnexion et démarre le processus de reconnexion
+   * @returns {void}
+   * @public
    */
   onDisconnection() {
     console.log('🔌 Connexion perdue');
@@ -222,7 +271,10 @@ class ReconnectionManager {
   }
 
   /**
-   * Affiche l'indicateur de reconnexion
+   * Affiche l'indicateur visuel de reconnexion en cours
+   * Utilise le système de toast et met à jour la bannière de statut
+   * @returns {void}
+   * @private
    */
   showReconnectingIndicator() {
     // Utiliser showToast si disponible
@@ -239,7 +291,10 @@ class ReconnectionManager {
   }
 
   /**
-   * Masque l'indicateur de reconnexion
+   * Masque l'indicateur de reconnexion et affiche le message de succès
+   * Met à jour l'interface pour indiquer que la connexion est rétablie
+   * @returns {void}
+   * @private
    */
   hideReconnectingIndicator() {
     if (window.showToast) {
@@ -250,7 +305,10 @@ class ReconnectionManager {
   }
 
   /**
-   * Affiche une erreur de connexion persistante
+   * Affiche une erreur de connexion persistante après échec des tentatives
+   * Montre un toast permanent et met à jour la bannière d'erreur
+   * @returns {void}
+   * @private
    */
   showConnectionError() {
     if (window.showToast) {
@@ -265,7 +323,11 @@ class ReconnectionManager {
   }
 
   /**
-   * Met à jour la bannière de statut de connexion
+   * Met à jour la bannière de statut de connexion selon l'état actuel
+   * Gère l'affichage et le contenu de la bannière selon le statut
+   * @param {string} status - Statut de connexion ('connected', 'reconnecting', 'error')
+   * @returns {void}
+   * @private
    */
   updateStatusBanner(status) {
     const banner = document.querySelector('.connection-status-banner');
@@ -292,7 +354,10 @@ class ReconnectionManager {
   }
 
   /**
-   * Réinitialise le gestionnaire de reconnexion
+   * Réinitialise complètement le gestionnaire de reconnexion
+   * Remet à zéro tous les compteurs et l'état interne
+   * @returns {void}
+   * @public
    */
   reset() {
     this.reconnectAttempts = 0;

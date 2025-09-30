@@ -1,9 +1,9 @@
 /**
  * Routes des chronologies - Interface de planification séquentielle
- * 
+ *
  * Gère l'affichage de l'interface de chronologies pour la planification
  * et la visualisation des séquences de modules dans le temps.
- * 
+ *
  * @module timelines
  * @description Routes de l'interface de chronologies avec modules utilisateur
  */

@@ -1,9 +1,9 @@
 /**
  * Routes de gestion des modules - Interface modules utilisateur
- * 
+ *
  * Gère la gestion complète des modules IoT incluant l'ajout, suppression,
  * mise à jour, claim et inférence automatique des types de modules.
- * 
+ *
  * @module modules
  * @description Routes de gestion des modules avec claim, CRUD et inférence de types
  */

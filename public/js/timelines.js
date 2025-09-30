@@ -1,15 +1,12 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - TIMELINE SEQUENCER
- * ================================================================================
- * Éditeur de timeline interactif pour séquences de modules et automation
- * Tout-en-un: zoom, configuration, placement, lecture
- * ================================================================================
+ * Séquenceur de chronologies - Éditeur interactif de séquences
+ *
+ * Éditeur de chronologies interactif pour séquences de modules et automation
+ * avec fonctionnalités de zoom, configuration, placement et lecture.
+ *
+ * @module timelines
+ * @description Éditeur de chronologies avec gestion complète de séquences temporelles
  */
-
-// ================================================================================
-// CONFIGURATION DES MODULES
-// ================================================================================
 
 const MODULE_CONFIGS = {
   'estop-button': {
@@ -135,10 +132,10 @@ const MODULE_CONFIGS = {
   },
 };
 
-// ================================================================================
-// ZOOM SIMPLE AVEC CTRL+MOLETTE
-// ================================================================================
-
+/**
+ * Configuration du système de zoom timeline
+ * Paramètres de zoom et navigation avec molette
+ */
 const MIN_ZOOM = 0.2; // Zoom minimum (plus large)
 const MAX_ZOOM = 5; // Zoom maximum (plus détaillé)
 const ZOOM_STEP = 0.1; // Incrément du zoom
@@ -147,13 +144,17 @@ const ZOOM_STEP = 0.1; // Incrément du zoom
 const DEFAULT_VIEWPORT_DURATION = 30; // Durée par défaut de la fenêtre (30s)
 const SCROLL_STEP = 2; // Pas de déplacement en secondes avec Shift+molette
 
-// ================================================================================
-// TIMELINE SEQUENCER CLASS
-// ================================================================================
-
+/**
+ * Classe principale du séquenceur de chronologies
+ * Gère l'éditeur interactif de séquences temporelles avec zoom et lecture
+ * @class TimelineSequencer
+ */
 class TimelineSequencer {
+  /**
+   * Crée une instance du séquenceur de chronologies
+   * Initialise l'interface, les états et configure les éléments DOM
+   */
   constructor() {
-    // DOM Elements
     this.track = document.getElementById('timelineTrack');
     this.timeMarkers = document.getElementById('timeMarkers');
     this.playbackIndicator = document.getElementById('playbackIndicator');
@@ -191,6 +192,12 @@ class TimelineSequencer {
   // SYSTÈME DE ZOOM SIMPLE
   // ================================================================================
 
+  /**
+   * Configure le système de zoom et navigation dans la timeline
+   * Gère Ctrl+molette pour le zoom et Shift+molette pour la navigation
+   * @returns {void}
+   * @private
+   */
   setupZoom() {
     // Zoom avec Ctrl+molette et navigation avec Shift+molette
     this.track.addEventListener('wheel', e => {
@@ -220,6 +227,12 @@ class TimelineSequencer {
     });
   }
 
+  /**
+   * Met à jour le niveau de zoom et recalcule la durée du viewport
+   * Ajuste la vue selon le niveau de zoom actuel
+   * @returns {void}
+   * @private
+   */
   updateZoom() {
     // Mettre à jour la durée du viewport selon le zoom
     this.viewportDuration = DEFAULT_VIEWPORT_DURATION / this.zoomLevel;
@@ -227,6 +240,12 @@ class TimelineSequencer {
     this.updateViewport();
   }
 
+  /**
+   * Met à jour complètement le viewport de la timeline
+   * Recalcule les marqueurs, positions d'éléments et indicateurs
+   * @returns {void}
+   * @public
+   */
   updateViewport() {
     // Mettre à jour les marqueurs temporels
     this.updateTimeMarkers();
@@ -240,6 +259,12 @@ class TimelineSequencer {
     this.updateViewportIndicator();
   }
 
+  /**
+   * Met à jour l'indicateur de plage temporelle du viewport
+   * Affiche la plage de temps actuellement visible
+   * @returns {void}
+   * @private
+   */
   updateViewportIndicator() {
     const indicator = document.getElementById('viewportIndicator');
     if (indicator) {
@@ -249,6 +274,13 @@ class TimelineSequencer {
     }
   }
 
+  /**
+   * Met à jour la position et visibilité d'un élément dans le viewport
+   * Calcule la position relative et gère l'affichage selon la visibilité
+   * @param {Object} elementData - Données de l'élément à positionner
+   * @returns {void}
+   * @private
+   */
   updateElementInViewport(elementData) {
     const element = elementData.element;
     const startTime = elementData.startTime;
@@ -284,10 +316,21 @@ class TimelineSequencer {
     }
   }
 
+  /**
+   * Retourne la durée actuellement visible dans le viewport
+   * @returns {number} Durée du viewport actuel en secondes
+   * @public
+   */
   getCurrentDuration() {
     return this.viewportDuration; // Durée du viewport actuel
   }
 
+  /**
+   * Convertit une position en pixels en temps absolu dans la timeline
+   * @param {number} pixelPosition - Position en pixels à convertir
+   * @returns {number} Temps correspondant en secondes
+   * @public
+   */
   pixelToTime(pixelPosition) {
     // Convertir la position en pixels en temps absolu dans la timeline
     const trackWidth = this.track.offsetWidth;
@@ -295,6 +338,12 @@ class TimelineSequencer {
     return this.viewportStart + relativePosition * this.viewportDuration;
   }
 
+  /**
+   * Met à jour les marqueurs temporels de la règle selon le zoom
+   * Calcule et affiche les marqueurs de temps avec intervalles adaptatifs
+   * @returns {void}
+   * @private
+   */
   updateTimeMarkers() {
     if (!this.timeMarkers) return;
 
@@ -334,6 +383,12 @@ class TimelineSequencer {
     }
   }
 
+  /**
+   * Formate une durée en secondes en chaîne lisible
+   * @param {number} seconds - Durée en secondes à formater
+   * @returns {string} Durée formatée (ex: '5s', '2min30s')
+   * @private
+   */
   formatTime(seconds) {
     if (seconds < 60) {
       return seconds < 10 ? seconds.toFixed(1) + 's' : Math.round(seconds) + 's';
@@ -347,6 +402,12 @@ class TimelineSequencer {
   // ÉVÉNEMENTS ET INTERACTIONS
   // ================================================================================
 
+  /**
+   * Configure tous les écouteurs d'événements de la timeline
+   * Gère drag & drop, clics, touches clavier et boutons de contrôle
+   * @returns {void}
+   * @private
+   */
   setupEventListeners() {
     // Drag & drop
     this.track.addEventListener('dragover', e => this.handleDragOver(e));
@@ -367,6 +428,12 @@ class TimelineSequencer {
     if (playBtn) playBtn.addEventListener('click', () => this.togglePlayback());
   }
 
+  /**
+   * Configure le drag & drop pour les modules vers la timeline
+   * Rend les éléments modules déplaçables vers la zone de timeline
+   * @returns {void}
+   * @private
+   */
   setupDragAndDrop() {
     document.querySelectorAll('.module-item').forEach(item => {
       item.addEventListener('dragstart', e => {
@@ -381,15 +448,32 @@ class TimelineSequencer {
     });
   }
 
+  /**
+   * Gère l'événement dragover sur la timeline
+   * @param {DragEvent} e - Événement de drag
+   * @returns {void}
+   * @private
+   */
   handleDragOver(e) {
     e.preventDefault();
     this.track.classList.add('drag-over');
   }
 
+  /**
+   * Gère la sortie du drag de la zone de timeline
+   * @returns {void}
+   * @private
+   */
   handleDragLeave() {
     this.track.classList.remove('drag-over');
   }
 
+  /**
+   * Gère le dépôt d'un module sur la timeline
+   * @param {DragEvent} e - Événement de drop
+   * @returns {void}
+   * @private
+   */
   handleDrop(e) {
     e.preventDefault();
     this.track.classList.remove('drag-over');
@@ -410,6 +494,15 @@ class TimelineSequencer {
   // GESTION DES ÉLÉMENTS DE TIMELINE
   // ================================================================================
 
+  /**
+   * Ajoute un élément module à la timeline à une position donnée
+   * Crée l'élément DOM et configure ses propriétés par défaut
+   * @param {Object} moduleData - Données du module à ajouter
+   * @param {number} x - Position X en pixels
+   * @param {number} y - Position Y en pixels
+   * @returns {void}
+   * @public
+   */
   addElementToTimeline(moduleData, x, y) {
     const timePosition = Math.max(0, this.pixelToTime(x));
     const moduleConfig = this.getModuleConfig(moduleData.type);
@@ -461,6 +554,15 @@ class TimelineSequencer {
     this.hideInstructions();
   }
 
+  /**
+   * Positionne un élément dans la timeline selon ses paramètres temporels
+   * Met à jour les données et la position visuelle de l'élément
+   * @param {HTMLElement} element - Élément DOM à positionner
+   * @param {number} startTime - Temps de début en secondes
+   * @param {number} duration - Durée en secondes
+   * @returns {void}
+   * @public
+   */
   positionElement(element, startTime, duration) {
     // Stocker les données temporelles sur l'élément
     element.dataset.startTime = startTime;
@@ -483,10 +585,22 @@ class TimelineSequencer {
     // Cette méthode n'est plus nécessaire car updateZoom() gère déjà les positions
   }
 
+  /**
+   * Récupère la configuration d'un type de module
+   * @param {string} moduleType - Type du module
+   * @returns {Object} Configuration du module ou configuration générique
+   * @private
+   */
   getModuleConfig(moduleType) {
     return MODULE_CONFIGS[moduleType] || MODULE_CONFIGS['generic-module'];
   }
 
+  /**
+   * Sélectionne un élément de timeline et désélectionne les autres
+   * @param {HTMLElement} element - Élément à sélectionner
+   * @returns {void}
+   * @public
+   */
   selectElement(element) {
     document
       .querySelectorAll('.timeline-action.selected, .timeline-element.selected')
@@ -501,6 +615,13 @@ class TimelineSequencer {
   // CONFIGURATION DES MODULES
   // ================================================================================
 
+  /**
+   * Ouvre la fenêtre de configuration pour un élément de timeline
+   * Affiche une modale avec les paramètres configurables du module
+   * @param {HTMLElement} element - Élément à configurer
+   * @returns {void}
+   * @public
+   */
   openConfig(element) {
     const timelineElement = this.elements.find(e => e.element === element);
     if (!timelineElement) return;
@@ -573,6 +694,15 @@ class TimelineSequencer {
     });
   }
 
+  /**
+   * Génère l'interface de configuration pour une action de module
+   * Crée dynamiquement les contrôles de configuration selon le type d'action
+   * @param {string} moduleType - Type du module
+   * @param {string} actionType - Type d'action à configurer
+   * @param {Object} [currentValues={}] - Valeurs actuelles des paramètres
+   * @returns {string} HTML de l'interface de configuration
+   * @private
+   */
   generateActionConfigUI(moduleType, actionType, currentValues = {}) {
     const config = this.getModuleConfig(moduleType);
     if (!config || !config.actions[actionType]) return '';
@@ -595,6 +725,15 @@ class TimelineSequencer {
     return html;
   }
 
+  /**
+   * Génère un champ de saisie pour un paramètre de configuration
+   * Crée le contrôle approprié selon le type de paramètre
+   * @param {string} paramName - Nom du paramètre
+   * @param {Object} config - Configuration du paramètre
+   * @param {*} [currentValue=null] - Valeur actuelle du paramètre
+   * @returns {string} HTML du champ de saisie
+   * @private
+   */
   generateParameterInput(paramName, config, currentValue = null) {
     const value = currentValue !== null ? currentValue : config.default;
     let html = `<div class="config-row">
@@ -630,6 +769,14 @@ class TimelineSequencer {
     return html;
   }
 
+  /**
+   * Sauvegarde la configuration d'un élément de timeline
+   * Met à jour les paramètres et l'affichage de l'élément
+   * @param {Object} timelineElement - Élément de timeline à configurer
+   * @param {HTMLElement} modal - Modale de configuration
+   * @returns {void}
+   * @public
+   */
   saveConfig(timelineElement, modal) {
     const actionType = modal.querySelector('#actionTypeSelect').value;
     const duration = parseFloat(modal.querySelector('.duration-input').value);
@@ -676,10 +823,14 @@ class TimelineSequencer {
     });
   }
 
-  // ================================================================================
-  // DRAG & DROP
-  // ================================================================================
-
+  /**
+   * Initie le déplacement d'un élément par glisser-déposer
+   * Gère le drag & drop interactif des éléments sur la timeline
+   * @param {HTMLElement} element - Élément à déplacer
+   * @param {MouseEvent} e - Événement de souris déclencheur
+   * @returns {void}
+   * @public
+   */
   startDrag(element, e) {
     this.draggedElement = element;
     this.selectElement(element);
@@ -719,22 +870,39 @@ class TimelineSequencer {
     document.addEventListener('mouseup', handleMouseUp);
   }
 
-  // ================================================================================
-  // INTERACTIONS GÉNÉRALES
-  // ================================================================================
-
+  /**
+   * Gère les clics sur la piste de timeline
+   * Désélectionne les éléments si clic sur zone vide
+   * @param {MouseEvent} e - Événement de clic
+   * @returns {void}
+   * @public
+   */
   handleTrackClick(e) {
     if (e.target === this.track) {
       this.clearSelection();
     }
   }
 
+  /**
+   * Gère les raccourcis clavier de la timeline
+   * Supprime l'élément sélectionné avec la touche Delete
+   * @param {KeyboardEvent} e - Événement clavier
+   * @returns {void}
+   * @public
+   */
   handleKeyDown(e) {
     if (e.key === 'Delete' && this.selectedElement) {
       this.deleteElement(this.selectedElement);
     }
   }
 
+  /**
+   * Supprime un élément de la timeline
+   * Retire l'élément du DOM et met à jour les données internes
+   * @param {HTMLElement} element - Élément à supprimer
+   * @returns {void}
+   * @public
+   */
   deleteElement(element) {
     element.remove();
     this.elements = this.elements.filter(e => e.element !== element);
@@ -745,6 +913,12 @@ class TimelineSequencer {
     }
   }
 
+  /**
+   * Désélectionne tous les éléments de la timeline
+   * Retire les classes de sélection et remet à zéro la sélection active
+   * @returns {void}
+   * @public
+   */
   clearSelection() {
     document
       .querySelectorAll('.timeline-action.selected, .timeline-element.selected')
@@ -754,18 +928,30 @@ class TimelineSequencer {
     this.selectedElement = null;
   }
 
+  /**
+   * Masque les instructions de démarrage de la timeline
+   * @returns {void}
+   * @public
+   */
   hideInstructions() {
     if (this.instructions) this.instructions.style.display = 'none';
   }
 
+  /**
+   * Affiche les instructions de démarrage de la timeline
+   * @returns {void}
+   * @public
+   */
   showInstructions() {
     if (this.instructions) this.instructions.style.display = 'block';
   }
 
-  // ================================================================================
-  // LECTURE DE TIMELINE
-  // ================================================================================
-
+  /**
+   * Lance la lecture de la séquence de timeline
+   * Exécute les actions des modules selon leur programmation temporelle
+   * @returns {void}
+   * @public
+   */
   playSequence() {
     if (!this.websocketManager.isConnected) {
       this.websocketManager.showAlert('danger', locales.errorNotConnected);
@@ -792,6 +978,13 @@ class TimelineSequencer {
     this.scheduleActions(sortedElements);
   }
 
+  /**
+   * Programme l'exécution des actions selon leur timing
+   * Crée les timeouts pour déclencher les actions aux bons moments
+   * @param {Array<Object>} elements - Liste des éléments à exécuter
+   * @returns {void}
+   * @private
+   */
   scheduleActions(elements) {
     this.timeouts = [];
     elements.forEach(el => {
@@ -811,6 +1004,13 @@ class TimelineSequencer {
     }
   }
 
+  /**
+   * Exécute une action de module via WebSocket
+   * Envoie la commande au serveur pour contrôler le module physique
+   * @param {Object} element - Élément contenant les données d'action
+   * @returns {void}
+   * @private
+   */
   executeAction(element) {
     const message = {
       type: 'moduleAction',
@@ -823,6 +1023,12 @@ class TimelineSequencer {
     this.websocketManager.send(message);
   }
 
+  /**
+   * Met à jour la position de la ligne de lecture en temps réel
+   * Anime l'indicateur visuel de progression durant la lecture
+   * @returns {void}
+   * @private
+   */
   updatePlaybackPosition() {
     if (!this.isPlaying) return;
 
@@ -850,6 +1056,12 @@ class TimelineSequencer {
     this.animationFrame = requestAnimationFrame(() => this.updatePlaybackPosition());
   }
 
+  /**
+   * Arrête complètement la lecture de la séquence
+   * Annule tous les timeouts et remet l'interface à l'état initial
+   * @returns {void}
+   * @public
+   */
   stopSequence() {
     this.isPlaying = false;
     this.playButton.disabled = false;
@@ -873,10 +1085,12 @@ class TimelineSequencer {
     }
   }
 
-  // ================================================================================
-  // GÉNÉRATION DE SÉQUENCE ET EXPORT
-  // ================================================================================
-
+  /**
+   * Génère la séquence complète pour export ou lecture
+   * Compile tous les éléments en structure organisée par modules
+   * @returns {Object} Objet séquence avec modules et durée totale
+   * @public
+   */
   generateSequence() {
     const sequence = {
       modules: {},
@@ -907,6 +1121,12 @@ class TimelineSequencer {
     return sequence;
   }
 
+  /**
+   * Exporte la séquence actuelle vers un fichier JSON
+   * Télécharge automatiquement le fichier de séquence
+   * @returns {void}
+   * @public
+   */
   exportSequence() {
     const sequence = this.generateSequence();
     const blob = new Blob([JSON.stringify(sequence, null, 2)], { type: 'application/json' });
@@ -918,6 +1138,13 @@ class TimelineSequencer {
     URL.revokeObjectURL(url);
   }
 
+  /**
+   * Importe une séquence depuis un fichier JSON
+   * Lit et parse le fichier pour charger une séquence existante
+   * @param {File} file - Fichier JSON à importer
+   * @returns {void}
+   * @public
+   */
   importSequence(file) {
     const reader = new FileReader();
     reader.onload = e => {
@@ -932,6 +1159,13 @@ class TimelineSequencer {
     reader.readAsText(file);
   }
 
+  /**
+   * Charge une séquence dans la timeline
+   * Vide la timeline actuelle et recrée les éléments depuis les données
+   * @param {Object} sequence - Données de séquence à charger
+   * @returns {void}
+   * @public
+   */
   loadSequence(sequence) {
     // Vider la timeline actuelle
     this.elements.forEach(el => el.element.remove());

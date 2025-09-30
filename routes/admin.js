@@ -1,9 +1,9 @@
 /**
  * Routes d'administration - Interface de gestion système
- * 
+ *
  * Gère les routes d'administration incluant l'interface principale,
  * les APIs de statistiques, et la gestion des utilisateurs et modules.
- * 
+ *
  * @module admin
  * @description Routes d'administration avec contrôle d'accès et APIs temps réel
  */

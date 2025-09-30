@@ -1,9 +1,9 @@
 /**
  * Gestionnaire d'événements - Orchestrateur WebSocket
- * 
+ *
  * Hub central pour l'émission d'événements WebSocket et la gestion des clients.
  * Gère les connexions, sessions multiples et émissions ciblées.
- * 
+ *
  * @module EventsManager
  * @description Hub central pour l'émission d'événements WebSocket et la gestion des clients
  */
@@ -26,13 +26,13 @@ class EventsManager {
      * @type {SocketIO.Server}
      */
     this.io = io;
-    
+
     /**
      * Clients connectés indexés par socket.id
      * @type {Map<string, Object>} socketId -> {socket, userId, userType, page, connectedAt}
      */
     this.connectedClients = new Map();
-    
+
     /**
      * Logger pour les opérations
      * @type {Logger}
@@ -131,7 +131,9 @@ class EventsManager {
     });
 
     if (clients.length > 0) {
-      Logger.system.debug(`Émission '${event}' vers utilisateur ${userId} (${clients.length} clients)`);
+      Logger.system.debug(
+        `Émission '${event}' vers utilisateur ${userId} (${clients.length} clients)`
+      );
     }
   }
 
@@ -174,7 +176,9 @@ class EventsManager {
     });
 
     if (pageClients.length > 0) {
-      Logger.system.debug(`Émission '${event}' vers page '${page}' (${pageClients.length} clients)`);
+      Logger.system.debug(
+        `Émission '${event}' vers page '${page}' (${pageClients.length} clients)`
+      );
     }
   }
 
@@ -218,14 +222,14 @@ class EventsManager {
  * Export du gestionnaire d'événements
  * @module EventsManager
  * @description Gestionnaire centralisé pour l'émission d'événements WebSocket ciblés
- * 
+ *
  * @example
  * const EventsManager = require('./api/EventsManager');
  * const events = new EventsManager(io);
- * 
+ *
  * // Enregistrer un client
  * events.registerClient(socket, userId, 'admin', 'dashboard');
- * 
+ *
  * // Émettre des événements ciblés
  * events.emitToUser(123, 'notification', { message: 'Hello!' });
  * events.emitToAdmins('system:alert', { level: 'warning', message: 'Alerte' });

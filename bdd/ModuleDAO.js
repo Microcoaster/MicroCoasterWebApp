@@ -1,9 +1,9 @@
 /**
  * DAO modules - Gestion des modules IoT
- * 
+ *
  * DAO spécialisé pour la gestion des modules IoT incluant CRUD,
  * gestion des statuts en temps réel et cache en mémoire pour les performances.
- * 
+ *
  * @module ModuleDAO
  * @description DAO pour la gestion complète des modules IoT et leurs statuts
  */

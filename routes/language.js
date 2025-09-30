@@ -1,9 +1,9 @@
 /**
  * Routes de gestion des langues - APIs de changement de langue
- * 
+ *
  * Gère les APIs de changement de langue incluant la commutation,
  * la récupération d'informations et les traductions côté client.
- * 
+ *
  * @module language
  * @description APIs de gestion des langues avec changement dynamique et traductions
  */

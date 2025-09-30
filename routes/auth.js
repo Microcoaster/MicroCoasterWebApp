@@ -1,9 +1,9 @@
 /**
  * Routes d'authentification - Gestion utilisateurs et sessions
- * 
+ *
  * Gère l'authentification, l'enregistrement, les sessions utilisateur,
  * les profils et les middlewares de sécurité pour l'application.
- * 
+ *
  * @module auth
  * @description Routes d'authentification avec gestion des sessions et profils utilisateur
  */

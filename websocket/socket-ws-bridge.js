@@ -1,9 +1,9 @@
 /**
  * Bridge Socket.IO ↔ WebSocket - Adaptateur de protocoles
- * 
+ *
  * Adaptateur permettant la communication entre clients Socket.IO (web)
  * et modules ESP32 WebSocket natif avec compatibilité totale.
- * 
+ *
  * @module SocketWSBridge
  * @description Bridge pour communication entre Socket.IO et WebSocket natif ESP32
  */
@@ -45,8 +45,7 @@ class SocketWSBridge {
    * @returns {void}
    * @private
    */
-  setupSocketIOListeners() {
-  }
+  setupSocketIOListeners() {}
 
   /**
    * Envoie une commande d'un client Socket.IO vers un ESP32 WebSocket
@@ -75,12 +74,11 @@ class SocketWSBridge {
           moduleId,
           command,
           status: 'sent',
-          timestamp: new Date()
+          timestamp: new Date(),
         });
       }
 
       return success;
-
     } catch (error) {
       Logger.esp.error('❌ Bridge: Error forwarding command:', error);
       return false;
@@ -98,9 +96,8 @@ class SocketWSBridge {
   forwardESPEventToWeb(event, data) {
     try {
       this.realTimeAPI.events.broadcast(event, data);
-      
-      Logger.esp.debug(`🌉 Bridge: Forwarded ESP32 event to web: ${event}`);
 
+      Logger.esp.debug(`🌉 Bridge: Forwarded ESP32 event to web: ${event}`);
     } catch (error) {
       Logger.esp.error('❌ Bridge: Error forwarding ESP32 event:', error);
     }
@@ -113,12 +110,12 @@ class SocketWSBridge {
    */
   getModuleConnectionStatus(moduleId) {
     const isWebSocketConnected = this.esp32Server.isESPConnected(moduleId);
-    
+
     return {
       moduleId,
       connected: isWebSocketConnected,
       protocol: isWebSocketConnected ? 'websocket' : 'none',
-      lastSeen: new Date()
+      lastSeen: new Date(),
     };
   }
 
@@ -132,10 +129,10 @@ class SocketWSBridge {
    */
   getGlobalStats() {
     const esp32Stats = this.esp32Server.getStats();
-    
+
     return {
       esp32WebSocket: esp32Stats,
-      totalESPConnections: esp32Stats.connectedESPs
+      totalESPConnections: esp32Stats.connectedESPs,
     };
   }
 

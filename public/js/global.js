@@ -1,39 +1,28 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - GLOBAL CLIENT UTILITIES
- * ================================================================================
+ * Utilitaires globaux client - Fonctions partagées et configuration
  *
- * Purpose: Shared JavaScript utilities and global functions for all pages
- * Author: MicroCoaster Development Team
- * Created: 2024
+ * Fournit les fonctionnalités communes incluant la gestion des connexions WebSocket,
+ * notifications toast, utilitaires clipboard, préchargement d'images et configuration globale.
  *
- * Description:
- * Provides common functionality including WebSocket connection management,
- * toast notifications, clipboard utilities, image preloading, and global
- * configuration for the client-side application.
- *
- * Dependencies:
- * - Socket.io (optional, for WebSocket functionality)
- *
- * ================================================================================
+ * @module global
+ * @description Utilitaires JavaScript partagés pour toutes les pages de l'application
  */
-
-// ================================================================================
-// GLOBAL CONFIGURATION
-// ================================================================================
 
 window.MC = window.MC || {};
 window.MC.translations = window.MC.translations || {};
 
 const IMG_BASE = '/assets/img/';
+/**
+ * Génère l'URL complète d'une image depuis le dossier assets
+ * @param {string} name - Nom du fichier image
+ * @returns {string} URL complète de l'image
+ */
 const urlImg = name => IMG_BASE + name;
 
-// ================================================================================
-// CLIENT-SIDE TRANSLATION SYSTEM
-// ================================================================================
-
 /**
- * Load translations from server
+ * Charge les traductions depuis le serveur
+ * Récupère dynamiquement les traductions de la langue courante
+ * @returns {Promise<Object>} Objet des traductions ou objet vide en cas d'erreur
  */
 async function loadTranslations() {
   try {
@@ -49,10 +38,11 @@ async function loadTranslations() {
 }
 
 /**
- * Get translated text by key path (e.g., 'common.save')
- * @param {string} key - The translation key path
- * @param {object} params - Parameters for interpolation
- * @returns {string} The translated text or the key if not found
+ * Obtient le texte traduit par clé hiérarchique (ex: 'common.save')
+ * Récupère et interpole les traductions avec gestion des paramètres
+ * @param {string} key - Clé de traduction hiérarchique (pointée)
+ * @param {Object} [params={}] - Paramètres pour interpolation {{param}}
+ * @returns {string} Texte traduit ou clé si non trouvée
  */
 function t(key, params = {}) {
   const keys = key.split('.');
@@ -110,6 +100,12 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 });
 
+/**
+ * Précharge une liste d'images pour optimiser les performances
+ * Crée des objets Image en cache pour éviter les délais de chargement
+ * @param {string[]} paths - Tableau des chemins d'images à précharger
+ * @returns {void}
+ */
 function preload(paths) {
   for (const s of paths) {
     const i = new Image();
@@ -118,7 +114,7 @@ function preload(paths) {
 }
 
 // ================================================================================
-// TOAST NOTIFICATIONS 
+// TOAST NOTIFICATIONS
 // ================================================================================
 // Toasts sont maintenant gérés par toast.js - inclure ce fichier dans les pages
 
@@ -126,6 +122,13 @@ function preload(paths) {
 // CLIPBOARD UTILITIES
 // ================================================================================
 
+/**
+ * Copie du texte dans le presse-papiers avec retour visuel
+ * Utilise l'API Clipboard moderne avec fallback legacy et animations CSS
+ * @param {string} text - Texte à copier dans le presse-papiers
+ * @param {HTMLElement|null} [element=null] - Élément pour animation visuelle
+ * @returns {void}
+ */
 window.copyToClipboard = function (text, element = null) {
   if (navigator.clipboard?.writeText) {
     navigator.clipboard
@@ -166,35 +169,41 @@ window.copyToClipboard = function (text, element = null) {
 let socket = null;
 let isInitializing = false;
 
+/**
+ * Initialise la connexion WebSocket avec authentification automatique
+ * Configure Socket.IO avec polling, gestion des événements et authentification utilisateur
+ * @returns {Object|undefined} Instance socket si déjà connectée, undefined sinon
+ * @throws {Error} Si l'initialisation WebSocket échoue
+ * @public
+ */
 function initializeWebSocket() {
   // Éviter les initialisations multiples
   if (socket && socket.connected) {
-    // WebSocket already connected
     return socket;
   }
 
   if (isInitializing) {
-    // WebSocket initialization in progress
     return;
   }
 
   try {
     isInitializing = true;
-    // Initializing WebSocket connection...
+
+    // Configuration Socket.IO optimisée pour la stabilité
     socket = io({
-      // Désactiver la reconnexion automatique lors du changement de page
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 2000,
       reconnectionAttempts: 5,
       timeout: 10000,
-      forceNew: false, // Réutiliser la connexion si possible
-      transports: ['polling'], // Utiliser SEULEMENT polling pour éviter complètement les conflits WebSocket
-      upgrade: false, // Désactiver l'upgrade WebSocket pour une compatibilité parfaite
+      forceNew: false, // Réutilise les connexions existantes
+      transports: ['polling'], // Force polling pour éviter les conflits WebSocket
+      upgrade: false, // Désactive l'upgrade automatique vers WebSocket
     });
 
+    // Événement de connexion WebSocket avec authentification automatique
     socket.on('connect', function () {
-      // WebSocket connected      // Auto-authentification si des informations utilisateur sont disponibles
+      // Auto-authentification si des informations utilisateur sont disponibles
       if (window.MC && window.MC.userId) {
         const authData = {
           userId: window.MC.userId,
@@ -202,20 +211,20 @@ function initializeWebSocket() {
           userName: window.MC.userName,
           page: getCurrentPageName(),
         };
-        // Auto-authenticating...
         socket.emit('client:authenticate', authData);
       }
 
+      // Notifier que WebSocket est prêt pour les autres modules
       window.dispatchEvent(new CustomEvent('websocket-ready'));
     });
 
+    // Gestion des déconnexions WebSocket
     socket.on('disconnect', function (reason) {
-      // WebSocket disconnected
       isInitializing = false;
 
-      // Ne pas reconnecter automatiquement si c'est intentionnel
+      // Ne pas reconnecter automatiquement si la déconnexion est intentionnelle
       if (reason === 'io server disconnect' || reason === 'io client disconnect') {
-        // Intentional disconnect
+        console.log('🔌 Déconnexion WebSocket intentionnelle:', reason);
       }
     });
 
@@ -242,31 +251,26 @@ function initializeWebSocket() {
       console.log('🔄 WebSocket reconnection attempt:', attemptNumber);
     });
 
-    // Écouter les réponses d'authentification
+    // Gestion des réponses d'authentification
     socket.on('client:auth:success', data => {
-      // Authentifié avec succès
+      console.log('✅ Authentification WebSocket réussie');
     });
 
     socket.on('client:auth:error', data => {
-      console.error('❌ [GLOBAL] Erreur authentification:', data);
+      console.error('❌ Erreur authentification WebSocket:', data);
     });
 
-    // ================================================================================
-    // ÉVÉNEMENTS TEMPS RÉEL POUR ADMIN
-    // ================================================================================
-
-    // Statistiques globales temps réel (pour la page admin)
+    // Gestion des événements temps réel pour l'interface d'administration
     socket.on('simple_stats_update', function (data) {
       if (getCurrentPageName() === 'admin' && window.updateSimpleStats) {
         window.updateSimpleStats(data);
       }
     });
 
-    // Demander les stats immédiatement si on est sur la page admin (ton approche)
+    // Demande immédiate des statistiques si on est sur la page admin
     if (getCurrentPageName() === 'admin') {
       socket.emit('request_stats');
-      // Demande de stats au chargement
-    } // Événements maintenant gérés par toast.js
+    }
 
     window.socket = socket;
     isInitializing = false;
@@ -276,7 +280,12 @@ function initializeWebSocket() {
   }
 }
 
-// Fonction utilitaire pour détecter la page actuelle
+/**
+ * Détecte la page actuelle basée sur l'URL pour la configuration WebSocket
+ * Analyse le pathname pour déterminer le contexte de l'application
+ * @returns {string} Nom de la page ('admin', 'dashboard', 'modules', 'timelines', 'unknown')
+ * @private
+ */
 function getCurrentPageName() {
   const path = window.location.pathname;
   if (path.includes('/admin')) return 'admin';
@@ -302,18 +311,16 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeWebSocket();
   }
 
-  // Gérer la fermeture propre lors du changement de page
+  // Gestion de la fermeture propre de WebSocket lors des changements de page
   window.addEventListener('beforeunload', function () {
     if (window.socket && window.socket.connected) {
-      // Disconnecting on page unload
       window.socket.disconnect();
     }
   });
 
-  // Gérer aussi la navigation interne
+  // Gestion de la navigation interne et changements de visibilité
   window.addEventListener('pagehide', function () {
     if (window.socket && window.socket.connected) {
-      // Disconnecting on page hide
       window.socket.disconnect();
     }
   });
