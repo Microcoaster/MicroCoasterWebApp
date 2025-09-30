@@ -199,7 +199,6 @@ async function startServer() {
           app.locals.socketWSBridge = socketWSBridge;
           
           AppLogger.app.info('✅ ESP32 WebSocket Server initialized successfully');
-          AppLogger.app.info('🌉 Socket.IO ↔ WebSocket Bridge initialized');
         } catch (error) {
           AppLogger.app.error('❌ ESP32 initialization failed:', error);
         }

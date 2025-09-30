@@ -1277,20 +1277,22 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
   function setupSocketEvents(socket) {
     // Setting up socket events...
 
-    // Réception des états de modules
-    socket.on('modules_state', states => {
-      // Received modules_state
-      states.forEach(state => {
-        setPresence(state.moduleId, state.online);
-      });
+    // === ÉVÉNEMENTS TEMPS RÉEL (FIABLES) ===
+    // Ces événements viennent directement du serveur ESP32 via ModuleEvents
+    socket.on('rt_module_online', data => {
+      setPresence(data.moduleId, true);
     });
 
-    // Module en ligne
+    socket.on('rt_module_offline', data => {
+      setPresence(data.moduleId, false);
+    });
+
+    // === ÉVÉNEMENTS LEGACY (COMPATIBILITÉ) ===
+    // Anciens événements globaux - gardés pour compatibilité
     socket.on('module_online', data => {
       setPresence(data.moduleId, true);
     });
 
-    // Module hors ligne
     socket.on('module_offline', data => {
       setPresence(data.moduleId, false);
     });
@@ -1348,19 +1350,6 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       }
     });
 
-    // Module en ligne en temps réel
-    socket.on('rt_module_online', data => {
-      // Real-time: Module online
-      setPresence(data.moduleId, true);
-      // setPresence: online
-    });
-
-    // Module hors ligne en temps réel
-    socket.on('rt_module_offline', data => {
-      // Real-time: Module offline
-      setPresence(data.moduleId, false);
-      // setPresence: offline
-    });
 
     // Télémétrie mise à jour en temps réel
     socket.on('rt_telemetry_updated', data => {
