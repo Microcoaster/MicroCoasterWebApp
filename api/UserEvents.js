@@ -1,22 +1,11 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - USER EVENTS HANDLER
- * ================================================================================
- *
- * Purpose: Real-time event management for user authentication and activity
- * Author: MicroCoaster Development Team
- * Created: 2024
- *
- * Description:
- * Manages user-related events including login/logout activities, profile updates,
- * security events, and session tracking. Provides real-time notifications to
- * administrators and user sessions for security and monitoring purposes.
- *
- * Dependencies:
- * - EventsManager (for targeted event emission)
- * - Logger utility (for operation logging)
- *
- * ================================================================================
+ * Événements utilisateurs - Gestion temps réel
+ * 
+ * Gestionnaire des événements utilisateurs incluant authentification, activités,
+ * mises à jour de profil et suivi de sessions pour la sécurité et monitoring.
+ * 
+ * @module UserEvents
+ * @description Gestionnaire temps réel pour l'authentification et activité utilisateur
  */
 
 const Logger = require('../utils/logger');
@@ -57,16 +46,13 @@ class UserEvents {
       timestamp: new Date(),
     };
 
-    // Émettre événement aux admins pour notification
     this.events.emitToAdmins('rt_user_logged_in', eventData);
 
-    // Notification à l'utilisateur
     this.events.emitToUser(userData.id, 'user:session:new', {
       message: 'Connexion réussie',
       timestamp: new Date(),
     });
 
-    // Émettre les nouvelles stats aux admins après connexion utilisateur
     this.emitStatsToAdmins();
   }
 
@@ -84,10 +70,8 @@ class UserEvents {
       timestamp: new Date(),
     };
 
-    // Émettre événement aux admins pour notification
     this.events.emitToAdmins('rt_user_logged_out', eventData);
 
-    // Émettre les nouvelles stats aux admins après déconnexion utilisateur
     this.emitStatsToAdmins();
   }
 
@@ -196,19 +180,17 @@ class UserEvents {
   }
 
   /**
-   * Émettre les stats mises à jour aux admins (même logique que ModuleEvents)
+   * Emit updated stats to admins
    */
   emitStatsToAdmins() {
     setTimeout(() => {
       try {
         const clientStats = this.events.getStats();
-        // On a besoin d'accéder aux stats modules aussi
         const realTimeAPI = this.events.io?.app?.locals?.realTimeAPI;
         const moduleStats = realTimeAPI?.modules
           ? realTimeAPI.modules.getConnectionStats()
           : { connectedModules: 0 };
 
-        // Format simple et direct
         const simpleStats = {
           users: { online: clientStats.uniqueUsers },
           modules: { online: moduleStats.connectedModules },
@@ -217,12 +199,12 @@ class UserEvents {
 
         this.events.emitToAdmins('simple_stats_update', simpleStats);
         Logger.system.debug(
-          `[UserEvents] Stats mises à jour émises: ${stats.users} utilisateurs, ${stats.modules} modules`
+          `[UserEvents] Stats updated: ${simpleStats.users.online} users, ${simpleStats.modules.online} modules`
         );
       } catch (error) {
-        Logger.system.error('[UserEvents] Erreur émission stats:', error);
+        Logger.system.error('[UserEvents] Stats emission error:', error);
       }
-    }, 300); // Délai un peu plus long pour laisser le WebSocket se mettre à jour
+    }, 300);
   }
 }
 

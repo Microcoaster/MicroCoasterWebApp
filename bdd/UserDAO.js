@@ -1,11 +1,28 @@
+/**
+ * DAO utilisateurs - Gestion des comptes utilisateurs
+ * 
+ * DAO spécialisé pour la gestion des utilisateurs incluant authentification,
+ * chiffrement des mots de passe, validation et opérations CRUD sécurisées.
+ * 
+ * @module UserDAO
+ * @description DAO pour la gestion complète des utilisateurs et authentification
+ */
+
 const BaseDAO = require('./BaseDAO');
 const bcrypt = require('bcrypt');
 const Logger = require('../utils/logger');
 
 /**
  * DAO pour la gestion des utilisateurs
+ * Hérite de BaseDAO et ajoute des fonctionnalités spécifiques aux utilisateurs
+ * @class UserDAO
+ * @extends BaseDAO
  */
 class UserDAO extends BaseDAO {
+  /**
+   * Crée une instance de UserDAO
+   * @param {mysql.Pool} pool - Pool de connexions MySQL
+   */
   constructor(pool) {
     super(pool);
   }
@@ -76,7 +93,7 @@ class UserDAO extends BaseDAO {
   /**
    * Récupère un utilisateur par son ID
    * @param {number} userId - ID de l'utilisateur
-   * @returns {Object|null} Utilisateur trouvé ou null
+   * @returns {Promise<Object|null>} Utilisateur sans mot de passe ou null
    */
   async findById(userId) {
     try {
@@ -295,7 +312,7 @@ class UserDAO extends BaseDAO {
   /**
    * Met à jour la dernière connexion d'un utilisateur
    * @param {number} userId - ID de l'utilisateur
-   * @returns {boolean} Succès de la mise à jour
+   * @returns {Promise<void>}
    */
   async updateLastLogin(userId) {
     try {
@@ -311,9 +328,9 @@ class UserDAO extends BaseDAO {
   }
 
   /**
-   * Vérifie si un email existe déjà
-   * @param {string} email - Email à vérifier
-   * @returns {boolean} True si l'email existe
+   * Vérifie si un email existe déjà en base
+   * @param {string} email - Adresse email à vérifier
+   * @returns {Promise<boolean>} True si l'email existe
    */
   async emailExists(email) {
     try {
@@ -327,7 +344,7 @@ class UserDAO extends BaseDAO {
 
   /**
    * Compte le nombre total d'utilisateurs
-   * @returns {number} Nombre total d'utilisateurs
+   * @returns {Promise<number>} Nombre d'utilisateurs
    */
   async count() {
     try {
@@ -341,7 +358,7 @@ class UserDAO extends BaseDAO {
 
   /**
    * Compte le nombre d'administrateurs
-   * @returns {number} Nombre d'administrateurs
+   * @returns {Promise<number>} Nombre d'administrateurs
    */
   async countAdmins() {
     try {

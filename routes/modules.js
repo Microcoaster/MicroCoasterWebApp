@@ -4,7 +4,7 @@ const { requireAuth } = require('./auth');
 const Logger = require('../utils/logger');
 const router = express.Router();
 
-// Fonction helper pour déduire le type de module (portée de PHP)
+// Helper function to infer module type
 function endsWithCi(haystack, needle) {
   if (needle.length === 0) return true;
   return haystack.toLowerCase().endsWith(needle.toLowerCase());

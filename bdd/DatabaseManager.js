@@ -1,3 +1,13 @@
+/**
+ * Gestionnaire de base de données - Manager principal
+ * 
+ * Gestionnaire principal centralisant l'accès aux DAO, la gestion des connexions
+ * et l'initialisation de la base de données avec création automatique des tables.
+ * 
+ * @module DatabaseManager
+ * @description Gestionnaire principal de la base de données et des DAO
+ */
+
 const mysql = require('mysql2/promise');
 const fs = require('fs').promises;
 const path = require('path');
@@ -9,8 +19,13 @@ const ModuleDAO = require('./ModuleDAO');
 /**
  * Gestionnaire principal de la base de données
  * Centralise l'accès aux DAO et gère l'initialisation
+ * @class DatabaseManager
  */
 class DatabaseManager {
+  /**
+   * Crée une instance de DatabaseManager
+   * Initialise les propriétés pour le pool de connexions et les DAO
+   */
   constructor() {
     this.pool = null;
     this.userDAO = null;
@@ -20,6 +35,9 @@ class DatabaseManager {
 
   /**
    * Initialise la connexion à la base de données et les DAO
+   * Configure le pool MySQL, crée les tables si nécessaire et initialise les DAO
+   * @returns {Promise<void>}
+   * @throws {Error} En cas d'échec de connexion ou d'initialisation
    */
   async initialize() {
     try {
@@ -61,6 +79,9 @@ class DatabaseManager {
 
   /**
    * Teste la connexion à la base de données
+   * Exécute une requête de test pour vérifier la connexion
+   * @returns {Promise<boolean>} True si la connexion est fonctionnelle
+   * @throws {Error} En cas d'échec de connexion
    */
   async testConnection() {
     try {
@@ -79,8 +100,11 @@ class DatabaseManager {
 
   /**
    * Exécute un fichier SQL avec remplacement de variables
-   * @param {string} filename - Nom du fichier SQL
-   * @param {Object} variables - Variables à remplacer (optionnel)
+   * Lit et exécute un fichier SQL depuis le dossier sql/
+   * @param {string} filename - Nom du fichier SQL (ex: '001_create_tables.sql')
+   * @param {Object} [variables={}] - Variables à remplacer dans le SQL (format {{key}})
+   * @returns {Promise<void>}
+   * @throws {Error} En cas d'échec de lecture ou d'exécution
    */
   async executeSQLFile(filename, variables = {}) {
     try {
@@ -111,6 +135,12 @@ class DatabaseManager {
 
   /**
    * Initialise la base de données avec les tables et données par défaut
+   */
+  /**
+   * Initialise la base de données en créant les tables
+   * Exécute les scripts SQL d'initialisation et de données par défaut
+   * @returns {Promise<void>}
+   * @throws {Error} En cas d'échec d'initialisation
    */
   async initializeDatabase() {
     try {
@@ -161,6 +191,14 @@ class DatabaseManager {
    * Obtient des statistiques globales
    * @returns {Object} Statistiques globales
    */
+  /**
+   * Récupère les statistiques globales de l'application
+   * Compile les stats utilisateurs, modules et système
+   * @returns {Promise<Object>} Statistiques globales
+   * @returns {Object} returns.users - Statistiques des utilisateurs
+   * @returns {Object} returns.modules - Statistiques des modules
+   * @returns {Object} returns.system - Informations système
+   */
   async getGlobalStats() {
     try {
       if (!this.isInitialized) {
@@ -190,6 +228,11 @@ class DatabaseManager {
 
   /**
    * Ferme proprement les connexions
+   */
+  /**
+   * Ferme proprement les connexions à la base de données
+   * Termine le pool de connexions MySQL
+   * @returns {Promise<void>}
    */
   async close() {
     try {

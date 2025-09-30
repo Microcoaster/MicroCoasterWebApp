@@ -1,39 +1,57 @@
 /**
- * ============================================================================
- * EVENTS MANAGER - WEBSOCKET EVENT ORCHESTRATOR
- * ============================================================================
- * Central hub for WebSocket event emission and client management
- *
+ * Gestionnaire d'événements - Orchestrateur WebSocket
+ * 
+ * Hub central pour l'émission d'événements WebSocket et la gestion des clients.
+ * Gère les connexions, sessions multiples et émissions ciblées.
+ * 
  * @module EventsManager
- * @description Manages connected clients and provides targeted event emission
- * ============================================================================
+ * @description Hub central pour l'émission d'événements WebSocket et la gestion des clients
  */
 
 const Logger = require('../utils/logger');
 
 /**
- * Central WebSocket events manager
+ * Gestionnaire central des événements WebSocket
+ * @class EventsManager
+ * @description Gère les clients connectés et fournit l'émission d'événements ciblés
  */
 class EventsManager {
+  /**
+   * Constructeur du gestionnaire d'événements
+   * @param {SocketIO.Server} io - Instance Socket.IO du serveur
+   */
   constructor(io) {
+    /**
+     * Instance Socket.IO du serveur
+     * @type {SocketIO.Server}
+     */
     this.io = io;
+    
+    /**
+     * Clients connectés indexés par socket.id
+     * @type {Map<string, Object>} socketId -> {socket, userId, userType, page, connectedAt}
+     */
     this.connectedClients = new Map();
+    
+    /**
+     * Logger pour les opérations
+     * @type {Logger}
+     */
     this.Logger = Logger;
   }
 
   // ========================================================================
-  // CLIENT MANAGEMENT
+  // GESTION DES CLIENTS
   // ========================================================================
 
   /**
-   * Register connected client
-   * @param {Socket} socket - Socket.io client
-   * @param {number} userId - User ID
-   * @param {string} userType - User type (admin, user)
-   * @param {string} page - Current page (modules, admin, dashboard)
+   * Enregistre un client connecté et gère les sessions multiples
+   * @param {Socket} socket - Client Socket.io
+   * @param {number} userId - Identifiant de l'utilisateur
+   * @param {string} [userType='user'] - Type d'utilisateur (admin, user)
+   * @param {string} [page='unknown'] - Page actuelle (modules, admin, dashboard)
    */
   registerClient(socket, userId, userType = 'user', page = 'unknown') {
-    // Vérifier s'il y a déjà des connexions pour cet utilisateur
     const existingClients = Array.from(this.connectedClients.values()).filter(
       client => client.userId === userId
     );
@@ -43,7 +61,6 @@ class EventsManager {
         `User ${userId} already has ${existingClients.length} connection(s), replacing older ones...`
       );
 
-      // Déconnecter les anciennes connexions
       existingClients.forEach(existingClient => {
         if (existingClient.socket !== socket && existingClient.socket.connected) {
           Logger.activity.info(
@@ -54,7 +71,6 @@ class EventsManager {
             newSocketId: socket.id,
           });
           existingClient.socket.disconnect();
-          // Supprimer de la Map
           this.connectedClients.delete(existingClient.socket.id);
         }
       });
@@ -74,36 +90,36 @@ class EventsManager {
   }
 
   /**
-   * Remove disconnected client
-   * @param {string} socketId - Socket ID
+   * Supprime un client déconnecté
+   * @param {string} socketId - Identifiant du socket
    */
   unregisterClient(socketId) {
     const client = this.connectedClients.get(socketId);
     if (client) {
-      Logger.activity.debug(`Client unregistered: ${socketId} (User ${client.userId})`);
+      Logger.activity.debug(`Client désenregistré : ${socketId} (Utilisateur ${client.userId})`);
       this.connectedClients.delete(socketId);
     }
   }
 
   // ========================================================================
-  // EVENT EMISSION
+  // ÉMISSION D'ÉVÉNEMENTS
   // ========================================================================
 
   /**
-   * Broadcast event to all connected clients
-   * @param {string} event - Event name
-   * @param {object} data - Data to send
+   * Diffuse un événement à tous les clients connectés
+   * @param {string} event - Nom de l'événement
+   * @param {Object} data - Données à envoyer
    */
   broadcast(event, data) {
-    Logger.system.info(`Broadcasting '${event}' to ${this.connectedClients.size} clients`);
+    Logger.system.info(`Diffusion '${event}' à ${this.connectedClients.size} clients`);
     this.io.emit(event, data);
   }
 
   /**
-   * Emit event to specific user
-   * @param {number} userId - User ID
-   * @param {string} event - Event name
-   * @param {object} data - Data to send
+   * Émet un événement à un utilisateur spécifique
+   * @param {number} userId - Identifiant de l'utilisateur
+   * @param {string} event - Nom de l'événement
+   * @param {Object} data - Données à envoyer
    */
   emitToUser(userId, event, data) {
     const clients = Array.from(this.connectedClients.values()).filter(
@@ -115,14 +131,14 @@ class EventsManager {
     });
 
     if (clients.length > 0) {
-      Logger.system.debug(`Emitted '${event}' to user ${userId} (${clients.length} clients)`);
+      Logger.system.debug(`Émission '${event}' vers utilisateur ${userId} (${clients.length} clients)`);
     }
   }
 
   /**
-   * Emit event to all admins
-   * @param {string} event - Event name
-   * @param {object} data - Data to send
+   * Émet un événement à tous les administrateurs
+   * @param {string} event - Nom de l'événement
+   * @param {Object} data - Données à envoyer
    */
   emitToAdmins(event, data) {
     const adminClients = Array.from(this.connectedClients.values()).filter(
@@ -134,20 +150,19 @@ class EventsManager {
     });
 
     if (adminClients.length > 0) {
-      // Log émissions fréquentes en debug seulement pour éviter spam
       if (event.includes('telemetry') || event.includes('last_seen')) {
-        Logger.system.debug(`Emitted '${event}' to ${adminClients.length} admin(s)`);
+        Logger.system.debug(`Émission '${event}' vers ${adminClients.length} admin(s)`);
       } else {
-        Logger.system.debug(`Emitted '${event}' to ${adminClients.length} admin(s)`);
+        Logger.system.debug(`Émission '${event}' vers ${adminClients.length} admin(s)`);
       }
     }
   }
 
   /**
-   * Emit event to specific page clients
-   * @param {string} page - Target page (modules, admin, dashboard)
-   * @param {string} event - Event name
-   * @param {object} data - Data to send
+   * Émet un événement aux clients d'une page spécifique
+   * @param {string} page - Page cible (modules, admin, dashboard)
+   * @param {string} event - Nom de l'événement
+   * @param {Object} data - Données à envoyer
    */
   emitToPage(page, event, data) {
     const pageClients = Array.from(this.connectedClients.values()).filter(
@@ -159,16 +174,21 @@ class EventsManager {
     });
 
     if (pageClients.length > 0) {
-      Logger.system.debug(`Emitted '${event}' to page '${page}' (${pageClients.length} clients`);
+      Logger.system.debug(`Émission '${event}' vers page '${page}' (${pageClients.length} clients)`);
     }
   }
 
   // ========================================================================
-  // STATISTICS
+  // STATISTIQUES
   // ========================================================================
 
   /**
-   * Get connection statistics
+   * Récupère les statistiques de connexion
+   * @returns {Object} Statistiques détaillées des connexions
+   * @returns {number} returns.total - Nombre total de clients connectés
+   * @returns {number} returns.uniqueUsers - Nombre d'utilisateurs uniques
+   * @returns {Object} returns.byPage - Répartition par page
+   * @returns {Object} returns.byType - Répartition par type d'utilisateur
    */
   getStats() {
     const clientsByPage = {};
@@ -194,4 +214,21 @@ class EventsManager {
   }
 }
 
+/**
+ * Export du gestionnaire d'événements
+ * @module EventsManager
+ * @description Gestionnaire centralisé pour l'émission d'événements WebSocket ciblés
+ * 
+ * @example
+ * const EventsManager = require('./api/EventsManager');
+ * const events = new EventsManager(io);
+ * 
+ * // Enregistrer un client
+ * events.registerClient(socket, userId, 'admin', 'dashboard');
+ * 
+ * // Émettre des événements ciblés
+ * events.emitToUser(123, 'notification', { message: 'Hello!' });
+ * events.emitToAdmins('system:alert', { level: 'warning', message: 'Alerte' });
+ * events.emitToPage('modules', 'module:update', moduleData);
+ */
 module.exports = EventsManager;

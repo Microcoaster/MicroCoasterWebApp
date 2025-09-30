@@ -1,49 +1,77 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - MODULE EVENTS HANDLER
- * ================================================================================
- *
- * Purpose: Real-time event management for IoT module status and telemetry
- * Author: MicroCoaster Development Team
- * Created: 2024
- *
- * Description:
- * Manages all module-related events including online/offline status changes,
- * telemetry updates, command tracking, and real-time state synchronization.
- * Provides centralized event emission to appropriate clients based on user
- * permissions and page contexts.
- *
- * Dependencies:
- * - EventsManager (for targeted event emission)
- * - Logger utility (for operation logging)
- *
- * ================================================================================
+ * Événements modules - Gestionnaire IoT temps réel
+ * 
+ * Gestionnaire d'événements temps réel pour les modules IoT incluant gestion
+ * des états, télémétrie, synchronisation et monitoring des connexions ESP32.
+ * 
+ * @module ModuleEvents
+ * @description Gestionnaire d'événements temps réel pour les modules IoT
  */
 
 const Logger = require('../utils/logger');
 
 // ================================================================================
-// MODULE EVENTS CLASS
+// CLASSE DE GESTION DES ÉVÉNEMENTS MODULES
 // ================================================================================
 
+/**
+ * Gestionnaire d'événements pour les modules IoT MicroCoaster
+ * @class ModuleEvents
+ * @description Gère tous les événements liés aux modules : connexions, déconnexions, télémétrie
+ */
 class ModuleEvents {
   // ================================================================================
-  // INITIALIZATION
+  // INITIALISATION
   // ================================================================================
 
+  /**
+   * Constructeur du gestionnaire d'événements modules
+   * @param {EventsManager} eventsManager - Gestionnaire d'événements centralisé
+   */
   constructor(eventsManager) {
+    /**
+     * Gestionnaire d'événements centralisé
+     * @type {EventsManager}
+     */
     this.events = eventsManager;
+    
+    /**
+     * Logger pour les opérations de modules
+     * @type {Logger}
+     */
     this.Logger = Logger;
+    
+    /**
+     * États actuels de tous les modules
+     * @type {Map<string, Object>} moduleId -> {online, lastSeen, moduleInfo}
+     */
     this.moduleStates = new Map();
-    // NOUVEAU: Gestion unifiée des connexions ESP
-    this.connectedESPs = new Map(); // moduleId -> socket
-    this.modulesBySocket = new Map(); // socket.id -> moduleInfo
+    
+    /**
+     * Connexions ESP32 actives
+     * @type {Map<string, WebSocket>} moduleId -> socket WebSocket
+     */
+    this.connectedESPs = new Map();
+    
+    /**
+     * Informations modules par socket
+     * @type {Map<string, Object>} socket.id -> {moduleId, userId, ...}
+     */
+    this.modulesBySocket = new Map();
   }
 
   // ================================================================================
-  // MODULE STATUS MANAGEMENT
+  // GESTION DES ÉTATS DE MODULES
   // ================================================================================
 
+  /**
+   * Marque un module comme en ligne et émet les événements appropriés
+   * @param {string} moduleId - Identifiant unique du module
+   * @param {Object} [moduleInfo={}] - Informations supplémentaires du module
+   * @param {number} [moduleInfo.userId] - ID de l'utilisateur propriétaire
+   * @param {string} [moduleInfo.name] - Nom du module
+   * @param {string} [moduleInfo.type] - Type de module (Station, Switch Track, etc.)
+   */
   moduleOnline(moduleId, moduleInfo = {}) {
     const previousState = this.moduleStates.get(moduleId);
     const wasOnline = previousState?.online || false;
@@ -56,9 +84,11 @@ class ModuleEvents {
       moduleInfo,
     });
 
+    // Notifier uniquement si le module n'était pas déjà en ligne (changement d'état)
     if (!wasOnline) {
-      Logger.modules.info(`[ModuleEvents] Module ${moduleId} is now ONLINE`);
+      Logger.modules.info(`[ModuleEvents] Module ${moduleId} maintenant EN LIGNE`);
 
+      // Préparer les données d'événement
       const eventData = {
         moduleId,
         online: true,
@@ -67,20 +97,29 @@ class ModuleEvents {
         ...moduleInfo,
       };
 
+      // Émettre aux différents publics selon les permissions
       this.events.emitToPage('modules', 'rt_module_online', eventData);
       this.events.emitToAdmins('rt_module_online', eventData);
 
+      // Notifier le propriétaire du module si défini
       if (moduleInfo.userId) {
         this.events.emitToUser(moduleInfo.userId, 'user:module:online', eventData);
       }
 
-      // Émettre les nouvelles stats aux admins après changement d'état module
+      // Mettre à jour les statistiques pour les admins
       this.emitStatsToAdmins();
     }
 
     this.emitLastSeenUpdate(moduleId, currentTime, moduleInfo);
   }
 
+  /**
+   * Marque un module comme hors ligne et émet les événements appropriés
+   * @param {string} moduleId - Identifiant unique du module
+   * @param {Object} [moduleInfo={}] - Informations supplémentaires du module
+   * @param {number} [moduleInfo.userId] - ID de l'utilisateur propriétaire
+   * @param {string} [moduleInfo.name] - Nom du module
+   */
   moduleOffline(moduleId, moduleInfo = {}) {
     const previousState = this.moduleStates.get(moduleId);
     const wasOnline = previousState?.online || false;
@@ -93,8 +132,9 @@ class ModuleEvents {
       moduleInfo,
     });
 
+    // Notifier uniquement si le module était en ligne (changement d'état)
     if (wasOnline) {
-      Logger.modules.info(`[ModuleEvents] Module ${moduleId} is now OFFLINE`);
+      Logger.modules.info(`[ModuleEvents] Module ${moduleId} maintenant HORS LIGNE`);
 
       const eventData = {
         moduleId,
@@ -111,7 +151,6 @@ class ModuleEvents {
         this.events.emitToUser(moduleInfo.userId, 'user:module:offline', eventData);
       }
 
-      // Émettre les nouvelles stats aux admins après changement d'état module
       this.emitStatsToAdmins();
     }
 
@@ -119,11 +158,19 @@ class ModuleEvents {
   }
 
   // ================================================================================
-  // MODULE LIFECYCLE MANAGEMENT
+  // GESTION DU CYCLE DE VIE DES MODULES
   // ================================================================================
 
+  /**
+   * Traite l'ajout d'un nouveau module au système
+   * @param {Object} moduleData - Données du nouveau module
+   * @param {string} moduleData.module_id - Identifiant unique du module
+   * @param {number} [moduleData.userId] - ID de l'utilisateur propriétaire
+   * @param {string} [moduleData.name] - Nom du module
+   * @param {string} [moduleData.type] - Type de module
+   */
   moduleAdded(moduleData) {
-    Logger.modules.info(`[ModuleEvents] New module added: ${moduleData.module_id}`);
+    Logger.modules.info(`[ModuleEvents] Nouveau module ajouté : ${moduleData.module_id}`);
 
     const eventData = {
       action: 'added',
@@ -136,50 +183,78 @@ class ModuleEvents {
     }
 
     this.events.emitToAdmins('rt_module_added', eventData);
-
-    // Stats automatiques via WebSocket handlers.js
   }
 
+  /**
+   * Traite la suppression d'un module du système
+   * @param {Object} moduleData - Données du module à supprimer
+   * @param {string} moduleData.module_id - Identifiant unique du module
+   * @param {number} [moduleData.userId] - ID de l'utilisateur propriétaire
+   */
   moduleRemoved(moduleData) {
-    Logger.modules.info(`[ModuleEvents] Module removed: ${moduleData.module_id}`);
+    Logger.modules.info(`[ModuleEvents] Module supprimé : ${moduleData.module_id}`);
 
+    // Préparer les données d'événement
     const eventData = {
       action: 'removed',
       module: moduleData,
       timestamp: new Date(),
     };
 
+    // Nettoyer le cache d'état du module
     this.moduleStates.delete(moduleData.module_id);
 
+    // Notifier le propriétaire du module
     if (moduleData.userId) {
       this.events.emitToUser(moduleData.userId, 'user:module:removed', eventData);
     }
 
+    // Notifier tous les administrateurs
     this.events.emitToAdmins('rt_module_removed', eventData);
 
-    // Stats automatiques via WebSocket handlers.js
+    // Les statistiques sont mises à jour automatiquement par handlers.js
   }
 
+  /**
+   * Traite la mise à jour des informations d'un module
+   * @param {Object} moduleData - Nouvelles données du module
+   * @param {string} moduleData.module_id - Identifiant unique du module
+   * @param {number} [moduleData.userId] - ID de l'utilisateur propriétaire
+   * @param {string} [moduleData.name] - Nouveau nom du module
+   * @param {string} [moduleData.type] - Nouveau type du module
+   */
   moduleUpdated(moduleData) {
-    Logger.modules.info(`[ModuleEvents] Module updated: ${moduleData.module_id}`);
+    Logger.modules.info(`[ModuleEvents] Module mis à jour : ${moduleData.module_id}`);
 
+    // Préparer les données d'événement
     const eventData = {
       action: 'updated',
       module: moduleData,
       timestamp: new Date(),
     };
 
+    // Notifier le propriétaire du module
     if (moduleData.userId) {
       this.events.emitToUser(moduleData.userId, 'user:module:updated', eventData);
     }
 
+    // Notifier tous les administrateurs
     this.events.emitToAdmins('rt_module_updated', eventData);
   }
 
   // ================================================================================
-  // TELEMETRY & DATA MANAGEMENT
+  // GESTION DE LA TÉLÉMÉTRIE ET DES DONNÉES
   // ================================================================================
 
+  /**
+   * Traite la mise à jour des données de télémétrie d'un module
+   * @param {string} moduleId - Identifiant unique du module
+   * @param {Object} telemetryData - Données de télémétrie reçues
+   * @param {number} [telemetryData.temperature] - Température en °C
+   * @param {number} [telemetryData.humidity] - Humidité en %
+   * @param {number} [telemetryData.voltage] - Tension d'alimentation
+   * @param {string} [telemetryData.status] - Statut du module
+   */
   telemetryUpdated(moduleId, telemetryData) {
     const currentTime = new Date();
     const state = this.moduleStates.get(moduleId);
@@ -189,7 +264,6 @@ class ModuleEvents {
       state.telemetry = telemetryData;
       state.lastSeen = currentTime;
     }
-
     const eventData = {
       moduleId,
       telemetry: telemetryData,
@@ -198,15 +272,22 @@ class ModuleEvents {
       timestamp: currentTime,
     };
 
+    // Émettre la mise à jour de télémétrie aux pages concernées
     this.events.emitToPage('modules', 'rt_telemetry_updated', eventData);
     this.events.emitToAdmins('rt_telemetry_updated', eventData);
     this.emitLastSeenUpdate(moduleId, currentTime, moduleInfo);
   }
 
   // ================================================================================
-  // COMMAND TRACKING
+  // SUIVI DES COMMANDES
   // ================================================================================
 
+  /**
+   * Enregistre l'envoi d'une commande à un module
+   * @param {string} moduleId - Identifiant unique du module
+   * @param {string} command - Commande envoyée
+   * @param {number} userId - ID de l'utilisateur qui a envoyé la commande
+   */
   commandSent(moduleId, command, userId) {
     const eventData = {
       moduleId,
@@ -220,24 +301,28 @@ class ModuleEvents {
   }
 
   // ================================================================================
-  // ESP CONNECTION MANAGEMENT (UNIFIED)
+  // GESTION DES CONNEXIONS ESP32 (UNIFIÉE)
   // ================================================================================
 
   /**
-   * Register ESP module connection (sécurisé)
+   * Enregistre une connexion de module ESP32 de manière sécurisée
+   * @param {WebSocket} socket - Socket WebSocket du module ESP32
+   * @param {string} moduleId - Identifiant unique du module
+   * @param {string} [moduleType='Unknown'] - Type de module (Station, Switch Track, etc.)
+   * @returns {Object|null} Informations du module enregistré ou null si échec
    */
   registerESP(socket, moduleId, moduleType = 'Unknown') {
-    // Vérifier que le socket a une authentification valide
+    // Vérifier l'authentification valide du socket
     if (!socket.moduleAuth || socket.moduleId !== moduleId) {
-      Logger.modules.error(`🚨 Tentative d'enregistrement ESP sans auth valide: ${moduleId}`);
+      Logger.modules.error(`🚨 Tentative d'enregistrement ESP sans authentification valide : ${moduleId}`);
       return null;
     }
 
-    // Gérer les reconnexions - déconnecter l'ancienne session
+    // Gérer les reconnexions en déconnectant l'ancienne session
     const existingSocket = this.connectedESPs.get(moduleId);
     if (existingSocket && existingSocket !== socket) {
       Logger.modules.warn(
-        `⚠️ ESP ${moduleId} already connected on different socket. Disconnecting previous socket ${existingSocket.id}`
+        `⚠️ ESP ${moduleId} déjà connecté sur un autre socket. Déconnexion du socket précédent ${existingSocket.id}`
       );
 
       try {
@@ -245,16 +330,16 @@ class ModuleEvents {
         existingSocket.removeAllListeners();
         existingSocket.disconnect(true);
       } catch (error) {
-        Logger.modules.error('Error disconnecting previous ESP socket:', error);
+        Logger.modules.error('Erreur lors de la déconnexion du socket ESP précédent :', error);
       }
     }
 
-    // Enregistrer la nouvelle connexion
+    // Créer et enregistrer les informations de la nouvelle connexion
     const moduleInfo = {
       socket,
       moduleId,
       moduleType,
-      userId: socket.moduleAuth.userId, // Ajouter l'ownership
+      userId: socket.moduleAuth.userId, // ID du propriétaire du module
       connectedAt: new Date(),
       authenticated: true,
     };
@@ -262,7 +347,7 @@ class ModuleEvents {
     this.connectedESPs.set(moduleId, socket);
     this.modulesBySocket.set(socket.id, moduleInfo);
 
-    // Mettre à jour l'état du module
+    // Notifier que le module est maintenant en ligne
     this.moduleOnline(moduleId, {
       type: moduleType,
       lastSeen: new Date(),
@@ -274,22 +359,26 @@ class ModuleEvents {
   }
 
   /**
-   * Unregister ESP module connection
+   * Désenregistre une connexion de module ESP32
+   * @param {WebSocket} socket - Socket WebSocket du module à déconnecter
+   * @returns {Object|null} Informations du module déconnecté ou null si non trouvé
    */
   unregisterESP(socket) {
+    // Récupérer les informations du module par son socket
     const moduleInfo = this.modulesBySocket.get(socket.id);
     if (!moduleInfo) return null;
 
     const { moduleId, moduleType } = moduleInfo;
 
-    // Vérifier que c'est bien la connexion active (pas une ancienne)
+    // Vérifier que c'est bien la connexion active (pas une ancienne session)
     const currentSocket = this.connectedESPs.get(moduleId);
     
     if (currentSocket && currentSocket.id === socket.id) {
+      // Supprimer la connexion active
       this.connectedESPs.delete(moduleId);
-      Logger.modules.debug(`Removed ${moduleId} from connectedESPs map`);
+      Logger.modules.debug(`Suppression de ${moduleId} de la carte des ESPs connectés`);
 
-      // Marquer comme offline avec tous les infos nécessaires
+      // Marquer le module comme hors ligne avec toutes les informations
       this.moduleOffline(moduleId, { 
         moduleType, 
         userId: moduleInfo.userId,
@@ -297,33 +386,42 @@ class ModuleEvents {
       });
     } else if (currentSocket) {
       Logger.modules.debug(
-        `Socket ${socket.id} disconnected but ${moduleId} is now handled by ${currentSocket.id}`
+        `Socket ${socket.id} déconnecté mais ${moduleId} est maintenant géré par ${currentSocket.id}`
       );
     }
 
+    // Nettoyer les références du socket
     this.modulesBySocket.delete(socket.id);
-    Logger.esp.info(`ESP unregistered: ${moduleId} (socket ${socket.id})`);
+    Logger.esp.info(`ESP désenregistré : ${moduleId} (socket ${socket.id})`);
     return moduleInfo;
   }
 
 
 
   /**
-   * Get module info by socket
+   * Récupère les informations d'un module par son socket
+   * @param {WebSocket} socket - Socket WebSocket du module
+   * @returns {Object|undefined} Informations du module ou undefined si non trouvé
    */
   getModuleBySocket(socket) {
     return this.modulesBySocket.get(socket.id);
   }
 
   /**
-   * Check if module is connected
+   * Vérifie si un module est actuellement connecté
+   * @param {string} moduleId - Identifiant unique du module
+   * @returns {boolean} True si le module est connecté, false sinon
    */
   isModuleConnected(moduleId) {
     return this.connectedESPs.has(moduleId);
   }
 
   /**
-   * Get connection statistics
+   * Récupère les statistiques de connexion des modules
+   * @returns {Object} Statistiques de connexion
+   * @returns {number} returns.connectedModules - Nombre de modules connectés
+   * @returns {number} returns.totalStates - Nombre total d'états en cache
+   * @returns {number} returns.onlineModules - Nombre de modules en ligne
    */
   getConnectionStats() {
     return {
@@ -334,9 +432,13 @@ class ModuleEvents {
   }
 
   // ================================================================================
-  // STATE MANAGEMENT & UTILITIES
+  // GESTION D'ÉTAT ET UTILITAIRES
   // ================================================================================
 
+  /**
+   * Récupère tous les états actuels des modules
+   * @returns {Object} Objet contenant tous les états indexés par moduleId
+   */
   getCurrentStates() {
     const states = {};
     this.moduleStates.forEach((state, moduleId) => {
@@ -345,10 +447,21 @@ class ModuleEvents {
     return states;
   }
 
+  /**
+   * Récupère l'état d'un module spécifique
+   * @param {string} moduleId - Identifiant unique du module
+   * @returns {Object} État du module ou état par défaut si non trouvé
+   */
   getModuleState(moduleId) {
     return this.moduleStates.get(moduleId) || { online: false, lastSeen: null };
   }
 
+  /**
+   * Émet une mise à jour du "dernière activité" d'un module
+   * @param {string} moduleId - Identifiant unique du module
+   * @param {Date} lastSeen - Horodatage de la dernière activité
+   * @param {Object} [moduleInfo={}] - Informations supplémentaires du module
+   */
   emitLastSeenUpdate(moduleId, lastSeen, moduleInfo = {}) {
     const eventData = {
       moduleId,
@@ -363,8 +476,6 @@ class ModuleEvents {
     if (moduleInfo.userId) {
       this.events.emitToUser(moduleInfo.userId, 'user:module:last_seen_updated', eventData);
     }
-
-    // Log télémétrie ESP dans fichier séparé (pas de spam console)
     Logger.esp.debug(`LastSeen updated for module ${moduleId}`, {
       moduleId,
       lastSeen: lastSeen.toISOString(),
@@ -374,7 +485,9 @@ class ModuleEvents {
   }
 
   /**
-   * Émettre les stats mises à jour aux admins (même logique que request_stats)
+   * Émet les statistiques mises à jour aux administrateurs
+   * @description Utilise la même logique que le gestionnaire request_stats
+   * @private
    */
   emitStatsToAdmins() {
     setTimeout(() => {
@@ -394,9 +507,9 @@ class ModuleEvents {
           `[ModuleEvents] Stats mises à jour émises: ${clientStats.uniqueUsers} utilisateurs, ${moduleStats.connectedModules} modules`
         );
       } catch (error) {
-        Logger.modules.error('[ModuleEvents] Erreur émission stats:', error);
+        Logger.modules.error('[ModuleEvents] Erreur émission stats :', error);
       }
-    }, 200); // Petit délai pour éviter les appels trop fréquents
+    }, 200); // Délai pour éviter les appels trop fréquents
   }
 
   // ================================================================================
@@ -404,25 +517,27 @@ class ModuleEvents {
   // ================================================================================
 
   /**
-   * Envoie une commande à un module ESP en vérifiant l'ownership
+   * Envoie une commande sécurisée à un module ESP32
+   * @param {string} moduleId - Identifiant unique du module
+   * @param {string} command - Commande à envoyer
+   * @param {number} userId - ID de l'utilisateur qui envoie la commande
+   * @returns {Object} Résultat de l'opération {success: boolean, error?: string}
    */
   sendSecureCommand(moduleId, command, userId) {
     const socket = this.connectedESPs.get(moduleId);
     if (!socket) {
-      Logger.modules.warn(`Tentative d'envoi de commande à module offline: ${moduleId}`);
-      return { success: false, error: 'Module offline' };
+      Logger.modules.warn(`Tentative d'envoi de commande à module hors ligne : ${moduleId}`);
+      return { success: false, error: 'Module hors ligne' };
     }
 
     const moduleInfo = this.modulesBySocket.get(socket.id);
     if (!moduleInfo || !moduleInfo.authenticated) {
-      Logger.modules.warn(`Tentative d'envoi de commande à module non authentifié: ${moduleId}`);
+      Logger.modules.warn(`Tentative d'envoi de commande à module non authentifié : ${moduleId}`);
       return { success: false, error: 'Module non authentifié' };
     }
-
-    // Vérifier l'ownership
     if (moduleInfo.userId !== userId) {
       Logger.modules.warn(
-        `🚨 Tentative d'accès non autorisé au module ${moduleId} par user ${userId}`
+        `🚨 Tentative d'accès non autorisé au module ${moduleId} par utilisateur ${userId}`
       );
       return { success: false, error: 'Accès non autorisé' };
     }

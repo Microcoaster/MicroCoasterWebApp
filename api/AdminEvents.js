@@ -1,23 +1,11 @@
 /**
- * ================================================================================
- * MICROCOASTER WEBAPP - ADMIN EVENTS HANDLER
- * ================================================================================
- *
- * Purpose: Real-time event management for administrative operations and system monitoring
- * Author: MicroCoaster Development Team
- * Created: 2024
- *
- * Description:
- * Manages administrative events including system statistics, user management actions,
- * maintenance mode controls, system alerts, and performance monitoring. Provides
- * real-time administrative notifications and system health monitoring.
- *
- * Dependencies:
- * - EventsManager (for targeted event emission)
- * - DatabaseManager (for statistics calculation)
- * - Logger utility (for operation logging)
- *
- * ================================================================================
+ * Événements administratifs - Gestion temps réel
+ * 
+ * Gestionnaire des événements administratifs incluant les statistiques système,
+ * actions de gestion utilisateurs, contrôles de maintenance et monitoring.
+ * 
+ * @module AdminEvents
+ * @description Gestionnaire temps réel pour les opérations administratives et surveillance système
  */
 
 const Logger = require('../utils/logger');
@@ -36,12 +24,6 @@ class AdminEvents {
     this.db = databaseManager;
     this.Logger = Logger;
   }
-
-  // ================================================================================
-  // STATISTICS MANAGEMENT - SUPPRIMÉ
-  // ================================================================================
-
-  // Ancien système complexe supprimé - utiliser les stats WebSocket directement
 
   // ================================================================================
   // ADMINISTRATIVE ACTIONS
@@ -68,6 +50,7 @@ class AdminEvents {
     if (
       ['user_deleted', 'user_promoted', 'user_demoted', 'module_force_disconnect'].includes(action)
     ) {
+      Logger.activity.info(`Critical admin action performed: ${action}`);
     }
   }
 
@@ -140,11 +123,7 @@ class AdminEvents {
     this.events.emitToPage('admin', 'admin:performance:updated', eventData);
   }
 
-  // ================================================================================
-  // ANCIEN SYSTÈME DE STATS SUPPRIMÉ
-  // ================================================================================
 
-  // Utiliser les stats WebSocket directement comme dans le log qui fonctionne
 }
 
 module.exports = AdminEvents;

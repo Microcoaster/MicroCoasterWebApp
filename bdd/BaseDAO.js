@@ -1,10 +1,25 @@
+/**
+ * DAO de base - Classe abstraite pour accès base de données
+ * 
+ * Classe de base pour tous les DAO fournissant les opérations communes
+ * et la gestion centralisée de la connexion à la base de données.
+ * 
+ * @module BaseDAO
+ * @description Classe de base pour tous les DAO avec opérations communes et gestion de connexion
+ */
+
 const Logger = require('../utils/logger');
 
 /**
  * Classe de base pour tous les DAO
  * Gère la connexion à la base de données et les opérations communes
+ * @class BaseDAO
  */
 class BaseDAO {
+  /**
+   * Crée une instance de BaseDAO
+   * @param {mysql.Pool} pool - Pool de connexions MySQL
+   */
   constructor(pool) {
     this.pool = pool;
   }

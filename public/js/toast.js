@@ -317,39 +317,29 @@
         }
         socket._toastEventsInitialized = true;
 
-        // Événements utilisateurs avec correction du nom
         socket.on('rt_user_logged_in', function (data) {
-            // Le nom est dans data.user.name
             const userName = data.user?.name || data.name || data.username || 'Utilisateur';
             
-            // Toast global pour toutes les pages
             showToast(`👤 ${userName} s'est connecté`, 'info', 4000);
             
-            // Actions spécifiques à l'admin
             if (getCurrentPageName() === 'admin' && window.showRealTimeNotification) {
                 window.showRealTimeNotification(`<span class="user-connected">👤 ${userName} <strong>s'est connecté</strong></span>`, 'success');
             }
         });
 
         socket.on('rt_user_logged_out', function (data) {
-            // Le nom est dans data.user.name
             const userName = data.user?.name || data.name || data.username || 'Utilisateur';
             
-            // Toast global pour toutes les pages
             showToast(`👤 ${userName} s'est déconnecté`, 'warning', 4000);
             
-            // Actions spécifiques à l'admin
             if (getCurrentPageName() === 'admin' && window.showRealTimeNotification) {
                 window.showRealTimeNotification(`<span class="user-disconnected">👤 ${userName} <strong>s'est déconnecté</strong></span>`, 'warning');
             }
         });
 
-        // Événements modules (globaux sur toutes les pages)
         socket.on('rt_module_online', function (data) {
-
             showToast(`🟢 Module ${data.moduleId} connecté`, 'success', 3000);
             
-            // Mise à jour interface admin si on est sur cette page
             if (getCurrentPageName() === 'admin' && window.updateModuleStatus) {
                 window.updateModuleStatus(data.moduleId, true);
                 if (data.lastSeen && window.updateModuleLastSeen) {
@@ -371,7 +361,6 @@
             }
         });
 
-        // Événements de gestion des modules (admin uniquement mais avec toasts globaux)
         socket.on('rt_module_added', function (data) {
             showToast(`➕ Nouveau module ajouté: ${data.moduleId}`, 'success', 5000);
             
@@ -401,7 +390,7 @@
             showToast(`👤 Profil mis à jour: ${userName}`, 'info', 3000);
         });
 
-        // Événements télémétrie et dernière activité
+
         socket.on('rt_telemetry_updated', function (data) {
             if (getCurrentPageName() === 'admin' && data.lastSeen && window.updateModuleLastSeen) {
                 window.updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
@@ -414,7 +403,7 @@
             }
         });
 
-        // Événements directs (de esp-server.js)
+
         socket.on('module_online', function (data) {
             showToast(`🟢 Module ${data.moduleId} connecté`, 'success', 3000);
             
@@ -446,11 +435,11 @@
         return 'unknown';
     }
 
-    // Éviter la double initialisation globale
+
     if (window._toastSystemInitialized) return;
     window._toastSystemInitialized = true;
 
-    // Auto-initialisation quand le DOM est prêt
+
     function initializeToastSystem() {
         initToastContainer();
         createToastStyles();

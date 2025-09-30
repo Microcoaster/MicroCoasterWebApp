@@ -1,10 +1,27 @@
+/**
+ * DAO modules - Gestion des modules IoT
+ * 
+ * DAO spécialisé pour la gestion des modules IoT incluant CRUD,
+ * gestion des statuts en temps réel et cache en mémoire pour les performances.
+ * 
+ * @module ModuleDAO
+ * @description DAO pour la gestion complète des modules IoT et leurs statuts
+ */
+
 const BaseDAO = require('./BaseDAO');
 const Logger = require('../utils/logger');
 
 /**
  * DAO pour la gestion des modules
+ * Hérite de BaseDAO et ajoute des fonctionnalités spécifiques aux modules
+ * @class ModuleDAO
+ * @extends BaseDAO
  */
 class ModuleDAO extends BaseDAO {
+  /**
+   * Crée une instance de ModuleDAO
+   * @param {mysql.Pool} pool - Pool de connexions MySQL
+   */
   constructor(pool) {
     super(pool);
     // Cache en mémoire pour les statuts des modules
