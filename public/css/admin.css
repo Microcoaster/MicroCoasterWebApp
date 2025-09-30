@@ -1068,3 +1068,122 @@ select#modulesItemsPerPage option:hover {
   padding-right: 30px !important;
   direction: ltr !important;
 }
+
+/* ===== ANIMATIONS ET NOTIFICATIONS TEMPS RÉEL ===== */
+
+/* Animations de changement de statut */
+@keyframes statusChangeOnline {
+  0% { background-color: rgba(34, 197, 94, 0.1); }
+  50% { background-color: rgba(34, 197, 94, 0.3); }
+  100% { background-color: transparent; }
+}
+
+@keyframes statusChangeOffline {
+  0% { background-color: rgba(239, 68, 68, 0.1); }
+  50% { background-color: rgba(239, 68, 68, 0.3); }
+  100% { background-color: transparent; }
+}
+
+.status-change-online {
+  animation: statusChangeOnline 2s ease-in-out;
+}
+
+.status-change-offline {
+  animation: statusChangeOffline 2s ease-in-out;
+}
+
+/* Zone de notifications admin */
+.admin-notifications {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  width: 350px;
+  max-height: 400px;
+  overflow-y: auto;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.admin-notification {
+  background: var(--bg-secondary);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  pointer-events: auto;
+  animation: slideInRight 0.3s ease-out;
+}
+
+.admin-notification .notification-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 4px;
+}
+
+.admin-notification .notification-message {
+  font-size: 13px;
+  color: var(--text);
+  line-height: 1.4;
+}
+
+.fade-in {
+  animation: slideInRight 0.3s ease-out;
+}
+
+.fade-out {
+  animation: slideOutRight 0.5s ease-in forwards;
+}
+
+@keyframes slideInRight {
+  from {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+@keyframes slideOutRight {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 0;
+  }
+}
+
+/* Améliorations des badges de statut */
+.module-status.badge {
+  transition: all 0.3s ease;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 11px;
+  letter-spacing: 0.5px;
+}
+
+.module-status.badge.online {
+  background-color: rgba(34, 197, 94, 0.2);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.3);
+}
+
+.module-status.badge.offline {
+  background-color: rgba(239, 68, 68, 0.2);
+  color: #ef4444;
+  border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+/* Responsive pour les notifications */
+@media (max-width: 768px) {
+  .admin-notifications {
+    width: calc(100% - 40px);
+    right: 20px;
+    left: 20px;
+  }
+}

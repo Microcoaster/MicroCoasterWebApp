@@ -68,6 +68,7 @@ void setup() {
 void loop() {
   static unsigned long lastWiFiCheck = 0;
   static unsigned long lastHeartbeat = 0;
+  static unsigned long lastTelemetry = 0;
   unsigned long now = millis();
   
   // Monitoring WiFi continu
@@ -84,6 +85,12 @@ void loop() {
     if (isAuthenticated && now - lastHeartbeat > 30000) { // Toutes les 30 secondes
       sendHeartbeat();
       lastHeartbeat = now;
+    }
+    
+    // Envoyer télémétrie périodique si authentifié
+    if (isAuthenticated && now - lastTelemetry > 10000) { // Toutes les 10 secondes
+      sendTelemetry();
+      lastTelemetry = now;
     }
     
   } else {

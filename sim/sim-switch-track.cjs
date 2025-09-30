@@ -195,6 +195,7 @@ function handleMessage(rawData) {
         break;
       case 'ping':
         sendMessage('pong', { timestamp: data.timestamp });
+        log('🏓 Ping reçu, pong envoyé');
         break;
       default:
         log(`📥 Message:`, data.type);

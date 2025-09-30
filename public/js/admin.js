@@ -585,6 +585,9 @@ function initializeAll() {
 
     // Initialiser la pagination côté client
     initializeClientSidePagination();
+
+    // Initialiser les événements temps réel
+    initializeRealTimeEvents();
   }, 100);
 }
 
@@ -778,18 +781,60 @@ function showRealTimeNotification(message) {
 }
 
 /**
- * Met à jour le statut d'un module en temps réel
+ * Met à jour le statut d'un module en temps réel - VERSION SIMPLE ET CORRECTE
  */
 function updateModuleStatus(moduleId, isOnline) {
-  const moduleRows = document.querySelectorAll(`tr[data-module-id="${moduleId}"]`);
+  const moduleRow = document.querySelector(`tr[data-module-id="${moduleId}"]`);
+  if (!moduleRow) return;
+  
+  const statusCell = moduleRow.cells[4];
+  if (!statusCell) return;
+  
+  const statusSpan = statusCell.querySelector('.status');
+  if (!statusSpan) return;
+  
+  // Mise à jour simple et directe
+  const newText = isOnline ? 'En ligne' : 'Hors ligne';
+  const newClass = `status ${isOnline ? 'status-online' : 'status-offline'}`;
+  
+  statusSpan.textContent = newText;
+  statusSpan.className = newClass;
+  
+  // Animation simple
+  statusSpan.classList.add(isOnline ? 'statusChangeOnline' : 'statusChangeOffline');
+  setTimeout(() => {
+    statusSpan.classList.remove('statusChangeOnline', 'statusChangeOffline');
+  }, 3000);
+  
+  statusSpan.textContent = newText;
+  statusSpan.className = newClass;
+  
+  // Tri automatique après mise à jour
+  applySorting('modules');
+}
 
-  moduleRows.forEach(row => {
-    const statusSpan = row.querySelector('.status');
-    if (statusSpan) {
-      statusSpan.textContent = isOnline ? window.t('common.online') : window.t('common.offline');
-      statusSpan.className = `status ${isOnline ? 'status-online' : 'status-offline'}`;
-    }
+/**
+ * Met à jour visuellement la dernière activité d'un module dans le tableau
+ */
+function updateModuleLastSeenInTable(moduleId, timestamp) {
+  const moduleRow = document.querySelector(`tr[data-module-id="${moduleId}"]`);
+  if (!moduleRow) return;
+  
+  const lastActivityCell = moduleRow.cells[5]; 
+  if (!lastActivityCell) return;
+  
+  // Utiliser la VRAIE timestamp de la télémétrie
+  const realTimestamp = timestamp || new Date();
+  const formattedDate = realTimestamp.toLocaleString('fr-FR', {
+    day: '2-digit',
+    month: '2-digit', 
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit'
   });
+  
+  lastActivityCell.textContent = formattedDate;
 }
 
 /**
@@ -885,5 +930,139 @@ window.initializeModuleTypeBadges = initializeModuleTypeBadges;
 
 // Export admin functions for global.js
 window.updateSimpleStats = updateSimpleStats;
+
+// ================================================================================
+// GESTION DES ÉVÉNEMENTS TEMPS RÉEL
+// ================================================================================
+
+/**
+ * Initialise les écouteurs d'événements WebSocket pour la page admin
+ */
+function initializeRealTimeEvents() {
+  // Attendre que la connexion WebSocket soit prête
+  document.addEventListener('websocket-ready', () => {
+    if (window.socket) {
+      setupModuleEvents();
+      setupUserEvents();
+    }
+  });
+
+  // Si la connexion est déjà établie
+  if (window.socket && window.socket.connected) {
+    setupModuleEvents();
+    setupUserEvents();
+  }
+}
+
+/**
+ * Configure les événements liés aux modules ESP32
+ */
+function setupModuleEvents() {
+  // Module connecté
+  window.socket.on('module_online', (data) => {
+    updateModuleStatus(data.moduleId, true);
+    showRealTimeNotification(`🟢 Module ${data.moduleId} connecté`);
+    window.socket.emit('request_stats');
+  });
+
+  // Module déconnecté
+  window.socket.on('module_offline', (data) => {
+    updateModuleStatus(data.moduleId, false);
+    showRealTimeNotification(`🔴 Module ${data.moduleId} déconnecté`);
+    window.socket.emit('request_stats');
+  });
+
+  // Télémétrie module
+  window.socket.on('module_telemetry', (data) => {
+    // La télémétrie implique que le module est en ligne
+    updateModuleStatus(data.moduleId, true);
+    
+    // Mise à jour avec la VRAIE timestamp de télémétrie
+    const telemetryTimestamp = data.timestamp ? new Date(data.timestamp) : new Date();
+    updateModuleLastSeenInTable(data.moduleId, telemetryTimestamp);
+    
+    // Forcer le tri pour repositionner par activité récente
+    applySorting('modules');
+  });
+
+  // Réponses aux commandes
+  window.socket.on('module_command_response', (data) => {
+    showRealTimeNotification(`✅ ${data.moduleId}: ${data.command} → ${data.status}`);
+  });
+}
+
+/**
+ * Configure les événements liés aux utilisateurs
+ */
+function setupUserEvents() {
+  // Utilisateur connecté (déjà géré dans global.js)
+  window.socket.on('rt_user_logged_in', (data) => {
+    showRealTimeNotification(`👤 ${data.user.name} connecté${data.user.isNewUser ? ' (nouveau)' : ''}`);
+  });
+
+  // Utilisateur déconnecté (déjà géré dans global.js)
+  window.socket.on('rt_user_logged_out', (data) => {
+    showRealTimeNotification(`👤 ${data.user.name} déconnecté`);
+  });
+}
+
+/**
+ * Met à jour le statut visuel d'un module dans la liste
+ */
+// FONCTION SUPPRIMÉE - Version correcte définie plus haut dans le fichier
+
+/**
+ * Met à jour la dernière activité d'un module
+ */
+function updateModuleLastActivity(moduleId, timestamp) {
+  const moduleRows = document.querySelectorAll(`[data-module-id="${moduleId}"]`);
+  
+  moduleRows.forEach(row => {
+    const lastActivityCell = row.querySelector('.module-last-activity');
+    if (lastActivityCell) {
+      lastActivityCell.textContent = timestamp.toLocaleString();
+      lastActivityCell.title = `Dernière télémétrie: ${timestamp.toLocaleString()}`;
+    }
+  });
+}
+
+/**
+ * Affiche une notification temps réel dans l'interface admin
+ */
+function showRealTimeNotification(message) {
+  // Utiliser le système de toast global s'il est disponible
+  if (window.showToast) {
+    window.showToast(message, 'info', 3000);
+  }
+
+  // Ajouter aussi dans une zone de notifications admin spécialisée si elle existe
+  const notificationArea = document.querySelector('.admin-notifications');
+  if (notificationArea) {
+    const notification = document.createElement('div');
+    notification.className = 'admin-notification fade-in';
+    notification.innerHTML = `
+      <span class="notification-time">${new Date().toLocaleTimeString()}</span>
+      <span class="notification-message">${message}</span>
+    `;
+    
+    notificationArea.insertBefore(notification, notificationArea.firstChild);
+    
+    // Garder seulement les 10 dernières notifications
+    const notifications = notificationArea.querySelectorAll('.admin-notification');
+    if (notifications.length > 10) {
+      notifications[notifications.length - 1].remove();
+    }
+
+    // Auto-fade après 10 secondes
+    setTimeout(() => {
+      notification.classList.add('fade-out');
+      setTimeout(() => notification.remove(), 500);
+    }, 10000);
+  }
+}
+
+// Export pour usage global
+window.showRealTimeNotification = showRealTimeNotification;
+window.updateModuleStatus = updateModuleStatus;
 window.updateModuleStatus = updateModuleStatus;
 window.updateModuleLastSeen = updateModuleLastSeen;
