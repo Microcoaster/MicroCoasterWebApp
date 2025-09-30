@@ -117,10 +117,10 @@ class DatabaseManager {
       Logger.app.info('🔄 Initializing database...');
 
       // Créer les tables
-      await this.executeSQLFile('001_create_tables.sql');
+      await this.executeSQLFile('create_tables.sql');
 
       // Insérer les données par défaut
-      await this.executeSQLFile('002_default_data.sql');
+      await this.executeSQLFile('default_data.sql');
 
       Logger.app.info('✅ Database initialized successfully');
       return true;
