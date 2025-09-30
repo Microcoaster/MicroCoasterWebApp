@@ -169,7 +169,6 @@ router.get('/logout', (req, res) => {
     if (err) {
       Logger.activity.error('Session destroy error:', err);
     }
-    Logger.activity.info('User logged out:', userName);
     res.redirect('/login');
   });
 });

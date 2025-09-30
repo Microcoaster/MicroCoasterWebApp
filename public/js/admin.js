@@ -770,15 +770,7 @@ function updatePaginationControls(tableType) {
 
 /**
 
-/**
- * Affiche une notification temps réel pour les admins
- */
-function showRealTimeNotification(message) {
-  // Utiliser window.showToast si disponible (défini dans global.js)
-  if (window.showToast) {
-    window.showToast(message, 'info', 3000);
-  }
-}
+// showRealTimeNotification supprimée - utilisation directe de window.showToast
 
 /**
  * Met à jour le statut d'un module en temps réel - VERSION SIMPLE ET CORRECTE
@@ -958,19 +950,7 @@ function initializeRealTimeEvents() {
  * Configure les événements liés aux modules ESP32
  */
 function setupModuleEvents() {
-  // Module connecté
-  window.socket.on('module_online', (data) => {
-    updateModuleStatus(data.moduleId, true);
-    showRealTimeNotification(`🟢 Module ${data.moduleId} connecté`);
-    window.socket.emit('request_stats');
-  });
-
-  // Module déconnecté
-  window.socket.on('module_offline', (data) => {
-    updateModuleStatus(data.moduleId, false);
-    showRealTimeNotification(`🔴 Module ${data.moduleId} déconnecté`);
-    window.socket.emit('request_stats');
-  });
+  // Événements module_online/offline maintenant gérés dans global.js pour toutes les pages
 
   // Télémétrie module
   window.socket.on('module_telemetry', (data) => {
@@ -987,7 +967,7 @@ function setupModuleEvents() {
 
   // Réponses aux commandes
   window.socket.on('module_command_response', (data) => {
-    showRealTimeNotification(`✅ ${data.moduleId}: ${data.command} → ${data.status}`);
+    window.showToast?.(`✅ ${data.moduleId}: ${data.command} → ${data.status}`, 'success', 3000);
   });
 }
 
@@ -997,12 +977,12 @@ function setupModuleEvents() {
 function setupUserEvents() {
   // Utilisateur connecté (déjà géré dans global.js)
   window.socket.on('rt_user_logged_in', (data) => {
-    showRealTimeNotification(`👤 ${data.user.name} connecté${data.user.isNewUser ? ' (nouveau)' : ''}`);
+    window.showToast?.(`👤 ${data.user.name} connecté${data.user.isNewUser ? ' (nouveau)' : ''}`, 'info', 3000);
   });
 
   // Utilisateur déconnecté (déjà géré dans global.js)
   window.socket.on('rt_user_logged_out', (data) => {
-    showRealTimeNotification(`👤 ${data.user.name} déconnecté`);
+    window.showToast?.(`👤 ${data.user.name} déconnecté`, 'info', 3000);
   });
 }
 
@@ -1061,8 +1041,7 @@ function showRealTimeNotification(message) {
   }
 }
 
-// Export pour usage global
-window.showRealTimeNotification = showRealTimeNotification;
+// Notifications maintenant globales via window.showToast dans global.js
 window.updateModuleStatus = updateModuleStatus;
 window.updateModuleStatus = updateModuleStatus;
 window.updateModuleLastSeen = updateModuleLastSeen;

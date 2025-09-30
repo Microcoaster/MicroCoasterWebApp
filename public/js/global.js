@@ -118,70 +118,9 @@ function preload(paths) {
 }
 
 // ================================================================================
-// TOAST NOTIFICATIONS
+// TOAST NOTIFICATIONS 
 // ================================================================================
-
-(function () {
-  function ensureWrap() {
-    return (
-      document.getElementById('toasts') ||
-      (() => {
-        const d = document.createElement('div');
-        d.id = 'toasts';
-        d.className = 'toasts';
-        document.body.appendChild(d);
-        return d;
-      })()
-    );
-  }
-
-  function getToastIcon(type) {
-    switch (type) {
-      case 'success':
-        return `<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-        </svg>`;
-      case 'error':
-        return `<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd"/>
-        </svg>`;
-      case 'info':
-        return `<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-        </svg>`;
-      case 'warning':
-        return `<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clip-rule="evenodd"/>
-        </svg>`;
-      default:
-        return `<svg class="toast-icon" viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd"/>
-        </svg>`;
-    }
-  }
-
-  window.showToast = function (message, type = 'success', duration = 2400) {
-    const wrap = ensureWrap();
-    const el = document.createElement('div');
-    el.className = 'toast ' + type;
-    el.innerHTML = `
-      ${getToastIcon(type)}
-      <span class="toast-message">${message}</span>
-      <button class="toast-close" aria-label="Close">
-        <svg viewBox="0 0 20 20" fill="currentColor">
-          <path fill-rule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clip-rule="evenodd"/>
-        </svg>
-      </button>
-    `;
-    wrap.appendChild(el);
-    const close = () => {
-      el.classList.add('hide');
-      setTimeout(() => el.remove(), 180);
-    };
-    el.querySelector('.toast-close').addEventListener('click', close);
-    if (duration > 0) setTimeout(close, duration);
-  };
-})();
+// Toasts sont maintenant gérés par toast.js - inclure ce fichier dans les pages
 
 // ================================================================================
 // CLIPBOARD UTILITIES
@@ -327,54 +266,7 @@ function initializeWebSocket() {
     if (getCurrentPageName() === 'admin') {
       socket.emit('request_stats');
       // Demande de stats au chargement
-    } // Événements utilisateurs (pour la page admin)
-    socket.on('rt_user_logged_in', function (data) {
-      if (getCurrentPageName() === 'admin' && window.showRealTimeNotification) {
-        const message = `👤 ${data.user.name} s'est connecté${data.user.isNewUser ? ' (nouveau compte)' : ''}`;
-        window.showRealTimeNotification(message);
-      }
-    });
-
-    socket.on('rt_user_logged_out', function (data) {
-      if (getCurrentPageName() === 'admin' && window.showRealTimeNotification) {
-        window.showRealTimeNotification(`👤 ${data.user.name} s'est déconnecté`);
-      }
-    });
-
-    // Événements modules (pour la page admin)
-    socket.on('rt_module_online', function (data) {
-      if (getCurrentPageName() === 'admin' && window.updateModuleStatus) {
-        window.updateModuleStatus(data.moduleId, true);
-        if (data.lastSeen && window.updateModuleLastSeen) {
-          window.updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-        }
-      }
-    });
-
-    socket.on('rt_module_offline', function (data) {
-      if (getCurrentPageName() === 'admin' && window.updateModuleStatus) {
-        window.updateModuleStatus(data.moduleId, false);
-        if (data.lastSeen && window.updateModuleLastSeen) {
-          window.updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-        }
-      }
-    });
-
-    // Événements télémétrie et dernière activité
-    socket.on('rt_telemetry_updated', function (data) {
-      // Télémétrie reçue (logs désactivés pour éviter le spam)
-      // Mettre à jour la dernière activité du module
-      if (getCurrentPageName() === 'admin' && data.lastSeen && window.updateModuleLastSeen) {
-        window.updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-      }
-    });
-
-    socket.on('rt_module_last_seen_updated', function (data) {
-      // Dernière activité mise à jour (logs désactivés pour éviter le spam)
-      if (getCurrentPageName() === 'admin' && window.updateModuleLastSeen) {
-        window.updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-      }
-    });
+    } // Événements maintenant gérés par toast.js
 
     window.socket = socket;
     isInitializing = false;
