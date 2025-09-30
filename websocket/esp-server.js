@@ -208,15 +208,7 @@ class ESP32WebSocketServer {
       // Mettre à jour le statut en base
       await databaseManager.modules.updateStatus(moduleId, 'online');
 
-      // Notifier les clients web de la connexion
-      if (this.realTimeAPI?.events) {
-        this.realTimeAPI.events.broadcast('module_online', {
-          moduleId,
-          moduleType: ws.moduleType,
-          timestamp: new Date(),
-          userId: moduleAuth.userId
-        });
-      }
+
 
       // Démarrer ping applicatif personnalisé pour ce module
       this.startCustomPing(ws);
@@ -339,13 +331,7 @@ class ESP32WebSocketServer {
       this.realTimeAPI.modules.unregisterESP(pseudoSocket);
     }
 
-    // Notifier les clients web
-    if (this.realTimeAPI?.events) {
-      this.realTimeAPI.events.broadcast('module_offline', {
-        moduleId,
-        timestamp: new Date()
-      });
-    }
+
 
     // Mettre à jour le statut
     databaseManager.modules.updateStatus(moduleId, 'offline').catch(Logger.esp.error);

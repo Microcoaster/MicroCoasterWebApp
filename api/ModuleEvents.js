@@ -284,12 +284,17 @@ class ModuleEvents {
 
     // Vérifier que c'est bien la connexion active (pas une ancienne)
     const currentSocket = this.connectedESPs.get(moduleId);
-    if (currentSocket === socket) {
+    
+    if (currentSocket && currentSocket.id === socket.id) {
       this.connectedESPs.delete(moduleId);
       Logger.modules.debug(`Removed ${moduleId} from connectedESPs map`);
 
-      // Marquer comme offline
-      this.moduleOffline(moduleId, { moduleType, timestamp: new Date() });
+      // Marquer comme offline avec tous les infos nécessaires
+      this.moduleOffline(moduleId, { 
+        moduleType, 
+        userId: moduleInfo.userId,
+        timestamp: new Date() 
+      });
     } else if (currentSocket) {
       Logger.modules.debug(
         `Socket ${socket.id} disconnected but ${moduleId} is now handled by ${currentSocket.id}`

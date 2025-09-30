@@ -80,23 +80,15 @@ function initializeDashboardWebSocket() {
 
   function setupWebSocketListeners() {
     if (typeof window.socket !== 'undefined' && window.socket && window.socket.connected) {
-      window.socket.on('module_online', function (data) {
+      window.socket.on('user:module:online', function (data) {
         updateModuleStatus(data.moduleId, true);
       });
 
-      window.socket.on('module_offline', function (data) {
+      window.socket.on('user:module:offline', function (data) {
         updateModuleStatus(data.moduleId, false);
       });
 
-      window.socket.on('module_presence', function (data) {
-        updateModuleStatus(data.moduleId, data.online);
-      });
 
-      window.socket.on('modules_state', function (modules) {
-        modules.forEach(module => {
-          updateModuleStatus(module.moduleId, module.online);
-        });
-      });
       webSocketReady = true;
       return true;
     }

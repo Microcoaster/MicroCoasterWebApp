@@ -1219,6 +1219,7 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 
   function setPresence(moduleId, online) {
     const panels = document.querySelectorAll(`.panel[data-mid="${moduleId}"]`);
+    
     panels.forEach(p => {
       p.classList.toggle('online', online);
       p.classList.toggle('offline', !online);
@@ -1271,34 +1272,58 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     // Enregistrer cette page si la connexion est active
     if (socket.connected) {
       socket.emit('register_page', { page: 'modules' });
+      
+      // Demander synchronisation initiale des statuts
+      requestInitialSync();
+    } else {
+      socket.on('connect', () => {
+        socket.emit('register_page', { page: 'modules' });
+        
+        // Demander synchronisation initiale après connexion
+        requestInitialSync();
+      });
+    }
+  }
+
+  function requestInitialSync() {
+    // Demander l'état actuel de tous les modules connectés
+    if (socket && socket.connected) {
+      socket.emit('request_module_states');
     }
   }
 
   function setupSocketEvents(socket) {
     // Setting up socket events...
 
-    // === ÉVÉNEMENTS TEMPS RÉEL (FIABLES) ===
-    // Ces événements viennent directement du serveur ESP32 via ModuleEvents
-    socket.on('rt_module_online', data => {
+
+    socket.on('user:module:online', data => {
       setPresence(data.moduleId, true);
     });
 
+    socket.on('user:module:offline', data => {
+      setPresence(data.moduleId, false);
+    });
+
+    // Événements globaux pour synchronisation avec toast.js (même logique que admin)
     socket.on('rt_module_offline', data => {
       setPresence(data.moduleId, false);
     });
 
-    // === ÉVÉNEMENTS LEGACY (COMPATIBILITÉ) ===
-    // Anciens événements globaux - gardés pour compatibilité
-    socket.on('module_online', data => {
-      setPresence(data.moduleId, true);
+    // Synchronisation initiale des statuts
+    socket.on('module_states_sync', data => {
+      if (data.states) {
+        Object.entries(data.states).forEach(([moduleId, state]) => {
+          setPresence(moduleId, state.online || false);
+        });
+      }
     });
 
-    socket.on('module_offline', data => {
-      setPresence(data.moduleId, false);
-    });
+
 
     // Télémétrie des modules
     socket.on('module_telemetry', data => {
+      // La télémétrie implique que le module est en ligne (synchronisation initiale)
+      setPresence(data.moduleId, true);
       updateTelemetry(data.moduleId, data);
     });
 
@@ -1320,14 +1345,14 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     // === ÉVÉNEMENTS TEMPS RÉEL ===
 
     // Module ajouté en temps réel
-    socket.on('rt_module_added', data => {
+    socket.on('user:module:added', data => {
       // Real-time: Module added
       // Rafraîchir la liste des modules si nécessaire
       window.location.reload(); // Solution simple, pourrait être optimisée
     });
 
     // Module supprimé en temps réel
-    socket.on('rt_module_removed', data => {
+    socket.on('user:module:removed', data => {
       // Real-time: Module removed
       // Retirer le module de l'interface
       const panel = document.querySelector(`.panel[data-mid="${data.moduleId}"]`);
@@ -1338,7 +1363,7 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     });
 
     // Module mis à jour en temps réel
-    socket.on('rt_module_updated', data => {
+    socket.on('user:module:updated', data => {
       // Real-time: Module updated
       // Mettre à jour le nom/type du module dans l'interface
       const panel = document.querySelector(`.panel[data-mid="${data.moduleId}"]`);

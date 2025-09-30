@@ -251,6 +251,20 @@ module.exports = function (io, socketWSBridge) {
       }
     });
 
+    // Gestionnaire pour synchronisation initiale des modules (page modules)
+    socket.on('request_module_states', () => {
+      const realTimeAPI = getRealTimeAPI(socket);
+      
+      if (realTimeAPI?.modules) {
+        const moduleStates = realTimeAPI.modules.getCurrentStates();
+        
+        socket.emit('module_states_sync', {
+          states: moduleStates,
+          timestamp: new Date()
+        });
+      }
+    });
+
     // Écouter l'enregistrement de page par le client (pour mettre à jour la page)
     socket.on('register_page', data => {
       const page = data?.page || 'unknown';
@@ -261,7 +275,6 @@ module.exports = function (io, socketWSBridge) {
         const client = realTimeAPI.events.connectedClients.get(socket.id);
         if (client) {
           client.page = page;
-          Logger.activity.info(`Client page updated: ${socket.id} -> ${page}`);
         }
       }
     });
@@ -295,7 +308,7 @@ module.exports = function (io, socketWSBridge) {
         const realTimeAPI = getRealTimeAPI(socket);
         const online = realTimeAPI?.modules?.isModuleConnected(mid) || false;
         moduleStates.push({ moduleId: mid, online, lastSeen: new Date() });
-        socket.emit('module_presence', { moduleId: mid, online });
+
       }
     }
 
@@ -336,10 +349,6 @@ module.exports = function (io, socketWSBridge) {
       }
     });
 
-    socket.emit('modules_state', moduleStates);
-    logTx(socket, 'modules_state', moduleStates, session);
-
-    // ===== WEB -> CLAIM ===== (automatique pour tous les modules visibles)
     socket.on('module_claim', data => {
       logRx(socket, 'module_claim', data, session);
       const mid = String(data.moduleId || '').trim();
@@ -354,29 +363,12 @@ module.exports = function (io, socketWSBridge) {
       broadcastToWebByCode(realTimeAPI, userCode, 'module_presence', { moduleId: mid, online });
     });
 
-    // ===== ANCIEN SYSTÈME SUPPRIMÉ =====
-    // L'ancien handler 'module_command' a été supprimé
-    // Toutes les commandes doivent maintenant utiliser 'send_module_command' (sécurisé)
-
     // Nettoyage à la déconnexion
     socket.on('disconnect', () => {
       Logger.activity.debug(`👤 ${userName} disconnected`);
-
-      // La désinscription de l'EventsManager est maintenant gérée automatiquement
-      // par le handler 'disconnect' dans api/index.js pour éviter la double gestion
-      // webByCode supprimé - plus besoin de nettoyage manuel
     });
   }
 
-  // ===== ESP32 MODULES SUPPRIMÉS =====
-  // Les modules ESP32 n'utilisent plus Socket.IO
-  // Ils se connectent via WebSocket natif sur le path /esp32
-  // Voir websocket/esp-server.js pour la gestion ESP32
-
-  // ===== ANCIENNE FONCTION SUPPRIMÉE =====
-  // handleModuleCommand() supprimée - remplacée par le système sécurisé sendSecureCommand()
-
-  // Debug endpoint pour voir les connexions actives (uniquement pour les logs)
   setInterval(() => {
     // Statistiques simplifiées et claires
     const realTimeAPI = io.sockets?.server?.app?.locals?.realTimeAPI;

@@ -346,7 +346,7 @@
 
         // Événements modules (globaux sur toutes les pages)
         socket.on('rt_module_online', function (data) {
-            // Notification globale de connexion
+
             showToast(`🟢 Module ${data.moduleId} connecté`, 'success', 3000);
             
             // Mise à jour interface admin si on est sur cette page
@@ -359,7 +359,7 @@
         });
 
         socket.on('rt_module_offline', function (data) {
-            // Notification globale de déconnexion
+
             showToast(`🔴 Module ${data.moduleId} déconnecté`, 'error', 4000);
             
             // Mise à jour interface admin si on est sur cette page
