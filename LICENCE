@@ -1,0 +1,67 @@
+Copyright (c) 2025 yamakajump & Cybertrist
+
+PROPRIETARY SOURCE-AVAILABLE LICENSE
+
+Ce logiciel et sa documentation sont la propriété exclusive de yamakajump 
+et Cybertrist.
+
+═══════════════════════════════════════════════════════════════════════
+
+DROITS ACCORDÉS À MICROCOASTER :
+
+MicroCoaster (entité enregistrée sous le nom "MicroCoaster", Kaindorf 15, 8224 
+Kaindorf bei Hartberg, Autriche, directeur : Thomas Schirnhofer) bénéficie 
+d'une licence perpétuelle, mondiale et irrévocable pour :
+
+1. Utiliser ce logiciel dans le cadre exclusif de ses produits MicroCoaster
+2. Modifier le logiciel pour ses besoins internes produit
+3. Déployer le logiciel sur les unités MicroCoaster vendues
+4. Assurer le support et la maintenance de ses produits
+5. Sous-licencier aux clients finaux UNIQUEMENT dans le cadre de l'utilisation 
+   normale des produits MicroCoaster acquis légalement
+
+Cette licence NE constitue PAS une cession de propriété intellectuelle.
+
+═══════════════════════════════════════════════════════════════════════
+
+CONSULTATION PUBLIQUE DU CODE SOURCE :
+
+Le code source est rendu visible publiquement à des fins de :
+- Transparence technique
+- Revue de code par la communauté
+- Démonstration de compétences
+- Collaboration avec des contributeurs autorisés
+
+═══════════════════════════════════════════════════════════════════════
+
+RESTRICTIONS POUR LE PUBLIC :
+
+Toute personne ou entité autre que MicroCoaster Inc. est autorisée à :
+✓ Consulter le code source
+✓ Étudier le code à des fins éducatives
+✓ Signaler des bugs via les Issues GitHub
+
+Il est STRICTEMENT INTERDIT de :
+✗ Utiliser ce logiciel en production (commercial ou non)
+✗ Copier, modifier ou créer des œuvres dérivées
+✗ Redistribuer ce logiciel sous quelque forme que ce soit
+✗ Utiliser ce code dans d'autres projets
+✗ Retirer ou modifier les mentions de copyright
+
+═══════════════════════════════════════════════════════════════════════
+
+CONTRIBUTIONS :
+
+Les contributions externes (Pull Requests) ne sont acceptées que si :
+1. Le contributeur cède tous les droits sur sa contribution aux auteurs
+2. Une autorisation écrite préalable a été obtenue
+
+En soumettant une contribution, vous acceptez de céder tous vos droits 
+de propriété intellectuelle sur celle-ci à yamakajump et Cybertrist.
+
+═══════════════════════════════════════════════════════════════════════
+
+GARANTIES :
+
+CE LOGICIEL EST FOURNI "TEL QUEL", SANS GARANTIE D'AUCUNE SORTE, 
+EXPRESSE OU IMPLICITE.
