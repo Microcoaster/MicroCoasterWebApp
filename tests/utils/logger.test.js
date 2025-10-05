@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Tests unitaires pour le système de journalisation
  * @description Tests des fonctionnalités du logger (app, activity, modules, esp, system)
  */
