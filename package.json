@@ -13,6 +13,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "jest",
+    "test:all": "jest --testPathIgnorePatterns=[]",
     "test:unit": "jest --testPathPatterns=\"tests/(api|bdd|utils|websocket|sim)\"",
     "test:integration": "jest --testPathPatterns=\"tests/routes\" --testPathIgnorePatterns=[]",
     "test:watch": "jest --watch --testPathPatterns=\"tests/(api|bdd|utils|websocket|sim)\"",
