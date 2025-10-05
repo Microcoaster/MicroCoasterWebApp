@@ -17,7 +17,15 @@ class LocaleLoader {
     this.languages = new Map();
     this.supportedLanguages = ['fr', 'en'];
     this.defaultLanguage = 'en';
-    this.loadAllLanguages();
+  }
+
+  /**
+   * Initialise le chargeur de langues (charge tous les fichiers)
+   */
+  initialize() {
+    if (this.languages.size === 0) {
+      this.loadAllLanguages();
+    }
   }
 
   /**
@@ -156,7 +164,16 @@ class LocaleLoader {
   }
 }
 
-// Instance singleton
-const localeLoader = new LocaleLoader();
+// Instance singleton - initialisation différée
+let localeLoaderInstance = null;
 
-module.exports = localeLoader;
+function getLocaleLoader() {
+  if (!localeLoaderInstance) {
+    localeLoaderInstance = new LocaleLoader();
+    localeLoaderInstance.initialize();
+  }
+  return localeLoaderInstance;
+}
+
+// Pour la compatibilité, exposer directement l'instance
+module.exports = getLocaleLoader();
