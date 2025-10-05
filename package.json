@@ -11,7 +11,14 @@
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
     "format": "prettier --write .",
-    "format:check": "prettier --check ."
+    "format:check": "prettier --check .",
+    "test": "jest",
+    "test:all": "jest --testPathIgnorePatterns=[]",
+    "test:unit": "jest --testPathPatterns=\"tests/(api|bdd|utils|websocket|sim)\"",
+    "test:integration": "jest --testPathPatterns=\"tests/routes\" --testPathIgnorePatterns=[]",
+    "test:watch": "jest --watch --testPathPatterns=\"tests/(api|bdd|utils|websocket|sim)\"",
+    "test:coverage": "jest --coverage --testPathPatterns=\"tests/(api|bdd|utils|websocket|sim)\" --coverageReporters=text",
+    "test:coverage:full": "jest --coverage --coverageReporters=text,lcov,html"
   },
   "keywords": [
     "microcoaster",
@@ -41,7 +48,10 @@
     "eslint": "^9.36.0",
     "eslint-config-prettier": "^10.1.8",
     "eslint-plugin-prettier": "^5.5.4",
+    "jest": "^30.2.0",
     "nodemon": "^3.0.2",
-    "prettier": "^3.6.2"
+    "prettier": "^3.6.2",
+    "sqlite3": "^5.1.7",
+    "supertest": "^7.1.4"
   }
 }

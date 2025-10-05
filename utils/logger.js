@@ -341,54 +341,6 @@ const logger = {
     },
   },
 
-  // ============================================================================
-  // MÉTHODES DE RÉTROCOMPATIBILITÉ (DÉPRÉCIÉES)
-  // ============================================================================
-
-  /**
-   * @deprecated Utiliser Logger.app.info, Logger.activity.info, etc.
-   * @param {string} msg - Message à logger
-   * @param {Object} [meta] - Métadonnées supplémentaires
-   */
-  info: (msg, meta) => {
-    console.warn('⚠️ Logger.info déprécié - utilisez Logger.app.info, Logger.activity.info, etc.');
-    appLogger.info(msg, meta);
-  },
-
-  /**
-   * @deprecated Utiliser Logger.app.warn, Logger.activity.warn, etc.
-   * @param {string} msg - Message d'avertissement
-   * @param {Object} [meta] - Métadonnées supplémentaires
-   */
-  warn: (msg, meta) => {
-    console.warn('⚠️ Logger.warn déprécié - utilisez Logger.app.warn, Logger.activity.warn, etc.');
-    appLogger.warn(msg, meta);
-  },
-
-  /**
-   * @deprecated Utiliser Logger.app.error, Logger.activity.error, etc.
-   * @param {string} msg - Message d'erreur
-   * @param {Object} [meta] - Métadonnées supplémentaires
-   */
-  error: (msg, meta) => {
-    console.warn(
-      '⚠️ Logger.error déprécié - utilisez Logger.app.error, Logger.activity.error, etc.'
-    );
-    appLogger.error(msg, meta);
-  },
-
-  /**
-   * @deprecated Utiliser Logger.app.debug, Logger.activity.debug, etc.
-   * @param {string} msg - Message de débogage
-   * @param {Object} [meta] - Métadonnées supplémentaires
-   */
-  debug: (msg, meta) => {
-    console.warn(
-      '⚠️ Logger.debug déprécié - utilisez Logger.app.debug, Logger.activity.debug, etc.'
-    );
-    appLogger.debug(msg, meta);
-  },
-
   /**
    * Logger ESP32 dédié
    * @namespace Logger.esp

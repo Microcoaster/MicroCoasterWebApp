@@ -134,9 +134,6 @@ class DatabaseManager {
   }
 
   /**
-   * Initialise la base de données avec les tables et données par défaut
-   */
-  /**
    * Initialise la base de données en créant les tables
    * Exécute les scripts SQL d'initialisation et de données par défaut
    * @returns {Promise<void>}
@@ -188,10 +185,6 @@ class DatabaseManager {
   }
 
   /**
-   * Obtient des statistiques globales
-   * @returns {Object} Statistiques globales
-   */
-  /**
    * Récupère les statistiques globales de l'application
    * Compile les stats utilisateurs, modules et système
    * @returns {Promise<Object>} Statistiques globales
@@ -227,9 +220,6 @@ class DatabaseManager {
   }
 
   /**
-   * Ferme proprement les connexions
-   */
-  /**
    * Ferme proprement les connexions à la base de données
    * Termine le pool de connexions MySQL
    * @returns {Promise<void>}
@@ -264,40 +254,6 @@ class DatabaseManager {
 
 // Export d'une instance singleton
 const databaseManager = new DatabaseManager();
-
-// Fonctions de compatibilité pour l'ancien système
-// Ces fonctions utilisent les DAO mais gardent la même signature
-
-/**
- * Fonctions de compatibilité - Utilisateurs
- */
-const verifyLogin = async (email, password) => databaseManager.users.verifyLogin(email, password);
-const createUser = async (email, password, name) =>
-  databaseManager.users.createUser(email, password, name);
-const getUserById = async userId => databaseManager.users.findById(userId);
-const getAllUsers = async options => databaseManager.users.findAll(options);
-const updateUserProfile = async (userId, updates) =>
-  databaseManager.users.updateProfile(userId, updates);
-const updateLastLogin = async userId => databaseManager.users.updateLastLogin(userId);
-
-/**
- * Fonctions de compatibilité - Modules
- */
-const getUserModules = async userId => databaseManager.modules.findByUserId(userId);
-const getAllModules = async options => databaseManager.modules.findAll(options);
-const getAvailableModules = async () => databaseManager.modules.findAvailable();
-const claimModule = async (moduleId, userId) => databaseManager.modules.claim(moduleId, userId);
-const releaseModule = async (moduleId, userId) => databaseManager.modules.release(moduleId, userId);
-const getModuleById = async moduleId => databaseManager.modules.findById(moduleId);
-const updateModuleStatus = async (moduleId, status, userId) =>
-  databaseManager.modules.updateStatus(moduleId, status, userId);
-const cleanupModuleStatus = maxAgeMinutes => databaseManager.modules.cleanupStatus(maxAgeMinutes);
-
-/**
- * Fonctions de compatibilité - Base de données
- */
-const initializeDatabase = async () => databaseManager.initializeDatabase();
-const testConnection = async () => databaseManager.testConnection();
 
 // Export direct de l'instance pour faciliter l'utilisation dans les routes
 module.exports = databaseManager;

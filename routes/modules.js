@@ -304,7 +304,6 @@ router.post('/delete/:moduleId', requireAuth, async (req, res) => {
     }
 
     // Unclaim le module (au lieu de le supprimer complètement)
-    const databaseManager = require('../bdd/DatabaseManager');
     await databaseManager.execute(
       `
       UPDATE modules 
@@ -355,7 +354,6 @@ router.post('/update/:moduleId', requireAuth, async (req, res) => {
     }
 
     // Mettre à jour le module
-    const databaseManager = require('../bdd/DatabaseManager');
     const finalType = type || mcInferType(moduleId, name);
     await databaseManager.execute(
       `

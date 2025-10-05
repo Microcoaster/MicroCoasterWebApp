@@ -332,9 +332,31 @@ if (require.main === module) {
   startSimulator();
 }
 
+// Fonction pour les tests : définir le WebSocket mock
+function setMockWebSocket(mockWS) {
+  ws = mockWS;
+}
+
 module.exports = {
   startSimulator,
   disconnect,
   moduleState,
   config,
+  // Exports pour les tests
+  createAuthenticatedMessage,
+  sendMessage,
+  sendTelemetry,
+  sendHeartbeat,
+  simulateMovement,
+  handleCommand,
+  handleMessage,
+  startTelemetry,
+  stopTelemetry,
+  connect,
+  attemptReconnect,
+  gracefulShutdown,
+  setMockWebSocket,
+  // Exporter ws pour les tests
+  get ws() { return ws; },
+  set ws(value) { ws = value; },
 };
