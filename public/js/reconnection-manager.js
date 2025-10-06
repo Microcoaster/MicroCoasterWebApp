@@ -32,7 +32,6 @@ class ReconnectionManager {
       reconnectDelay: 2000,
       maxReconnectDelay: 30000,
       reconnectDelayMultiplier: 1.5,
-      syncOnReconnect: true,
       ...options,
     };
 
@@ -43,7 +42,6 @@ class ReconnectionManager {
 
     this.onReconnectCallbacks = [];
     this.onDisconnectCallbacks = [];
-    this.onSyncCompleteCallbacks = [];
   }
 
   // ================================================================================
@@ -66,15 +64,6 @@ class ReconnectionManager {
    */
   onDisconnect(callback) {
     this.onDisconnectCallbacks.push(callback);
-  }
-
-  /**
-   * Enregistre un callback pour la fin de synchronisation
-   * @param {Function} callback - Fonction à exécuter après synchronisation
-   * @returns {void}
-   */
-  onSyncComplete(callback) {
-    this.onSyncCompleteCallbacks.push(callback);
   }
 
   // ================================================================================
@@ -121,22 +110,16 @@ class ReconnectionManager {
    */
   startReconnection() {
     if (this.isReconnecting) {
-      console.warn('🔄 Reconnexion déjà en cours...');
       return;
     }
 
     if (this.reconnectAttempts >= this.options.maxReconnectAttempts) {
-      console.error('💥 Nombre maximum de tentatives de reconnexion atteint');
       this.showConnectionError();
       return;
     }
 
     this.isReconnecting = true;
     this.reconnectAttempts++;
-
-    console.log(
-      `🔄 Tentative de reconnexion ${this.reconnectAttempts}/${this.options.maxReconnectAttempts} dans ${this.currentDelay}ms...`
-    );
 
     // Afficher un indicateur visuel
     this.showReconnectingIndicator();
@@ -161,19 +144,15 @@ class ReconnectionManager {
    */
   async attemptReconnection() {
     try {
-      console.log('🔌 Tentative de reconnexion...');
-
       // Réinitialiser la connexion via la fonction fournie
       const socket = await this.socketInitializer();
 
       if (socket && socket.connected) {
-        console.log('✅ Reconnexion réussie !');
         this.onReconnectionSuccess(socket);
       } else {
         throw new Error('Socket non connecté après initialisation');
       }
-    } catch (error) {
-      console.error('❌ Échec de la reconnexion:', error);
+    } catch {
       this.isReconnecting = false;
 
       // Programmer la prochaine tentative
@@ -200,52 +179,10 @@ class ReconnectionManager {
     this.onReconnectCallbacks.forEach(callback => {
       try {
         callback(socket);
-      } catch (error) {
-        console.error('Erreur dans callback onReconnect:', error);
+      } catch {
+        // Ignorer les erreurs de callback
       }
     });
-
-    // Synchroniser l'état si activé
-    if (this.options.syncOnReconnect) {
-      await this.synchronizeState(socket);
-    }
-  }
-
-  /**
-   * Synchronise l'état de l'application après reconnexion
-   * Demande l'état actuel au serveur et met à jour l'interface
-   * @param {Object} socket - Instance du socket pour la communication
-   * @returns {Promise<void>}
-   * @private
-   */
-  async synchronizeState(socket) {
-    console.log("🔄 Synchronisation de l'état après reconnexion...");
-
-    try {
-      // Demander l'état actuel au serveur
-      socket.emit('request_state_sync', this.getLastKnownState());
-
-      // Écouter la réponse de synchronisation
-      socket.once('state_sync_response', serverState => {
-        console.log('📥 État synchronisé avec le serveur');
-
-        // Appeler les callbacks de synchronisation complète
-        this.onSyncCompleteCallbacks.forEach(callback => {
-          try {
-            callback(serverState, this.getLastKnownState());
-          } catch (error) {
-            console.error('Erreur dans callback onSyncComplete:', error);
-          }
-        });
-      });
-
-      // Timeout pour la synchronisation
-      setTimeout(() => {
-        console.warn("⏰ Timeout de synchronisation d'état");
-      }, 5000);
-    } catch (error) {
-      console.error('❌ Erreur lors de la synchronisation:', error);
-    }
   }
 
   /**
@@ -254,20 +191,15 @@ class ReconnectionManager {
    * @returns {void}
    * @public
    */
-  onDisconnection() {
-    console.log('🔌 Connexion perdue');
-
+  onDisconnection(reason) {
     // Appeler les callbacks de déconnexion
     this.onDisconnectCallbacks.forEach(callback => {
       try {
-        callback();
-      } catch (error) {
-        console.error('Erreur dans callback onDisconnect:', error);
+        callback(reason);
+      } catch {
+        // Ignorer les erreurs de callback
       }
     });
-
-    // Démarrer la reconnexion automatique
-    setTimeout(() => this.startReconnection(), 1000);
   }
 
   /**

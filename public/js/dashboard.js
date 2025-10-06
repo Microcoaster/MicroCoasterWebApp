@@ -9,8 +9,6 @@
  */
 
 const moduleStatus = new Map();
-let onlineModules = 0;
-let offlineModules = 0;
 
 document.addEventListener('DOMContentLoaded', function () {
   initializeDashboard();
@@ -41,8 +39,9 @@ function initializeDashboard() {
   const offlineElement = document.querySelector('.dashboard-stat.offline');
 
   if (onlineElement && offlineElement) {
-    onlineModules = parseInt(onlineElement.textContent || '0');
-    offlineModules = parseInt(offlineElement.textContent || '0');
+    // Parse values but don't store them since they're not used
+    parseInt(onlineElement.textContent || '0');
+    parseInt(offlineElement.textContent || '0');
   }
 
   // Initialiser la Map moduleStatus avec l'état actuel (tous les modules sont considérés online par défaut)
@@ -84,14 +83,12 @@ function initializeModuleStatusMap() {
   // Alternative: récupérer depuis l'API pour être plus précis
   fetch('/dashboard/stats')
     .then(response => response.json())
-    .then(stats => {
+    .then(() => {
       // Cette fonction pourrait être étendue pour synchroniser précisément
       // mais pour l'instant, l'approche DOM est suffisante
     })
-    .catch(error => {
-      if (window.MC?.isDevelopment) {
-        console.warn('Could not initialize module status map from API:', error);
-      }
+    .catch(() => {
+      // Ignorer les erreurs d'initialisation
     });
 }
 
@@ -149,12 +146,10 @@ function updateCountersFromStats(stats) {
 
     if (currentOnline !== stats.onlineModules) {
       animateCounterUpdate(onlineElement, stats.onlineModules);
-      onlineModules = stats.onlineModules;
     }
 
     if (currentOffline !== stats.offlineModules) {
       animateCounterUpdate(offlineElement, stats.offlineModules);
-      offlineModules = stats.offlineModules;
     }
   }
 }
@@ -183,10 +178,8 @@ function updateModuleStatus(moduleId, isOnline) {
     .then(stats => {
       updateCountersFromStats(stats);
     })
-    .catch(error => {
-      if (window.MC?.isDevelopment) {
-        console.error('Error fetching updated stats:', error);
-      }
+    .catch(() => {
+      // Ignorer les erreurs de récupération
     });
 }
 

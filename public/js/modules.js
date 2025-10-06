@@ -1604,19 +1604,6 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
   let showDownTimer = null;
 
   /**
-   * Programme l'affichage de la bannière de serveur déconnecté
-   * @returns {void}
-   * @private
-   */
-  function scheduleDownBanner() {
-    if (showDownTimer) return;
-    showDownTimer = setTimeout(() => {
-      showDownTimer = null;
-      setServerBanner(true);
-    }, 8000);
-  }
-
-  /**
    * Masque immédiatement la bannière de serveur déconnecté
    * @returns {void}
    * @private
@@ -1627,31 +1614,6 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       showDownTimer = null;
     }
     setServerBanner(false);
-  }
-
-  /**
-   * Marque tous les modules comme hors ligne
-   * Met à jour l'interface et notifie les contrôleurs
-   * @returns {void}
-   * @private
-   */
-  function markAllOffline() {
-    document.querySelectorAll('.panel[data-mid]').forEach(p => {
-      p.classList.remove('online');
-      p.classList.add('offline', 'disabled');
-      const badge = p.querySelector('.state');
-      if (badge) {
-        badge.textContent = 'offline';
-        badge.classList.remove('online');
-        badge.classList.add('offline');
-      }
-      p.dispatchEvent(new CustomEvent('mc:offline'));
-      // notifie le controller
-      const mid = (p.dataset.mid || '').trim();
-      const ctl = controllersByMid.get(mid);
-      ctl?.onPresenceOffline?.();
-    });
-    window.applyOnlineFilter?.();
   }
 
   // Par défaut, offline
@@ -1720,9 +1682,7 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
    * @private
    */
   function connectSocket() {
-    // AUCUNE gestion WebSocket - utiliser seulement la connexion globale
     if (!window.socket) {
-      console.warn('[MODULES] Attente socket global...');
       window.addEventListener('websocket-ready', connectSocket);
       return;
     }
@@ -1805,19 +1765,18 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     });
 
     // Erreur de commande
-    socket.on('command_error', error => {
-      console.error('❌ Command error:', error);
-      window.showToast?.(error.message || 'Command failed', 'error', 3000);
+    socket.on('command_error', () => {
+      window.showToast?.('Command failed', 'error', 3000);
     });
 
-    socket.on('error', error => {
-      console.error('🔌 Socket.io error:', error);
+    socket.on('error', () => {
+      // Erreur WebSocket
     });
 
     // === ÉVÉNEMENTS TEMPS RÉEL ===
 
     // Module ajouté en temps réel
-    socket.on('user:module:added', data => {
+    socket.on('user:module:added', () => {
       // Real-time: Module added
       // Rafraîchir la liste des modules si nécessaire
       window.location.reload(); // Solution simple, pourrait être optimisée
@@ -1866,14 +1825,12 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
    */
   window.ws_sendCommand = function (panel, command, params = {}, buttonElement = null) {
     if (!socket || !socket.connected) {
-      console.warn('🔌 Socket.io not connected');
       window.showToast?.('Server not connected', 'error', 2000);
       return;
     }
 
     const moduleId = panel.dataset.mid;
     if (!moduleId) {
-      console.error('❌ No module ID found');
       return;
     }
 
@@ -2106,8 +2063,7 @@ delForm?.addEventListener('submit', async e => {
     } else {
       window.showToast?.(result.error || 'Failed to delete module', 'error', 3000);
     }
-  } catch (error) {
-    console.error('Delete error:', error);
+  } catch {
     window.showToast?.('Network error', 'error', 3000);
   }
 });

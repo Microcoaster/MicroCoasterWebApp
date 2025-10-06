@@ -11,6 +11,7 @@
 const express = require('express');
 const { requireAuth } = require('./auth');
 const databaseManager = require('../bdd/DatabaseManager');
+const Logger = require('../utils/logger');
 const router = express.Router();
 
 /**
@@ -36,7 +37,7 @@ router.get('/', requireAuth, async (req, res) => {
       user: user, // Passer l'objet utilisateur complet avec isAdmin
     });
   } catch (error) {
-    console.error('Erreur lors du chargement des documentations:', error);
+    Logger.app.error('Erreur lors du chargement des documentations:', error);
     res.status(500).render('error', {
       title: `${req.t('common.error')} - ${req.t('common.app_name')}`,
       message: 'Une erreur est survenue lors du chargement des documentations',

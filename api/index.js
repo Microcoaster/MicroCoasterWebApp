@@ -90,7 +90,7 @@ class RealTimeAPI {
       const { userId, userType = 'user', page = 'unknown' } = data;
 
       if (!userId) {
-        socket.emit('client:auth:error', { message: 'User ID required' });
+        Logger.activity.warn(`Authentication failed: User ID required for socket ${socket.id}`);
         return;
       }
 
@@ -113,15 +113,9 @@ class RealTimeAPI {
         }
       }
 
-      socket.emit('client:auth:success', {
-        message: 'Authenticated successfully',
-        timestamp: new Date(),
-      });
-
       this._sendInitialState(socket, page);
     } catch (error) {
       Logger.activity.error('Error authenticating client:', error);
-      socket.emit('client:auth:error', { message: 'Authentication failed' });
     }
   }
 
@@ -145,12 +139,11 @@ class RealTimeAPI {
   _handleSyncRequest(socket) {
     const client = this.events.connectedClients.get(socket.id);
     if (!client) {
-      socket.emit('client:sync:error', { message: 'Not authenticated' });
+      Logger.activity.warn(`Sync request from unauthenticated client: ${socket.id}`);
       return;
     }
 
     this._sendInitialState(socket, client.page);
-    socket.emit('client:sync:success', { timestamp: new Date() });
   }
 
   /**
@@ -182,16 +175,17 @@ class RealTimeAPI {
     try {
       switch (page) {
         case 'modules': {
+          // État initial des modules envoyé silencieusement
           const moduleStates = this.modules.getCurrentStates();
-          socket.emit('modules:initial:state', moduleStates);
+          Logger.activity.debug(
+            `Sent initial module states to ${socket.id}: ${Object.keys(moduleStates).length} modules`
+          );
           break;
         }
 
         case 'dashboard':
-          socket.emit('dashboard:initial:summary', {
-            timestamp: new Date(),
-            message: 'Dashboard synchronized',
-          });
+          // Résumé initial du dashboard envoyé silencieusement
+          Logger.activity.debug(`Sent initial dashboard summary to ${socket.id}`);
           break;
       }
     } catch (error) {

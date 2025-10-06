@@ -107,7 +107,6 @@ describe('UserDAO', () => {
 
   describe("Création d'utilisateur", () => {
     test('devrait créer un utilisateur avec succès', async () => {
-      const mockResult = { insertId: 1 };
       const mockCreatedUser = {
         id: 1,
         email: 'test@example.com',

@@ -17,15 +17,7 @@ const config = {
 };
 
 // Module state
-let moduleState = {
-  position: 'left',
-  isMoving: false,
-  uptime: Date.now(),
-  lastCommand: null,
-  commandCount: 0,
-  telemetryCount: 0,
-  reconnectAttempts: 0,
-};
+const moduleState = 'OFF';
 
 let ws = null;
 let telemetryTimer = null;
@@ -35,12 +27,12 @@ let reconnectTimer = null;
 // Utilities
 const log = (...args) => {
   const timestamp = new Date().toISOString().substr(11, 8);
-  console.log(`[${timestamp}] [SWITCH-TRACK]`, ...args);
+  process.stdout.write(`[${timestamp}] [SWITCH-TRACK] ${args.join(' ')}\n`);
 };
 
 const error = (...args) => {
   const timestamp = new Date().toISOString().substr(11, 8);
-  console.error(`[${timestamp}] [SWITCH-TRACK] ❌`, ...args);
+  process.stderr.write(`[${timestamp}] [SWITCH-TRACK] ❌ ${args.join(' ')}\n`);
 };
 
 // Message handling
@@ -148,10 +140,11 @@ function handleCommand(data) {
     case 'switch_right':
       simulateMovement('right');
       break;
-    case 'toggle':
+    case 'toggle': {
       const newPosition = moduleState.position === 'left' ? 'right' : 'left';
       simulateMovement(newPosition);
       break;
+    }
     case 'get_status':
       sendMessage('status_response', {
         position: moduleState.position,
@@ -313,7 +306,7 @@ process.on('uncaughtException', err => {
   gracefulShutdown();
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', reason => {
   error('Promesse rejetée:', reason);
 });
 

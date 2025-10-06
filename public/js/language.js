@@ -41,7 +41,7 @@ class LanguageSelector {
    */
   getCurrentLanguage() {
     const cookies = document.cookie.split(';');
-    for (let cookie of cookies) {
+    for (const cookie of cookies) {
       const [name, value] = cookie.trim().split('=');
       if (name === 'language') {
         return value;
@@ -199,8 +199,7 @@ class LanguageSelector {
       } else {
         throw new Error(result.message || 'Failed to change language');
       }
-    } catch (error) {
-      console.error('Error switching language:', error);
+    } catch {
       this.showLanguageMessage(this.currentLanguage, 'error');
     } finally {
       this.setLoadingState(false);

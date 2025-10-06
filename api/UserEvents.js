@@ -63,7 +63,7 @@ class UserEvents {
     this.emitStatsToAdmins();
   }
 
-  userProfileUpdated(userData, sessionId = null) {
+  userProfileUpdated(userData) {
     Logger.activity.info(
       `[UserEvents] User profile updated: ${userData.name} (ID: ${userData.id})`
     );

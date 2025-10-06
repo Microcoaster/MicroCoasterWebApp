@@ -11,6 +11,7 @@
 
 const fs = require('fs');
 const path = require('path');
+const Logger = require('../utils/logger');
 
 class LocaleLoader {
   constructor() {
@@ -38,7 +39,7 @@ class LocaleLoader {
         const content = fs.readFileSync(filePath, 'utf8');
         this.languages.set(lang, JSON.parse(content));
       } catch (error) {
-        console.error(`[LocaleLoader] Error loading language ${lang}:`, error.message);
+        Logger.system.error(`[LocaleLoader] Error loading language ${lang}:`, error.message);
       }
     });
   }
