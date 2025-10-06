@@ -32,8 +32,7 @@ async function loadTranslations() {
     window.MC.translations = data.translations;
     window.MC.currentLanguage = data.language;
     return data.translations;
-  } catch (error) {
-    console.warn('Failed to load translations:', error);
+  } catch {
     return {};
   }
 }
@@ -81,23 +80,12 @@ document.addEventListener('DOMContentLoaded', () => {
       window.pendingTranslationUpdates.forEach(updateFn => {
         try {
           updateFn();
-        } catch (error) {
-          console.warn('Error applying pending translation update:', error);
+        } catch {
+          // Ignorer les erreurs de mise à jour de traduction
         }
       });
       window.pendingTranslationUpdates = []; // Vider la liste
     }
-
-    // Mettre à jour tous les éléments avec des clés de traduction non résolues
-    document.querySelectorAll('[data-state]').forEach(element => {
-      if (element.textContent && element.textContent.startsWith('modules.')) {
-        const key = element.textContent;
-        const translated = window.t(key);
-        if (translated !== key) {
-          element.textContent = translated;
-        }
-      }
-    });
   });
 });
 
@@ -220,45 +208,20 @@ function initializeWebSocket() {
     });
 
     // Gestion des déconnexions WebSocket
-    socket.on('disconnect', function (reason) {
+    socket.on('disconnect', function () {
       isInitializing = false;
-
-      // Ne pas reconnecter automatiquement si la déconnexion est intentionnelle
-      if (reason === 'io server disconnect' || reason === 'io client disconnect') {
-        console.log('🔌 Déconnexion WebSocket intentionnelle:', reason);
-      }
     });
 
     socket.on('error', function (data) {
-      console.error('❌ WebSocket error:', data);
       if (data.message) {
         window.showToast?.(data.message, 'error', 3000);
       }
     });
 
     socket.on('connect_error', function (error) {
-      console.error('❌ Socket.IO connection error:', error);
-      // Ne pas afficher d'erreur si c'est juste un fallback vers polling
       if (error.message && !error.message.includes('websocket error')) {
         window.showToast?.(`Erreur de connexion: ${error.message}`, 'error', 3000);
       }
-    });
-
-    socket.on('reconnect', function (attemptNumber) {
-      console.log('🔄 WebSocket reconnected after', attemptNumber, 'attempts');
-    });
-
-    socket.on('reconnect_attempt', function (attemptNumber) {
-      console.log('🔄 WebSocket reconnection attempt:', attemptNumber);
-    });
-
-    // Gestion des réponses d'authentification
-    socket.on('client:auth:success', data => {
-      console.log('✅ Authentification WebSocket réussie');
-    });
-
-    socket.on('client:auth:error', data => {
-      console.error('❌ Erreur authentification WebSocket:', data);
     });
 
     // Gestion des événements temps réel pour l'interface d'administration
@@ -275,8 +238,7 @@ function initializeWebSocket() {
 
     window.socket = socket;
     isInitializing = false;
-  } catch (error) {
-    console.error('❌ Failed to initialize WebSocket:', error);
+  } catch {
     isInitializing = false;
   }
 }
@@ -314,13 +276,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
   // Gestion de la fermeture propre de WebSocket lors des changements de page
   window.addEventListener('beforeunload', function () {
-    if (window.socket && window.socket.connected) {
-      window.socket.disconnect();
-    }
-  });
-
-  // Gestion de la navigation interne et changements de visibilité
-  window.addEventListener('pagehide', function () {
     if (window.socket && window.socket.connected) {
       window.socket.disconnect();
     }

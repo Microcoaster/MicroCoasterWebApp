@@ -144,8 +144,8 @@ io.app = app;
 
 // Catch unhandled errors
 process.on('uncaughtException', error => {
-  console.error('❌ Uncaught Exception:', error.message);
-  console.error('Stack:', error.stack);
+  AppLogger.app.error('❌ Uncaught Exception:', error.message);
+  AppLogger.app.error('Stack:', error.stack);
   process.exit(1);
 });
 

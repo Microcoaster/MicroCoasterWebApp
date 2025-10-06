@@ -73,7 +73,6 @@ app.use('/admin', router);
 const request = require('supertest');
 const databaseManager = require('../../bdd/DatabaseManager');
 const Logger = require('../../utils/logger');
-const { requireAdmin } = require('../../routes/auth');
 
 describe('Routes Admin - Tests unitaires', () => {
   beforeEach(() => {

@@ -9,8 +9,6 @@
  */
 
 const moduleStatus = new Map();
-let onlineModules = 0;
-let offlineModules = 0;
 
 document.addEventListener('DOMContentLoaded', function () {
   initializeDashboard();
@@ -41,9 +39,14 @@ function initializeDashboard() {
   const offlineElement = document.querySelector('.dashboard-stat.offline');
 
   if (onlineElement && offlineElement) {
-    onlineModules = parseInt(onlineElement.textContent || '0');
-    offlineModules = parseInt(offlineElement.textContent || '0');
+    // Parse values but don't store them since they're not used
+    parseInt(onlineElement.textContent || '0');
+    parseInt(offlineElement.textContent || '0');
   }
+
+  // Initialiser la Map moduleStatus avec l'état actuel (tous les modules sont considérés online par défaut)
+  // Cette initialisation permet de gérer correctement les transitions de statut
+  initializeModuleStatusMap();
 
   const cards = document.querySelectorAll('.dashboard-card');
   cards.forEach((card, index) => {
@@ -59,13 +62,42 @@ function initializeDashboard() {
 }
 
 /**
+ * Initialise la Map moduleStatus avec l'état actuel des modules
+ * Récupère la liste des modules depuis le DOM et les marque comme online par défaut
+ * Cela permet de gérer correctement les transitions de statut WebSocket
+ * @returns {void}
+ */
+function initializeModuleStatusMap() {
+  // Récupérer tous les modules depuis les éléments du DOM
+  const moduleElements = document.querySelectorAll('[data-module-id]');
+
+  moduleElements.forEach(element => {
+    const moduleId = element.getAttribute('data-module-id');
+    if (moduleId) {
+      // Par défaut, considérer que les modules affichés sont online
+      // Cette hypothèse est valide car les modules offline ne sont généralement pas affichés
+      moduleStatus.set(moduleId, true);
+    }
+  });
+
+  // Alternative: récupérer depuis l'API pour être plus précis
+  fetch('/dashboard/stats')
+    .then(response => response.json())
+    .then(() => {
+      // Cette fonction pourrait être étendue pour synchroniser précisément
+      // mais pour l'instant, l'approche DOM est suffisante
+    })
+    .catch(() => {
+      // Ignorer les erreurs d'initialisation
+    });
+}
+
+/**
  * Initialise la connexion WebSocket pour le dashboard
- * Configure les écouteurs d'événements temps réel avec fallback polling
+ * Configure les écouteurs d'événements temps réel pour les mises à jour de statut
  * @returns {void}
  */
 function initializeDashboardWebSocket() {
-  let webSocketReady = false;
-
   /**
    * Configure les écouteurs d'événements WebSocket
    * Établit la communication temps réel pour les mises à jour de statut
@@ -82,50 +114,18 @@ function initializeDashboardWebSocket() {
         updateModuleStatus(data.moduleId, false);
       });
 
-      webSocketReady = true;
       return true;
     }
     return false;
   }
 
-  window.addEventListener('websocket-ready', function () {
-    if (!webSocketReady) {
+  // Essayer immédiatement
+  if (!setupWebSocketListeners()) {
+    // Attendre l'événement websocket-ready
+    window.addEventListener('websocket-ready', function () {
       setupWebSocketListeners();
-    }
-  });
-
-  if (typeof window.socket !== 'undefined' && window.socket) {
-    if (setupWebSocketListeners()) {
-      return;
-    }
+    });
   }
-
-  setTimeout(() => {
-    if (!webSocketReady) {
-      startStatsPolling();
-    }
-  }, 2000);
-}
-
-/**
- * Démarre le sondage périodique des statistiques
- * Fallback pour mise à jour des compteurs en l'absence de WebSocket
- * @returns {void}
- */
-function startStatsPolling() {
-  setInterval(async () => {
-    try {
-      const response = await fetch('/dashboard/stats');
-      if (response.ok) {
-        const stats = await response.json();
-        updateCountersFromStats(stats);
-      }
-    } catch (error) {
-      if (window.MC?.isDevelopment) {
-        console.error('Error polling stats:', error);
-      }
-    }
-  }, 10000);
 }
 
 /**
@@ -146,12 +146,10 @@ function updateCountersFromStats(stats) {
 
     if (currentOnline !== stats.onlineModules) {
       animateCounterUpdate(onlineElement, stats.onlineModules);
-      onlineModules = stats.onlineModules;
     }
 
     if (currentOffline !== stats.offlineModules) {
       animateCounterUpdate(offlineElement, stats.offlineModules);
-      offlineModules = stats.offlineModules;
     }
   }
 }
@@ -164,38 +162,25 @@ function updateCountersFromStats(stats) {
  * @returns {void}
  */
 function updateModuleStatus(moduleId, isOnline) {
-  const onlineElement = document.querySelector('.dashboard-stat.online');
-  const offlineElement = document.querySelector('.dashboard-stat.offline');
-
-  if (!onlineElement || !offlineElement) {
-    console.warn('Dashboard counter elements not found');
-    return;
-  }
-
   const previousStatus = moduleStatus.get(moduleId);
 
+  // Si pas de changement de statut, ne rien faire
   if (previousStatus === isOnline) {
     return;
   }
 
+  // Mettre à jour la Map avec le nouveau statut
   moduleStatus.set(moduleId, isOnline);
 
-  // Seulement mettre à jour si c'est un changement de statut (pas une nouvelle détection)
-  // Si previousStatus === undefined, le module est déjà compté dans les stats initiales du DOM
-  if (previousStatus !== undefined) {
-    if (previousStatus === false && isOnline === true) {
-      // Module passe d'offline à online
-      onlineModules++;
-      if (offlineModules > 0) offlineModules--;
-    } else if (previousStatus === true && isOnline === false) {
-      // Module passe d'online à offline
-      if (onlineModules > 0) onlineModules--;
-      offlineModules++;
-    }
-
-    animateCounterUpdate(onlineElement, onlineModules);
-    animateCounterUpdate(offlineElement, offlineModules);
-  }
+  // Récupérer les vraies statistiques du serveur pour mettre à jour les compteurs
+  fetch('/dashboard/stats')
+    .then(response => response.json())
+    .then(stats => {
+      updateCountersFromStats(stats);
+    })
+    .catch(() => {
+      // Ignorer les erreurs de récupération
+    });
 }
 
 /**

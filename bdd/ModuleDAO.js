@@ -446,14 +446,11 @@ class ModuleDAO extends BaseDAO {
 
       // Statistiques en temps réel du cache
       let online = 0;
-      let offline = 0;
       const byType = {};
 
-      for (const [moduleId, statusInfo] of this.moduleStatusCache.entries()) {
+      for (const [, statusInfo] of this.moduleStatusCache.entries()) {
         if (statusInfo.status === 'online') {
           online++;
-        } else {
-          offline++;
         }
       }
 

@@ -96,7 +96,6 @@ function languageMiddleware(req, res, next) {
  */
 function switchLanguage(req, res) {
   const { lang } = req.body;
-  const referer = req.get('Referer') || '/dashboard';
 
   // Validate language
   if (!lang || !localeLoader.isLanguageSupported(lang)) {

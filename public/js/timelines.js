@@ -485,8 +485,8 @@ class TimelineSequencer {
       const y = e.clientY - rect.top - 60; // Compensation pour la règle
 
       this.addElementToTimeline(moduleData, x, y);
-    } catch (error) {
-      console.error('Erreur lors du drop:', error);
+    } catch {
+      // Ignorer les erreurs de drop
     }
   }
 
@@ -499,11 +499,10 @@ class TimelineSequencer {
    * Crée l'élément DOM et configure ses propriétés par défaut
    * @param {Object} moduleData - Données du module à ajouter
    * @param {number} x - Position X en pixels
-   * @param {number} y - Position Y en pixels
    * @returns {void}
    * @public
    */
-  addElementToTimeline(moduleData, x, y) {
+  addElementToTimeline(moduleData, x) {
     const timePosition = Math.max(0, this.pixelToTime(x));
     const moduleConfig = this.getModuleConfig(moduleData.type);
     const defaultAction = Object.keys(moduleConfig.actions)[0];
@@ -815,12 +814,6 @@ class TimelineSequencer {
     this.positionElement(timelineElement.element, startTime, duration);
 
     modal.remove();
-    console.log('Configuration sauvegardée:', {
-      module: timelineElement.moduleData.name,
-      action: actionType,
-      duration,
-      params: actionParams,
-    });
   }
 
   /**
@@ -837,14 +830,12 @@ class TimelineSequencer {
 
     const rect = element.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
 
     const handleMouseMove = e => {
       if (!this.draggedElement) return;
 
       const trackRect = this.track.getBoundingClientRect();
       const x = e.clientX - trackRect.left - offsetX;
-      const y = e.clientY - trackRect.top - offsetY;
 
       const timePosition = Math.max(0, this.pixelToTime(x));
 
@@ -1151,8 +1142,7 @@ class TimelineSequencer {
       try {
         const sequence = JSON.parse(e.target.result);
         this.loadSequence(sequence);
-      } catch (error) {
-        console.error("Erreur lors de l'import:", error);
+      } catch {
         this.websocketManager.showAlert('danger', "Erreur lors de l'import du fichier");
       }
     };

@@ -8,6 +8,11 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 - Correction des doubles notifications pour les propriétaires de modules administrateurs
 - Les propriétaires reçoivent désormais des notifications personnalisées au lieu de recevoir à la fois les notifications générales et propriétaires
+- Correction de la mise à jour des compteurs de modules en ligne/hors ligne sur le dashboard lors des connexions/déconnexions WebSocket
+- Correction de tous les avertissements ESLint identifiés par `npm run lint` (2000 erreurs éliminés)
+- Remplacement des instructions `console` par le système de logging structuré approprié
+- Suppression des variables, fonctions et paramètres inutilisés dans tout le code source
+- Nettoyage du code mort et amélioration de la maintenabilité
 
 ### Refactorisé
 

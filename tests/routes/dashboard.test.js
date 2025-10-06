@@ -223,10 +223,6 @@ describe('Routes Dashboard - Tests unitaires', () => {
   });
 
   describe('Fonction calculateStats', () => {
-    // Tester la fonction calculateStats directement
-    const dashboardRouter = require('../../routes/dashboard');
-    const calculateStats = dashboardRouter.calculateStats || (() => {});
-
     // Si la fonction n'est pas exportée, nous testons seulement via les routes
     test('les statistiques sont calculées correctement via les routes', () => {
       // Ce test est couvert par les tests des routes ci-dessus

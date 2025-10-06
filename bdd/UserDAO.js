@@ -44,8 +44,8 @@ class UserDAO extends BaseDAO {
         const isValid = await bcrypt.compare(password, user.password);
         if (isValid) {
           // Ne pas retourner le mot de passe hashé
-          const { password: _, ...userWithoutPassword } = user;
-          return userWithoutPassword;
+          const { id, email, name, is_admin, last_login, created_at } = user;
+          return { id, email, name, is_admin, last_login, created_at };
         }
       }
 

@@ -73,7 +73,7 @@ app.set('views', 'views');
 
 // Mock du rendu de templates EJS
 app.use((req, res, next) => {
-  res.render = jest.fn((view, data) => {
+  res.render = jest.fn(view => {
     res.type('text/html');
     res.status(200).send(`<html>Mocked ${view} page</html>`);
   });
@@ -85,7 +85,6 @@ app.use('/modules', router);
 const request = require('supertest');
 const databaseManager = require('../../bdd/DatabaseManager');
 const Logger = require('../../utils/logger');
-const { requireAuth } = require('../../routes/auth');
 
 describe('Routes Modules - Tests unitaires', () => {
   beforeEach(() => {
@@ -233,7 +232,7 @@ describe('Routes Modules - Tests unitaires', () => {
         .send({ module_id: 'MC-0001-STN', module_code: 'ABCD-1234', name: 'Test Module' })
         .expect(302)
         .expect('Location', /\/modules\?flash=.*Module%20added%20successfully/)
-        .end((err, res) => {
+        .end(err => {
           if (err) return done(err);
           expect(Logger.activity.info).toHaveBeenCalledWith(
             '✅ Module claimed: MC-0001-STN (Station) by user 123'
@@ -257,7 +256,7 @@ describe('Routes Modules - Tests unitaires', () => {
         .send({ module_id: 'MC-0002-ST', name: 'Switch Track' })
         .expect(302)
         .expect('Location', /\/modules\?flash=.*Module%20added%20successfully/)
-        .end((err, res) => {
+        .end(err => {
           if (err) return done(err);
           expect(Logger.activity.info).toHaveBeenCalledWith(
             '➕ Module added: MC-0002-ST (Switch Track) by user 123'

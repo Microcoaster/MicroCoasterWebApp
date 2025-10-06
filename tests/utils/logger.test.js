@@ -35,7 +35,6 @@ jest.mock('fs', () => ({
 }));
 
 const winston = require('winston');
-const fs = require('fs');
 
 // Importer le logger après les mocks
 const logger = require('../../utils/logger');

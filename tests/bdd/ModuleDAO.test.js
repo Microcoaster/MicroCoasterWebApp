@@ -399,15 +399,6 @@ describe('ModuleDAO', () => {
 
   describe('Statistiques des modules', () => {
     test('devrait calculer les statistiques complètes', async () => {
-      const mockStats = [
-        [{ total: 10 }],
-        [{ total: 7 }],
-        [
-          { type: 'switch', count: 5 },
-          { type: 'sensor', count: 3 },
-        ],
-      ];
-
       mockPool.execute = jest
         .fn()
         .mockResolvedValueOnce([[{ total: 10 }]]) // SELECT COUNT(*) as total FROM modules
