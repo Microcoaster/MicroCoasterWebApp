@@ -8,6 +8,7 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 - Correction des doubles notifications pour les propriétaires de modules administrateurs
 - Les propriétaires reçoivent désormais des notifications personnalisées au lieu de recevoir à la fois les notifications générales et propriétaires
+- Correction de la mise à jour des compteurs de modules en ligne/hors ligne sur le dashboard lors des connexions/déconnexions WebSocket
 
 ### Refactorisé
 
