@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', function () {
  * @returns {void}
  */
 function addNewModule() {
-  window.location.href = '/modules#add';
+  window.location.href = '/modules#add';aaa
 }
 
 /**
