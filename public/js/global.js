@@ -13,11 +13,12 @@ window.MC.translations = window.MC.translations || {};
 
 const IMG_BASE = '/assets/img/';
 /**
- * Génère l'URL complète d'une image depuis le dossier assets
+ * Génère l'URL complète d'une image depuis son nom
+ * Combine le chemin de base avec le nom du fichier
  * @param {string} name - Nom du fichier image
  * @returns {string} URL complète de l'image
  */
-const urlImg = name => IMG_BASE + name;
+const urlImg = name => `${IMG_BASE}${name}`;
 
 /**
  * Charge les traductions depuis le serveur
@@ -239,7 +240,7 @@ function initializeWebSocket() {
       console.error('❌ Socket.IO connection error:', error);
       // Ne pas afficher d'erreur si c'est juste un fallback vers polling
       if (error.message && !error.message.includes('websocket error')) {
-        window.showToast?.('Erreur de connexion: ' + error.message, 'error', 3000);
+        window.showToast?.(`Erreur de connexion: ${error.message}`, 'error', 3000);
       }
     });
 

@@ -78,7 +78,7 @@ router.get('/', requireAuth, async (req, res) => {
     const user = await databaseManager.users.findById(userId);
 
     res.render('timelines', {
-      title: req.t('common.timelines') + ' - ' + req.t('common.app_name'),
+      title: `${req.t('common.timelines')} - ${req.t('common.app_name')}`,
       currentPage: 'timelines',
       user: user,
       modules: formattedModules,
@@ -86,7 +86,7 @@ router.get('/', requireAuth, async (req, res) => {
   } catch (error) {
     Logger.app.error('Erreur lors du chargement des timelines:', error);
     res.status(500).render('error', {
-      title: req.t('common.error') + ' - ' + req.t('common.app_name'),
+      title: `${req.t('common.error')} - ${req.t('common.app_name')}`,
       message: 'Une erreur est survenue lors du chargement des timelines',
       error: process.env.NODE_ENV === 'development' ? error : {},
     });

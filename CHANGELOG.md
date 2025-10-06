@@ -15,6 +15,7 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 - Amélioration de la configuration Jest pour une meilleure couverture de test
 - Renommage de `emitToPage` en `emitToPageExcludingUser` avec fonctionnalité d'exclusion d'utilisateur
 - Ajout de `emitToAdminsExcludingUser` pour éviter les doubles notifications
+- Conversion complète des concaténations de chaînes classiques (`+`) en template literals ES6+ (`${}`) pour améliorer la lisibilité et maintenabilité du code
 
 ### Ajouté
 

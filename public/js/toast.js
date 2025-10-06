@@ -249,7 +249,7 @@
 
     // Création du toast avec le style original
     const el = document.createElement('div');
-    el.className = 'toast ' + type;
+    el.className = `toast ${type}`;
     el.innerHTML = `
             ${getToastIcon(type)}
             <span class="toast-message">${message}</span>

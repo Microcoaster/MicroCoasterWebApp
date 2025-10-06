@@ -306,8 +306,8 @@ class TimelineSequencer {
       const left = leftPercent * trackWidth;
       const width = widthPercent * trackWidth;
 
-      element.style.left = left + 'px';
-      element.style.width = Math.max(width, 50) + 'px'; // Minimum 50px
+      element.style.left = `${left}px`;
+      element.style.width = `${Math.max(width, 50)}px`; // Minimum 50px
       element.style.display = 'block';
       element.style.opacity = '1';
     } else {
@@ -373,7 +373,7 @@ class TimelineSequencer {
       if (position >= 0 && position <= trackWidth) {
         const marker = document.createElement('div');
         marker.className = 'time-marker';
-        marker.style.left = position + 'px';
+        marker.style.left = `${position}px`;
         marker.innerHTML = `
           <div class="marker-line"></div>
           <div class="marker-label">${this.formatTime(time)}</div>
@@ -391,11 +391,11 @@ class TimelineSequencer {
    */
   formatTime(seconds) {
     if (seconds < 60) {
-      return seconds < 10 ? seconds.toFixed(1) + 's' : Math.round(seconds) + 's';
+      return seconds < 10 ? `${seconds.toFixed(1)}s` : `${Math.round(seconds)}s`;
     }
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.round(seconds % 60);
-    return remainingSeconds === 0 ? minutes + 'min' : minutes + 'min' + remainingSeconds + 's';
+    return remainingSeconds === 0 ? `${minutes}min` : `${minutes}min${remainingSeconds}s`;
   }
 
   // ================================================================================
@@ -578,7 +578,7 @@ class TimelineSequencer {
 
     // Position verticale basée sur l'index
     const elementIndex = this.elements.findIndex(e => e.element === element);
-    element.style.top = Math.max(80, 100 + elementIndex * 80) + 'px';
+    element.style.top = `${Math.max(80, 100 + elementIndex * 80)}px`;
   }
 
   updateElementPositions() {
@@ -808,7 +808,7 @@ class TimelineSequencer {
     const moduleConfig = this.getModuleConfig(timelineElement.element.dataset.moduleType);
     const actionConfig = moduleConfig.actions[actionType];
 
-    timelineElement.element.querySelector('.element-duration').textContent = duration + 's';
+    timelineElement.element.querySelector('.element-duration').textContent = `${duration}s`;
     timelineElement.element.querySelector('.element-action').textContent = actionConfig.name;
 
     const startTime = parseFloat(timelineElement.element.dataset.startTime);

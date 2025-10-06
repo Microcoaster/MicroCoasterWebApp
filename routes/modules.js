@@ -141,22 +141,22 @@ router.post('/claim', requireAuth, async (req, res) => {
     const userId = req.session.user_id;
 
     if (!module_id || module_id.trim() === '') {
-      return res.redirect('/modules?flash=' + encodeURIComponent('Module ID is required'));
+      return res.redirect(`/modules?flash=${encodeURIComponent('Module ID is required')}`);
     }
 
     if (!module_code || module_code.trim() === '') {
-      return res.redirect('/modules?flash=' + encodeURIComponent('Module code is required'));
+      return res.redirect(`/modules?flash=${encodeURIComponent('Module code is required')}`);
     }
 
     if (!/^MC-\d{4}-(STN|LFX|AP|SM|ST|LT)$/i.test(module_id.trim())) {
       return res.redirect(
-        '/modules?flash=' + encodeURIComponent('Invalid Module ID format (expected MC-XXXX-(type))')
+        `/modules?flash=${encodeURIComponent('Invalid Module ID format (expected MC-XXXX-(type))')}`
       );
     }
 
     if (!/^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/.test(module_code.trim())) {
       return res.redirect(
-        '/modules?flash=' + encodeURIComponent('Invalid module code format (expected XXXX-XXXX)')
+        `/modules?flash=${encodeURIComponent('Invalid module code format (expected XXXX-XXXX)')}`
       );
     }
 
@@ -173,26 +173,27 @@ router.post('/claim', requireAuth, async (req, res) => {
     );
 
     if (existingModules.length === 0) {
-      return res.redirect('/modules?flash=' + encodeURIComponent('Unknown module ID'));
+      return res.redirect(`/modules?flash=${encodeURIComponent('Unknown module ID')}`);
     }
 
     const existingModule = existingModules[0];
 
     // Vérifier le code du module (simple comparaison pour l'instant - à améliorer avec hash si nécessaire)
     if (existingModule.module_code !== moduleCodeTrim) {
-      return res.redirect('/modules?flash=' + encodeURIComponent('Wrong module code'));
+      return res.redirect(`/modules?flash=${encodeURIComponent('Wrong module code')}`);
     }
 
     // Vérifier si le module est déjà claimé
     if (existingModule.claimed === 1) {
       if (existingModule.user_id === userId) {
         return res.redirect(
-          '/modules?flash=' + encodeURIComponent('This module is already in your list')
+          `/modules?flash=${encodeURIComponent('This module is already in your list')}`
         );
       } else {
         return res.redirect(
-          '/modules?flash=' +
-            encodeURIComponent('This module has already been claimed by another user')
+          `/modules?flash=${encodeURIComponent(
+            'This module has already been claimed by another user'
+          )}`
         );
       }
     }
@@ -220,10 +221,10 @@ router.post('/claim', requireAuth, async (req, res) => {
     }
 
     Logger.activity.info(`✅ Module claimed: ${moduleIdTrim} (${type}) by user ${userId}`);
-    res.redirect('/modules?flash=' + encodeURIComponent('Module added successfully'));
+    res.redirect(`/modules?flash=${encodeURIComponent('Module added successfully')}`);
   } catch (error) {
     Logger.modules.error('Error claiming module:', error);
-    res.redirect('/modules?flash=' + encodeURIComponent('Database error occurred'));
+    res.redirect(`/modules?flash=${encodeURIComponent('Database error occurred')}`);
   }
 });
 
@@ -241,7 +242,7 @@ router.post('/add', requireAuth, async (req, res) => {
     const userId = req.session.user_id;
 
     if (!module_id || module_id.trim() === '') {
-      return res.redirect('/modules?flash=' + encodeURIComponent('Module ID is required'));
+      return res.redirect(`/modules?flash=${encodeURIComponent('Module ID is required')}`);
     }
 
     // Inférer le type
@@ -270,14 +271,14 @@ router.post('/add', requireAuth, async (req, res) => {
     }
 
     Logger.activity.info(`➕ Module added: ${module_id} (${type}) by user ${userId}`);
-    res.redirect('/modules?flash=' + encodeURIComponent('Module added successfully'));
+    res.redirect(`/modules?flash=${encodeURIComponent('Module added successfully')}`);
   } catch (error) {
     Logger.modules.error('Error adding module:', error);
 
     if (error.code === 'ER_DUP_ENTRY') {
-      res.redirect('/modules?flash=' + encodeURIComponent('Module already exists'));
+      res.redirect(`/modules?flash=${encodeURIComponent('Module already exists')}`);
     } else {
-      res.redirect('/modules?flash=' + encodeURIComponent('Error adding module'));
+      res.redirect(`/modules?flash=${encodeURIComponent('Error adding module')}`);
     }
   }
 });
