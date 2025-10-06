@@ -1500,7 +1500,7 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
         const alias = panel.querySelector('.alias--type')?.textContent || '';
         const type = panel.dataset.type || '';
         const mid = panel.dataset.mid || '';
-        const hay = (title + ' ' + alias + ' ' + type + ' ' + mid).toLowerCase();
+        const hay = `${title} ${alias} ${type} ${mid}`.toLowerCase();
         show = hay.includes(q);
       }
 
@@ -1937,7 +1937,7 @@ if (idField) {
     // Ajouter MC- au début si pas présent
     if (!value.startsWith('MC')) {
       if (value.length > 0) {
-        value = 'MC' + value;
+        value = `MC${value}`;
       }
     }
 
@@ -1946,9 +1946,9 @@ if (idField) {
     if (value.length > 0) {
       formatted = value.substring(0, 2); // MC
       if (value.length > 2) {
-        formatted += '-' + value.substring(2, 6); // -XXXX
+        formatted += `-${value.substring(2, 6)}`; // -XXXX
         if (value.length > 6) {
-          formatted += '-' + value.substring(6, 9); // -XXX
+          formatted += `-${value.substring(6, 9)}`; // -XXX
         }
       }
     }
@@ -1974,7 +1974,7 @@ if (codeField) {
     if (value.length > 0) {
       formatted = value.substring(0, 4); // XXXX
       if (value.length > 4) {
-        formatted += '-' + value.substring(4, 8); // -XXXX
+        formatted += `-${value.substring(4, 8)}`; // -XXXX
       }
     }
 
