@@ -33,16 +33,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configuration des sessions pour les tests
-app.use(session({
-  secret: 'test-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false }
-}));
+app.use(
+  session({
+    secret: 'test-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false },
+  })
+);
 
 // Mock de l'internationalisation
 app.use((req, res, next) => {
-  req.t = jest.fn((key) => key);
+  req.t = jest.fn(key => key);
   next();
 });
 
@@ -55,7 +57,9 @@ app.use((req, res, next) => {
   res.render = jest.fn((view, data) => {
     if (view === 'dashboard') {
       res.type('text/html');
-      res.status(data.error ? 500 : 200).send(`<html>Dashboard page${data.error ? ` - Error: ${data.error}` : ''}</html>`);
+      res
+        .status(data.error ? 500 : 200)
+        .send(`<html>Dashboard page${data.error ? ` - Error: ${data.error}` : ''}</html>`);
     } else if (view === 'error') {
       res.type('text/html');
       res.status(500).send(`<html>Error page - ${data.message}</html>`);
@@ -89,15 +93,11 @@ describe('Routes Dashboard - Tests unitaires', () => {
   });
 
   describe('GET /dashboard/', () => {
-    test('doit rediriger vers / si utilisateur non connecté', (done) => {
-      request(app)
-        .get('/dashboard/')
-        .expect(302)
-        .expect('Location', '/')
-        .end(done);
+    test('doit rediriger vers / si utilisateur non connecté', done => {
+      request(app).get('/dashboard/').expect(302).expect('Location', '/').end(done);
     });
 
-    test('doit afficher le dashboard avec les statistiques utilisateur', (done) => {
+    test('doit afficher le dashboard avec les statistiques utilisateur', done => {
       const mockUser = {
         id: 123,
         name: 'Test User',
@@ -133,7 +133,7 @@ describe('Routes Dashboard - Tests unitaires', () => {
         });
     });
 
-    test('doit gérer les erreurs de base de données', (done) => {
+    test('doit gérer les erreurs de base de données', done => {
       databaseManager.users.findById.mockRejectedValue(new Error('Database error'));
 
       const agent = request.agent(app);
@@ -153,7 +153,7 @@ describe('Routes Dashboard - Tests unitaires', () => {
   });
 
   describe('GET /dashboard/stats', () => {
-    test('doit retourner 401 si utilisateur non connecté', (done) => {
+    test('doit retourner 401 si utilisateur non connecté', done => {
       request(app)
         .get('/dashboard/stats')
         .expect(401)
@@ -164,7 +164,7 @@ describe('Routes Dashboard - Tests unitaires', () => {
         });
     });
 
-    test('doit retourner les statistiques utilisateur au format JSON', (done) => {
+    test('doit retourner les statistiques utilisateur au format JSON', done => {
       const mockModules = [
         { id: 1, type: 'ESP32', status: 'online' },
         { id: 2, type: 'ESP32', status: 'offline' },
@@ -202,7 +202,7 @@ describe('Routes Dashboard - Tests unitaires', () => {
         });
     });
 
-    test('doit gérer les erreurs de base de données dans l\'API stats', (done) => {
+    test("doit gérer les erreurs de base de données dans l'API stats", done => {
       databaseManager.modules.findByUserId.mockRejectedValue(new Error('Database error'));
 
       const agent = request.agent(app);

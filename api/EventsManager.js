@@ -161,14 +161,15 @@ class EventsManager {
   }
 
   /**
-   * Émet un événement aux clients d'une page spécifique
+   * Émet un événement aux clients d'une page spécifique, en excluant un utilisateur
    * @param {string} page - Page cible (modules, admin, dashboard)
    * @param {string} event - Nom de l'événement
    * @param {Object} data - Données à envoyer
+   * @param {number} [excludeUserId] - ID de l'utilisateur à exclure
    */
-  emitToPage(page, event, data) {
+  emitToPageExcludingUser(page, event, data, excludeUserId) {
     const pageClients = Array.from(this.connectedClients.values()).filter(
-      client => client.page === page
+      client => client.page === page && client.userId !== excludeUserId
     );
 
     pageClients.forEach(client => {
@@ -177,7 +178,29 @@ class EventsManager {
 
     if (pageClients.length > 0) {
       Logger.system.debug(
-        `Émission '${event}' vers page '${page}' (${pageClients.length} clients)`
+        `Émission '${event}' vers page '${page}' (${pageClients.length} clients, exclu: ${excludeUserId || 'aucun'})`
+      );
+    }
+  }
+
+  /**
+   * Émet un événement à tous les administrateurs, en excluant un utilisateur
+   * @param {string} event - Nom de l'événement
+   * @param {Object} data - Données à envoyer
+   * @param {number} [excludeUserId] - ID de l'utilisateur à exclure
+   */
+  emitToAdminsExcludingUser(event, data, excludeUserId) {
+    const adminClients = Array.from(this.connectedClients.values()).filter(
+      client => client.userType === 'admin' && client.userId !== excludeUserId
+    );
+
+    adminClients.forEach(client => {
+      client.socket.emit(event, data);
+    });
+
+    if (adminClients.length > 0) {
+      Logger.system.debug(
+        `Émission '${event}' vers ${adminClients.length} admin(s) (exclu: ${excludeUserId || 'aucun'})`
       );
     }
   }
@@ -218,21 +241,4 @@ class EventsManager {
   }
 }
 
-/**
- * Export du gestionnaire d'événements
- * @module EventsManager
- * @description Gestionnaire centralisé pour l'émission d'événements WebSocket ciblés
- *
- * @example
- * const EventsManager = require('./api/EventsManager');
- * const events = new EventsManager(io);
- *
- * // Enregistrer un client
- * events.registerClient(socket, userId, 'admin', 'dashboard');
- *
- * // Émettre des événements ciblés
- * events.emitToUser(123, 'notification', { message: 'Hello!' });
- * events.emitToAdmins('system:alert', { level: 'warning', message: 'Alerte' });
- * events.emitToPage('modules', 'module:update', moduleData);
- */
 module.exports = EventsManager;

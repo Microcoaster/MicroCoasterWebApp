@@ -34,7 +34,7 @@ describe('Routes Language - Tests unitaires', () => {
   });
 
   describe('POST /language/switch', () => {
-    test('doit retourner 400 si langue manquante', (done) => {
+    test('doit retourner 400 si langue manquante', done => {
       request(app)
         .post('/language/switch')
         .send({})
@@ -47,7 +47,7 @@ describe('Routes Language - Tests unitaires', () => {
         });
     });
 
-    test('doit retourner 400 si langue invalide', (done) => {
+    test('doit retourner 400 si langue invalide', done => {
       request(app)
         .post('/language/switch')
         .send({ language: 'invalid' })
@@ -60,7 +60,7 @@ describe('Routes Language - Tests unitaires', () => {
         });
     });
 
-    test('doit réussir à changer la langue vers le français', (done) => {
+    test('doit réussir à changer la langue vers le français', done => {
       request(app)
         .post('/language/switch')
         .send({ language: 'fr' })
@@ -75,7 +75,7 @@ describe('Routes Language - Tests unitaires', () => {
         });
     });
 
-    test('doit réussir à changer la langue vers l\'anglais', (done) => {
+    test("doit réussir à changer la langue vers l'anglais", done => {
       request(app)
         .post('/language/switch')
         .send({ language: 'en' })
@@ -92,7 +92,7 @@ describe('Routes Language - Tests unitaires', () => {
   });
 
   describe('GET /language/info', () => {
-    test('doit retourner les informations de langue', (done) => {
+    test('doit retourner les informations de langue', done => {
       request(app)
         .get('/language/info')
         .expect(200)
@@ -108,7 +108,7 @@ describe('Routes Language - Tests unitaires', () => {
   });
 
   describe('GET /language/translations', () => {
-    test('doit retourner les traductions pour la langue actuelle', (done) => {
+    test('doit retourner les traductions pour la langue actuelle', done => {
       const mockTranslations = {
         common: { hello: 'Hello', goodbye: 'Goodbye' },
         auth: { login: 'Login', logout: 'Logout' },
@@ -130,7 +130,7 @@ describe('Routes Language - Tests unitaires', () => {
         });
     });
 
-    test('doit gérer les langues différentes', (done) => {
+    test('doit gérer les langues différentes', done => {
       const mockTranslations = {
         common: { hello: 'Bonjour', goodbye: 'Au revoir' },
       };

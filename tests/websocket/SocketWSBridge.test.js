@@ -72,27 +72,33 @@ describe('SocketWSBridge', () => {
 
       expect(result).toBe(true);
       expect(mockESP32Server.isESPConnected).toHaveBeenCalledWith('MOD001');
-      expect(mockESP32Server.sendCommandToESP).toHaveBeenCalledWith('MOD001', 'move', { speed: 50 });
+      expect(mockESP32Server.sendCommandToESP).toHaveBeenCalledWith('MOD001', 'move', {
+        speed: 50,
+      });
       expect(mockRealTimeAPI.events.broadcast).toHaveBeenCalledWith('command_sent', {
         moduleId: 'MOD001',
         command: 'move',
         status: 'sent',
         timestamp: expect.any(Date),
       });
-      expect(Logger.esp.info).toHaveBeenCalledWith('🌉 Bridge: Forwarding command to ESP32 MOD001: move');
+      expect(Logger.esp.info).toHaveBeenCalledWith(
+        '🌉 Bridge: Forwarding command to ESP32 MOD001: move'
+      );
     });
 
-    test('devrait échouer si l\'ESP32 n\'est pas connecté', () => {
+    test("devrait échouer si l'ESP32 n'est pas connecté", () => {
       mockESP32Server.isESPConnected.mockReturnValue(false);
 
       const result = bridge.sendCommandToESP('MOD001', 'move');
 
       expect(result).toBe(false);
       expect(mockESP32Server.sendCommandToESP).not.toHaveBeenCalled();
-      expect(Logger.esp.warn).toHaveBeenCalledWith('❌ Bridge: ESP32 MOD001 not connected via WebSocket');
+      expect(Logger.esp.warn).toHaveBeenCalledWith(
+        '❌ Bridge: ESP32 MOD001 not connected via WebSocket'
+      );
     });
 
-    test('devrait gérer les erreurs lors de l\'envoi', () => {
+    test("devrait gérer les erreurs lors de l'envoi", () => {
       mockESP32Server.isESPConnected.mockReturnValue(true);
       mockESP32Server.sendCommandToESP.mockImplementation(() => {
         throw new Error('Send failed');
@@ -101,18 +107,23 @@ describe('SocketWSBridge', () => {
       const result = bridge.sendCommandToESP('MOD001', 'move');
 
       expect(result).toBe(false);
-      expect(Logger.esp.error).toHaveBeenCalledWith('❌ Bridge: Error forwarding command:', expect.any(Error));
+      expect(Logger.esp.error).toHaveBeenCalledWith(
+        '❌ Bridge: Error forwarding command:',
+        expect.any(Error)
+      );
     });
   });
 
-  describe('Transmission d\'événements ESP32 vers le web', () => {
+  describe("Transmission d'événements ESP32 vers le web", () => {
     test('devrait transmettre un événement avec succès', () => {
       const eventData = { moduleId: 'MOD001', temperature: 25 };
 
       bridge.forwardESPEventToWeb('telemetry', eventData);
 
       expect(mockRealTimeAPI.events.broadcast).toHaveBeenCalledWith('telemetry', eventData);
-      expect(Logger.esp.debug).toHaveBeenCalledWith('🌉 Bridge: Forwarded ESP32 event to web: telemetry');
+      expect(Logger.esp.debug).toHaveBeenCalledWith(
+        '🌉 Bridge: Forwarded ESP32 event to web: telemetry'
+      );
     });
 
     test('devrait gérer les erreurs lors de la transmission', () => {
@@ -122,7 +133,10 @@ describe('SocketWSBridge', () => {
 
       bridge.forwardESPEventToWeb('telemetry', {});
 
-      expect(Logger.esp.error).toHaveBeenCalledWith('❌ Bridge: Error forwarding ESP32 event:', expect.any(Error));
+      expect(Logger.esp.error).toHaveBeenCalledWith(
+        '❌ Bridge: Error forwarding ESP32 event:',
+        expect.any(Error)
+      );
     });
   });
 
@@ -183,8 +197,12 @@ describe('SocketWSBridge', () => {
       const result = bridge.handleWebCommand(mockSocket, 'MOD001', 'move', { speed: 50 });
 
       expect(result).toBe(true);
-      expect(Logger.esp.info).toHaveBeenCalledWith('🌐 Bridge: Web command received for MOD001: move');
-      expect(mockESP32Server.sendCommandToESP).toHaveBeenCalledWith('MOD001', 'move', { speed: 50 });
+      expect(Logger.esp.info).toHaveBeenCalledWith(
+        '🌐 Bridge: Web command received for MOD001: move'
+      );
+      expect(mockESP32Server.sendCommandToESP).toHaveBeenCalledWith('MOD001', 'move', {
+        speed: 50,
+      });
     });
 
     test('devrait rejeter une commande avec paramètres invalides', () => {

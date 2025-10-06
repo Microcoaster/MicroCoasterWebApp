@@ -15,7 +15,12 @@ jest.mock('path', () => ({
 }));
 
 const LocaleLoader = require('../../locales/index.js');
-const { languageMiddleware, switchLanguage, getLanguageInfo, detectLanguage } = require('../../middleware/language');
+const {
+  languageMiddleware,
+  switchLanguage,
+  getLanguageInfo,
+  detectLanguage,
+} = require('../../middleware/language');
 
 describe('LocaleLoader', () => {
   let mockFs;
@@ -43,17 +48,20 @@ describe('LocaleLoader', () => {
       const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       // Configurer les mocks pour retourner des erreurs
-      mockPath.join
-        .mockReturnValueOnce('/path/to/fr.json')
-        .mockReturnValueOnce('/path/to/en.json');
+      mockPath.join.mockReturnValueOnce('/path/to/fr.json').mockReturnValueOnce('/path/to/en.json');
 
       mockFs.readFileSync
-        .mockImplementationOnce(() => { throw new Error('File not found'); })
+        .mockImplementationOnce(() => {
+          throw new Error('File not found');
+        })
         .mockReturnValueOnce(JSON.stringify({ common: { hello: 'Hello' } }));
 
       LocaleLoader.loadAllLanguages();
 
-      expect(consoleSpy).toHaveBeenCalledWith('[LocaleLoader] Error loading language fr:', 'File not found');
+      expect(consoleSpy).toHaveBeenCalledWith(
+        '[LocaleLoader] Error loading language fr:',
+        'File not found'
+      );
       expect(LocaleLoader.languages.has('fr')).toBe(false);
       expect(LocaleLoader.languages.has('en')).toBe(true);
 
@@ -90,7 +98,7 @@ describe('LocaleLoader', () => {
       expect(result).toBe('Bonjour');
     });
 
-    test('devrait traduire avec paramètres d\'interpolation', () => {
+    test("devrait traduire avec paramètres d'interpolation", () => {
       const result = LocaleLoader.translate('fr', 'common.goodbye', { name: 'Alice' });
       expect(result).toBe('Au revoir Alice');
     });
@@ -100,12 +108,12 @@ describe('LocaleLoader', () => {
       expect(result).toBe('Hello');
     });
 
-    test('devrait utiliser le fallback vers la langue par défaut si la clé n\'existe pas', () => {
+    test("devrait utiliser le fallback vers la langue par défaut si la clé n'existe pas", () => {
       const result = LocaleLoader.translate('fr', 'nonexistent.key');
       expect(result).toBe('nonexistent.key');
     });
 
-    test('devrait utiliser le fallback vers la langue par défaut si la traduction n\'existe pas dans la langue demandée', () => {
+    test("devrait utiliser le fallback vers la langue par défaut si la traduction n'existe pas dans la langue demandée", () => {
       LocaleLoader.languages.set('fr', {
         common: { hello: 'Bonjour' },
       });
@@ -114,7 +122,7 @@ describe('LocaleLoader', () => {
       expect(result).toBe('Dashboard');
     });
 
-    test('devrait retourner la clé si aucune traduction n\'est trouvée', () => {
+    test("devrait retourner la clé si aucune traduction n'est trouvée", () => {
       const result = LocaleLoader.translate('fr', 'completely.unknown.key');
       expect(result).toBe('completely.unknown.key');
     });
@@ -158,7 +166,7 @@ describe('LocaleLoader', () => {
       expect(result).toBe('Hello Alice, you have {{count}} messages');
     });
 
-    test('devrait retourner la valeur originale si ce n\'est pas une chaîne', () => {
+    test("devrait retourner la valeur originale si ce n'est pas une chaîne", () => {
       const result = LocaleLoader.interpolate(123, {});
       expect(result).toBe(123);
     });
@@ -205,7 +213,7 @@ describe('LocaleLoader', () => {
       expect(result).toEqual({ common: { hello: 'Hello' } });
     });
 
-    test('devrait retourner un objet vide si la langue par défaut n\'existe pas', () => {
+    test("devrait retourner un objet vide si la langue par défaut n'existe pas", () => {
       LocaleLoader.languages.clear();
       const result = LocaleLoader.getAllTranslations('fr');
       expect(result).toEqual({});
@@ -217,9 +225,7 @@ describe('LocaleLoader', () => {
       LocaleLoader.languages.set('fr', { old: 'data' });
 
       const mockData = { common: { hello: 'Bonjour' } };
-      mockPath.join
-        .mockReturnValueOnce('/path/to/fr.json')
-        .mockReturnValueOnce('/path/to/en.json');
+      mockPath.join.mockReturnValueOnce('/path/to/fr.json').mockReturnValueOnce('/path/to/en.json');
       mockFs.readFileSync
         .mockReturnValueOnce(JSON.stringify(mockData))
         .mockReturnValueOnce(JSON.stringify(mockData));
@@ -272,7 +278,7 @@ describe('Language Middleware', () => {
       expect(result).toBe('en'); // langue par défaut
     });
 
-    test('devrait détecter la langue depuis l\'en-tête Accept-Language', () => {
+    test("devrait détecter la langue depuis l'en-tête Accept-Language", () => {
       mockReq.get.mockReturnValue('fr-FR, en-US;q=0.9');
 
       const result = detectLanguage(mockReq);
@@ -286,14 +292,14 @@ describe('Language Middleware', () => {
       expect(result).toBe('fr');
     });
 
-    test('devrait utiliser la langue par défaut si aucune n\'est supportée', () => {
+    test("devrait utiliser la langue par défaut si aucune n'est supportée", () => {
       mockReq.get.mockReturnValue('es-ES, de-DE');
 
       const result = detectLanguage(mockReq);
       expect(result).toBe('en');
     });
 
-    test('devrait utiliser la langue par défaut si pas de cookie ni d\'en-tête', () => {
+    test("devrait utiliser la langue par défaut si pas de cookie ni d'en-tête", () => {
       const result = detectLanguage(mockReq);
       expect(result).toBe('en');
     });
@@ -318,7 +324,7 @@ describe('Language Middleware', () => {
       expect(mockNext).toHaveBeenCalled();
     });
 
-    test('devrait utiliser la langue par défaut si aucune n\'est détectée', () => {
+    test("devrait utiliser la langue par défaut si aucune n'est détectée", () => {
       languageMiddleware(mockReq, mockRes, mockNext);
 
       expect(mockReq.language).toBe('en');
@@ -424,9 +430,13 @@ describe('Language Middleware', () => {
 
       switchLanguage(mockReq, mockRes);
 
-      expect(mockRes.cookie).toHaveBeenCalledWith('language', 'fr', expect.objectContaining({
-        secure: true,
-      }));
+      expect(mockRes.cookie).toHaveBeenCalledWith(
+        'language',
+        'fr',
+        expect.objectContaining({
+          secure: true,
+        })
+      );
 
       delete process.env.NODE_ENV;
     });

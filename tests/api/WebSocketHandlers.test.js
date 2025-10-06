@@ -190,7 +190,9 @@ describe('WebSocket Handlers', () => {
       WebSocketHandlers(mockIo, mockSocketWSBridge);
 
       expect(mockIo.on).toHaveBeenCalledWith('connection', expect.any(Function));
-      expect(Logger.app.info).toHaveBeenCalledWith('🔌 Gestionnaire WebSocket initialisé (Socket.io pour Web uniquement)');
+      expect(Logger.app.info).toHaveBeenCalledWith(
+        '🔌 Gestionnaire WebSocket initialisé (Socket.io pour Web uniquement)'
+      );
     });
 
     test('devrait démarrer le timer de statistiques', () => {
@@ -231,7 +233,9 @@ describe('WebSocket Handlers', () => {
         userType: 'user',
         userName: 'testuser',
       });
-      expect(Logger.activity.debug).toHaveBeenCalledWith('👤 testuser connected (ID: 1, Code: USER-1)');
+      expect(Logger.activity.debug).toHaveBeenCalledWith(
+        '👤 testuser connected (ID: 1, Code: USER-1)'
+      );
     });
 
     test('devrait gérer une connexion sans session (authentification manuelle)', () => {
@@ -247,20 +251,27 @@ describe('WebSocket Handlers', () => {
 
       connectionHandler(socketWithoutSession);
 
-      expect(Logger.esp.debug).toHaveBeenCalledWith('🔄 Connection without session - waiting for manual auth: socket456');
+      expect(Logger.esp.debug).toHaveBeenCalledWith(
+        '🔄 Connection without session - waiting for manual auth: socket456'
+      );
 
       // Simuler l'authentification manuelle
-      const authHandler = socketWithoutSession.on.mock.calls.find(call => call[0] === 'client:authenticate')[1];
+      const authHandler = socketWithoutSession.on.mock.calls.find(
+        call => call[0] === 'client:authenticate'
+      )[1];
       authHandler({ userId: 2, userName: 'manualuser', userType: 'user' });
 
-      expect(Logger.activity.info).toHaveBeenCalledWith('🔐 Manual client authentication attempt: socket456', {
-        userId: 2,
-        userName: 'manualuser',
-        userType: 'user',
-      });
+      expect(Logger.activity.info).toHaveBeenCalledWith(
+        '🔐 Manual client authentication attempt: socket456',
+        {
+          userId: 2,
+          userName: 'manualuser',
+          userType: 'user',
+        }
+      );
     });
 
-    test('devrait rejeter l\'authentification manuelle sans userId', () => {
+    test("devrait rejeter l'authentification manuelle sans userId", () => {
       const socketWithoutSession = {
         ...mockSocket,
         request: { session: null },
@@ -271,7 +282,9 @@ describe('WebSocket Handlers', () => {
 
       connectionHandler(socketWithoutSession);
 
-      const authHandler = socketWithoutSession.on.mock.calls.find(call => call[0] === 'client:authenticate')[1];
+      const authHandler = socketWithoutSession.on.mock.calls.find(
+        call => call[0] === 'client:authenticate'
+      )[1];
       authHandler({ userName: 'manualuser' });
 
       expect(socketWithoutSession.emit).toHaveBeenCalledWith('client:auth:error', {
@@ -279,7 +292,7 @@ describe('WebSocket Handlers', () => {
       });
     });
 
-    test('devrait déconnecter après timeout d\'authentification', () => {
+    test("devrait déconnecter après timeout d'authentification", () => {
       jest.useFakeTimers();
 
       const socketWithoutSession = {
@@ -295,7 +308,9 @@ describe('WebSocket Handlers', () => {
 
       jest.advanceTimersByTime(10000);
 
-      expect(Logger.activity.warn).toHaveBeenCalledWith('❌ Timeout connexion Socket.IO non authentifiée : socket123');
+      expect(Logger.activity.warn).toHaveBeenCalledWith(
+        '❌ Timeout connexion Socket.IO non authentifiée : socket123'
+      );
       expect(socketWithoutSession.disconnect).toHaveBeenCalled();
 
       jest.useRealTimers();
@@ -324,29 +339,37 @@ describe('WebSocket Handlers', () => {
       const statsHandler = statsCall[1];
       statsHandler();
 
-      expect(clientSocket.emit).toHaveBeenCalledWith('simple_stats_update', expect.objectContaining({
-        users: { online: 1 },
-        modules: { online: 2 },
-        timestamp: expect.any(Date),
-      }));
+      expect(clientSocket.emit).toHaveBeenCalledWith(
+        'simple_stats_update',
+        expect.objectContaining({
+          users: { online: 1 },
+          modules: { online: 2 },
+          timestamp: expect.any(Date),
+        })
+      );
     });
 
-    test('devrait gérer la demande d\'états des modules', () => {
+    test("devrait gérer la demande d'états des modules", () => {
       connectionHandler(clientSocket);
 
-      const statesCall = clientSocket.on.mock.calls.find(call => call[0] === 'request_module_states');
+      const statesCall = clientSocket.on.mock.calls.find(
+        call => call[0] === 'request_module_states'
+      );
       expect(statesCall).toBeDefined();
 
       const statesHandler = statesCall[1];
       statesHandler();
 
-      expect(clientSocket.emit).toHaveBeenCalledWith('module_states_sync', expect.objectContaining({
-        states: [],
-        timestamp: expect.any(Date),
-      }));
+      expect(clientSocket.emit).toHaveBeenCalledWith(
+        'module_states_sync',
+        expect.objectContaining({
+          states: [],
+          timestamp: expect.any(Date),
+        })
+      );
     });
 
-    test('devrait gérer l\'enregistrement de page', () => {
+    test("devrait gérer l'enregistrement de page", () => {
       connectionHandler(clientSocket);
 
       const pageHandler = clientSocket.on.mock.calls.find(call => call[0] === 'register_page')[1];
@@ -358,12 +381,14 @@ describe('WebSocket Handlers', () => {
       });
     });
 
-    test('devrait gérer l\'envoi de commandes de module', () => {
+    test("devrait gérer l'envoi de commandes de module", () => {
       mockIo.app.locals.socketWSBridge.handleWebCommand.mockReturnValue(true);
 
       connectionHandler(clientSocket);
 
-      const commandCall = clientSocket.on.mock.calls.find(call => call[0] === 'send_module_command');
+      const commandCall = clientSocket.on.mock.calls.find(
+        call => call[0] === 'send_module_command'
+      );
       expect(commandCall).toBeDefined();
 
       const commandHandler = commandCall[1];
@@ -375,19 +400,24 @@ describe('WebSocket Handlers', () => {
         'move',
         { moduleId: 'MOD001', command: 'move', speed: 50 }
       );
-      expect(clientSocket.emit).toHaveBeenCalledWith('command_sent', expect.objectContaining({
-        moduleId: 'MOD001',
-        command: 'move',
-        timestamp: expect.any(Date),
-      }));
+      expect(clientSocket.emit).toHaveBeenCalledWith(
+        'command_sent',
+        expect.objectContaining({
+          moduleId: 'MOD001',
+          command: 'move',
+          timestamp: expect.any(Date),
+        })
+      );
     });
 
-    test('devrait gérer l\'échec d\'envoi de commande', () => {
+    test("devrait gérer l'échec d'envoi de commande", () => {
       mockSocketWSBridge.handleWebCommand.mockReturnValue(false);
 
       connectionHandler(clientSocket);
 
-      const commandHandler = clientSocket.on.mock.calls.find(call => call[0] === 'send_module_command')[1];
+      const commandHandler = clientSocket.on.mock.calls.find(
+        call => call[0] === 'send_module_command'
+      )[1];
       commandHandler({ moduleId: 'MOD001', command: 'move' });
 
       expect(clientSocket.emit).toHaveBeenCalledWith('command_error', {
@@ -400,7 +430,9 @@ describe('WebSocket Handlers', () => {
     test('devrait rejeter les commandes invalides', () => {
       connectionHandler(clientSocket);
 
-      const commandHandler = clientSocket.on.mock.calls.find(call => call[0] === 'send_module_command')[1];
+      const commandHandler = clientSocket.on.mock.calls.find(
+        call => call[0] === 'send_module_command'
+      )[1];
       commandHandler({ command: 'move' }); // Pas de moduleId
 
       expect(clientSocket.emit).toHaveBeenCalledWith('error', {

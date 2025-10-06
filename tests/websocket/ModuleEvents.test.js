@@ -29,8 +29,9 @@ describe('ModuleEvents - Tests unitaires', () => {
   beforeEach(() => {
     // Mock du gestionnaire d'événements
     mockEventsManager = {
-      emitToPage: jest.fn(),
+      emitToPageExcludingUser: jest.fn(),
       emitToAdmins: jest.fn(),
+      emitToAdminsExcludingUser: jest.fn(),
       emitToUser: jest.fn(),
       getStats: jest.fn(() => ({ uniqueUsers: 5 })),
     };
@@ -51,15 +52,28 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(state.moduleInfo).toEqual(moduleInfo);
 
       // Vérifier les émissions d'événements
-      expect(mockEventsManager.emitToPage).toHaveBeenCalledWith('modules', 'rt_module_online', expect.objectContaining({
-        moduleId: 'MC-001',
-        online: true,
-      }));
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_module_online', expect.objectContaining({
-        moduleId: 'MC-001',
-        online: true,
-      }));
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:module:online', expect.any(Object));
+      expect(mockEventsManager.emitToPageExcludingUser).toHaveBeenCalledWith(
+        'modules',
+        'rt_module_online',
+        expect.objectContaining({
+          moduleId: 'MC-001',
+          online: true,
+        }),
+        123
+      );
+      expect(mockEventsManager.emitToAdminsExcludingUser).toHaveBeenCalledWith(
+        'rt_module_online',
+        expect.objectContaining({
+          moduleId: 'MC-001',
+          online: true,
+        }),
+        123
+      );
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'user:module:online',
+        expect.any(Object)
+      );
     });
 
     test('ne doit pas émettre si le module était déjà en ligne', () => {
@@ -71,8 +85,16 @@ describe('ModuleEvents - Tests unitaires', () => {
       moduleEvents.moduleOnline('MC-001', { userId: 123 });
 
       // Les événements de changement d'état ne devraient pas être émis
-      expect(mockEventsManager.emitToPage).not.toHaveBeenCalledWith('modules', 'rt_module_online');
-      expect(mockEventsManager.emitToAdmins).not.toHaveBeenCalledWith('rt_module_online');
+      expect(mockEventsManager.emitToPageExcludingUser).not.toHaveBeenCalledWith(
+        'modules',
+        'rt_module_online',
+        expect.any(Object),
+        expect.anything()
+      );
+      expect(mockEventsManager.emitToAdmins).not.toHaveBeenCalledWith(
+        'rt_module_online',
+        expect.any(Object)
+      );
       // Mais emitLastSeenUpdate peut être appelé
     });
 
@@ -85,7 +107,10 @@ describe('ModuleEvents - Tests unitaires', () => {
       return new Promise(resolve => {
         setTimeout(() => {
           // Vérifier que les statistiques sont mises à jour
-          expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('simple_stats_update', expect.any(Object));
+          expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+            'simple_stats_update',
+            expect.any(Object)
+          );
           resolve();
         }, 250);
       });
@@ -105,20 +130,42 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(state.online).toBe(false);
 
       // Vérifier les émissions
-      expect(mockEventsManager.emitToPage).toHaveBeenCalledWith('modules', 'rt_module_offline', expect.objectContaining({
-        moduleId: 'MC-001',
-        online: false,
-      }));
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_module_offline', expect.any(Object));
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:module:offline', expect.any(Object));
+      expect(mockEventsManager.emitToPageExcludingUser).toHaveBeenCalledWith(
+        'modules',
+        'rt_module_offline',
+        expect.objectContaining({
+          moduleId: 'MC-001',
+          online: false,
+        }),
+        123
+      );
+      expect(mockEventsManager.emitToAdminsExcludingUser).toHaveBeenCalledWith(
+        'rt_module_offline',
+        expect.any(Object),
+        123
+      );
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'user:module:offline',
+        expect.any(Object)
+      );
     });
 
     test('ne doit pas émettre si le module était déjà hors ligne', () => {
       moduleEvents.moduleOffline('MC-001', { userId: 123 });
 
       // Les événements de changement d'état ne devraient pas être émis
-      expect(mockEventsManager.emitToPage).not.toHaveBeenCalledWith('modules', 'rt_module_offline');
-      expect(mockEventsManager.emitToAdmins).not.toHaveBeenCalledWith('rt_module_offline');
+      expect(mockEventsManager.emitToPageExcludingUser).not.toHaveBeenCalledWith(
+        'modules',
+        'rt_module_offline',
+        expect.any(Object),
+        expect.anything()
+      );
+      expect(mockEventsManager.emitToAdminsExcludingUser).not.toHaveBeenCalledWith(
+        'rt_module_offline',
+        expect.any(Object),
+        expect.anything()
+      );
       // Mais emitLastSeenUpdate peut être appelé
     });
 
@@ -134,7 +181,10 @@ describe('ModuleEvents - Tests unitaires', () => {
       return new Promise(resolve => {
         setTimeout(() => {
           // Vérifier que les statistiques sont mises à jour
-          expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('simple_stats_update', expect.any(Object));
+          expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+            'simple_stats_update',
+            expect.any(Object)
+          );
           resolve();
         }, 250);
       });
@@ -142,21 +192,28 @@ describe('ModuleEvents - Tests unitaires', () => {
   });
 
   describe('moduleAdded', () => {
-    test('doit émettre l\'ajout d\'un module', () => {
+    test("doit émettre l'ajout d'un module", () => {
       const moduleData = { module_id: 'MC-001', userId: 123, name: 'New Module' };
 
       moduleEvents.moduleAdded(moduleData);
 
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:module:added', expect.objectContaining({
-        action: 'added',
-        module: moduleData,
-      }));
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_module_added', expect.any(Object));
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'user:module:added',
+        expect.objectContaining({
+          action: 'added',
+          module: moduleData,
+        })
+      );
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_module_added',
+        expect.any(Object)
+      );
     });
   });
 
   describe('moduleRemoved', () => {
-    test('doit supprimer l\'état du module et émettre la suppression', () => {
+    test("doit supprimer l'état du module et émettre la suppression", () => {
       // Ajouter un état de module
       moduleEvents.moduleStates.set('MC-001', { online: true });
 
@@ -168,8 +225,15 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(moduleEvents.moduleStates.has('MC-001')).toBe(false);
 
       // Vérifier les émissions
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:module:removed', expect.any(Object));
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_module_removed', expect.any(Object));
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'user:module:removed',
+        expect.any(Object)
+      );
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_module_removed',
+        expect.any(Object)
+      );
     });
   });
 
@@ -187,11 +251,19 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(state.telemetry).toEqual(telemetryData);
 
       // Vérifier les émissions
-      expect(mockEventsManager.emitToPage).toHaveBeenCalledWith('modules', 'rt_telemetry_updated', expect.objectContaining({
-        moduleId: 'MC-001',
-        telemetry: telemetryData,
-      }));
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_telemetry_updated', expect.any(Object));
+      expect(mockEventsManager.emitToPageExcludingUser).toHaveBeenCalledWith(
+        'modules',
+        'rt_telemetry_updated',
+        expect.objectContaining({
+          moduleId: 'MC-001',
+          telemetry: telemetryData,
+        }),
+        undefined
+      );
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_telemetry_updated',
+        expect.any(Object)
+      );
     });
 
     test('doit gérer la télémétrie pour un module sans état existant', () => {
@@ -205,32 +277,49 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(state).toBeUndefined(); // Aucun état n'est créé
 
       // Vérifier que les événements sont quand même émis
-      expect(mockEventsManager.emitToPage).toHaveBeenCalledWith('modules', 'rt_telemetry_updated', expect.objectContaining({
-        moduleId: 'MC-001',
-        telemetry: telemetryData,
-      }));
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_telemetry_updated', expect.any(Object));
+      expect(mockEventsManager.emitToPageExcludingUser).toHaveBeenCalledWith(
+        'modules',
+        'rt_telemetry_updated',
+        expect.objectContaining({
+          moduleId: 'MC-001',
+          telemetry: telemetryData,
+        }),
+        undefined
+      );
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_telemetry_updated',
+        expect.any(Object)
+      );
     });
   });
 
   describe('commandSent', () => {
-    test('doit émettre l\'envoi d\'une commande', () => {
+    test("doit émettre l'envoi d'une commande", () => {
       moduleEvents.commandSent('MC-001', 'start', 123);
 
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:command:sent', expect.objectContaining({
-        moduleId: 'MC-001',
-        command: 'start',
-        userId: 123,
-      }));
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('admin:command:sent', expect.any(Object));
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'user:command:sent',
+        expect.objectContaining({
+          moduleId: 'MC-001',
+          command: 'start',
+          userId: 123,
+        })
+      );
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'admin:command:sent',
+        expect.any(Object)
+      );
     });
 
-    test('doit gérer les erreurs lors de l\'envoi de commande', () => {
+    test("doit gérer les erreurs lors de l'envoi de commande", () => {
       const mockSocket = {
         id: 'socket123',
         moduleAuth: { userId: 123 },
         moduleId: 'MC-001',
-        emit: jest.fn(() => { throw new Error('Socket error'); }),
+        emit: jest.fn(() => {
+          throw new Error('Socket error');
+        }),
       };
 
       // Enregistrer le module
@@ -261,7 +350,7 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(moduleEvents.connectedESPs.has('MC-001')).toBe(true);
     });
 
-    test('doit refuser l\'enregistrement sans authentification', () => {
+    test("doit refuser l'enregistrement sans authentification", () => {
       const mockSocket = {
         id: 'socket123',
         moduleAuth: null,
@@ -273,7 +362,7 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(moduleEvents.connectedESPs.has('MC-001')).toBe(false);
     });
 
-    test('doit gérer la reconnexion en déconnectant l\'ancien socket', () => {
+    test("doit gérer la reconnexion en déconnectant l'ancien socket", () => {
       const oldSocket = {
         id: 'oldSocket',
         removeAllListeners: jest.fn(),
@@ -301,7 +390,9 @@ describe('ModuleEvents - Tests unitaires', () => {
     test('doit gérer les erreurs lors de la déconnexion du socket précédent', () => {
       const oldSocket = {
         id: 'oldSocket',
-        removeAllListeners: jest.fn(() => { throw new Error('Disconnect error'); }),
+        removeAllListeners: jest.fn(() => {
+          throw new Error('Disconnect error');
+        }),
         disconnect: jest.fn(),
       };
       const newSocket = {
@@ -323,7 +414,7 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(moduleEvents.connectedESPs.get('MC-001')).toBe(newSocket);
     });
 
-    test('doit mettre à jour les statistiques lors de l\'enregistrement', () => {
+    test("doit mettre à jour les statistiques lors de l'enregistrement", () => {
       const mockSocket = {
         id: 'socket123',
         moduleAuth: { userId: 123 },
@@ -338,7 +429,10 @@ describe('ModuleEvents - Tests unitaires', () => {
       return new Promise(resolve => {
         setTimeout(() => {
           // Vérifier que les statistiques sont mises à jour
-          expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('simple_stats_update', expect.any(Object));
+          expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+            'simple_stats_update',
+            expect.any(Object)
+          );
           resolve();
         }, 250);
       });
@@ -364,7 +458,7 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(moduleEvents.connectedESPs.has('MC-001')).toBe(false);
     });
 
-    test('doit gérer la déconnexion d\'un socket qui n\'est plus actif', () => {
+    test("doit gérer la déconnexion d'un socket qui n'est plus actif", () => {
       const oldSocket = { id: 'oldSocket' };
       const newSocket = {
         id: 'newSocket',
@@ -382,7 +476,7 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(moduleEvents.connectedESPs.has('MC-001')).toBe(true); // Le nouveau reste actif
     });
 
-    test('doit gérer la déconnexion d\'un socket remplacé par une reconnexion', () => {
+    test("doit gérer la déconnexion d'un socket remplacé par une reconnexion", () => {
       const oldSocket = {
         id: 'oldSocket',
         moduleAuth: { userId: 123 },
@@ -440,14 +534,14 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(mockSocket.emit).toHaveBeenCalledWith('command', { command: 'start' });
     });
 
-    test('doit refuser l\'envoi à un module hors ligne', () => {
+    test("doit refuser l'envoi à un module hors ligne", () => {
       const result = moduleEvents.sendSecureCommand('MC-001', 'start', 123);
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Module hors ligne');
     });
 
-    test('doit refuser l\'envoi à un utilisateur non autorisé', () => {
+    test("doit refuser l'envoi à un utilisateur non autorisé", () => {
       const mockSocket = {
         id: 'socket123',
         moduleAuth: { userId: 123 },
@@ -466,16 +560,18 @@ describe('ModuleEvents - Tests unitaires', () => {
       // Vérifier le logging d'avertissement
       const Logger = require('../../utils/logger');
       expect(Logger.modules.warn).toHaveBeenCalledWith(
-        '🚨 Tentative d\'accès non autorisé au module MC-001 par utilisateur 456'
+        "🚨 Tentative d'accès non autorisé au module MC-001 par utilisateur 456"
       );
     });
 
-    test('doit gérer les erreurs lors de l\'envoi de commande', () => {
+    test("doit gérer les erreurs lors de l'envoi de commande", () => {
       const mockSocket = {
         id: 'socket123',
         moduleAuth: { userId: 123 },
         moduleId: 'MC-001',
-        emit: jest.fn(() => { throw new Error('Socket error'); }),
+        emit: jest.fn(() => {
+          throw new Error('Socket error');
+        }),
       };
 
       // Enregistrer le module
@@ -487,7 +583,7 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(result.error).toBe('Erreur envoi');
     });
 
-    test('doit refuser l\'envoi à un module non authentifié', () => {
+    test("doit refuser l'envoi à un module non authentifié", () => {
       const mockSocket = {
         id: 'socket123',
         emit: jest.fn(),
@@ -506,7 +602,7 @@ describe('ModuleEvents - Tests unitaires', () => {
       // Vérifier le logging d'avertissement
       const Logger = require('../../utils/logger');
       expect(Logger.modules.warn).toHaveBeenCalledWith(
-        'Tentative d\'envoi de commande à module non authentifié : MC-001'
+        "Tentative d'envoi de commande à module non authentifié : MC-001"
       );
     });
   });
@@ -531,7 +627,7 @@ describe('ModuleEvents - Tests unitaires', () => {
   });
 
   describe('getModuleState', () => {
-    test('doit retourner l\'état d\'un module existant', () => {
+    test("doit retourner l'état d'un module existant", () => {
       const state = { online: true, lastSeen: new Date() };
       moduleEvents.moduleStates.set('MC-001', state);
 
@@ -546,16 +642,23 @@ describe('ModuleEvents - Tests unitaires', () => {
   });
 
   describe('moduleUpdated', () => {
-    test('doit émettre la mise à jour d\'un module', () => {
+    test("doit émettre la mise à jour d'un module", () => {
       const moduleData = { module_id: 'MC-001', userId: 123, name: 'Updated Module' };
 
       moduleEvents.moduleUpdated(moduleData);
 
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:module:updated', expect.objectContaining({
-        action: 'updated',
-        module: moduleData,
-      }));
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_module_updated', expect.any(Object));
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'user:module:updated',
+        expect.objectContaining({
+          action: 'updated',
+          module: moduleData,
+        })
+      );
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_module_updated',
+        expect.any(Object)
+      );
     });
   });
 
@@ -566,14 +669,21 @@ describe('ModuleEvents - Tests unitaires', () => {
 
       moduleEvents.emitLastSeenUpdate('MC-001', lastSeen, moduleInfo);
 
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_module_last_seen_updated', expect.objectContaining({
-        moduleId: 'MC-001',
-        lastSeen,
-        userId: 123,
-        type: 'Station',
-      }));
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_module_last_seen_updated',
+        expect.objectContaining({
+          moduleId: 'MC-001',
+          lastSeen,
+          userId: 123,
+          type: 'Station',
+        })
+      );
 
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:module:last_seen_updated', expect.any(Object));
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'user:module:last_seen_updated',
+        expect.any(Object)
+      );
     });
 
     test('doit émettre la mise à jour sans notification utilisateur si pas de userId', () => {
@@ -582,11 +692,14 @@ describe('ModuleEvents - Tests unitaires', () => {
 
       moduleEvents.emitLastSeenUpdate('MC-001', lastSeen, moduleInfo);
 
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_module_last_seen_updated', expect.objectContaining({
-        moduleId: 'MC-001',
-        lastSeen,
-        type: 'Station',
-      }));
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_module_last_seen_updated',
+        expect.objectContaining({
+          moduleId: 'MC-001',
+          lastSeen,
+          type: 'Station',
+        })
+      );
 
       // Ne doit pas émettre vers un utilisateur spécifique
       expect(mockEventsManager.emitToUser).not.toHaveBeenCalled();
@@ -601,11 +714,14 @@ describe('ModuleEvents - Tests unitaires', () => {
       return new Promise(resolve => {
         setTimeout(() => {
           // Vérifier que les statistiques sont émises
-          expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('simple_stats_update', expect.objectContaining({
-            users: { online: 5 },
-            modules: { online: 0 },
-            timestamp: expect.any(Date),
-          }));
+          expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+            'simple_stats_update',
+            expect.objectContaining({
+              users: { online: 5 },
+              modules: { online: 0 },
+              timestamp: expect.any(Date),
+            })
+          );
 
           // Vérifier le logging
           const Logger = require('../../utils/logger');
@@ -617,7 +733,7 @@ describe('ModuleEvents - Tests unitaires', () => {
       });
     });
 
-    test('doit gérer les erreurs lors de l\'émission des statistiques', () => {
+    test("doit gérer les erreurs lors de l'émission des statistiques", () => {
       // Simuler une erreur dans getStats
       mockEventsManager.getStats.mockImplementation(() => {
         throw new Error('Stats error');
@@ -631,7 +747,10 @@ describe('ModuleEvents - Tests unitaires', () => {
         setTimeout(() => {
           // Vérifier que l'erreur est loggée
           const Logger = require('../../utils/logger');
-          expect(Logger.modules.error).toHaveBeenCalledWith('[ModuleEvents] Erreur émission stats :', expect.any(Error));
+          expect(Logger.modules.error).toHaveBeenCalledWith(
+            '[ModuleEvents] Erreur émission stats :',
+            expect.any(Error)
+          );
           resolve();
         }, 250);
       });

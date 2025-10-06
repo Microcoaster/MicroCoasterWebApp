@@ -101,7 +101,7 @@ describe('EventsManager - Tests unitaires', () => {
       expect(eventsManager.connectedClients.size).toBe(0);
     });
 
-    test('ne doit rien faire si le client n\'existe pas', () => {
+    test("ne doit rien faire si le client n'existe pas", () => {
       eventsManager.registerClient(mockSocket1, 123);
       eventsManager.unregisterClient('socket_inexistant');
 
@@ -164,7 +164,7 @@ describe('EventsManager - Tests unitaires', () => {
       expect(mockSocket3.emit).toHaveBeenCalledWith('personal', data);
     });
 
-    test('ne doit rien émettre si l\'utilisateur n\'est pas connecté', () => {
+    test("ne doit rien émettre si l'utilisateur n'est pas connecté", () => {
       eventsManager.emitToUser(999, 'test', {});
       expect(mockSocket1.emit).not.toHaveBeenCalled();
     });
@@ -182,7 +182,7 @@ describe('EventsManager - Tests unitaires', () => {
       expect(mockSocket2.emit).toHaveBeenCalledWith('admin_alert', data);
     });
 
-    test('ne doit rien émettre s\'il n\'y a pas d\'administrateurs', () => {
+    test("ne doit rien émettre s'il n'y a pas d'administrateurs", () => {
       eventsManager.registerClient(mockSocket1, 123, 'user');
       eventsManager.emitToAdmins('test', {});
 
@@ -200,32 +200,75 @@ describe('EventsManager - Tests unitaires', () => {
       eventsManager.emitToAdmins('rt_module_last_seen_updated', { data: 'test' });
 
       // Les deux branches du if devraient être couvertes
-      expect(Logger.system.debug).toHaveBeenCalledWith("Émission 'rt_telemetry_updated' vers 1 admin(s)");
-      expect(Logger.system.debug).toHaveBeenCalledWith("Émission 'rt_module_last_seen_updated' vers 1 admin(s)");
+      expect(Logger.system.debug).toHaveBeenCalledWith(
+        "Émission 'rt_telemetry_updated' vers 1 admin(s)"
+      );
+      expect(Logger.system.debug).toHaveBeenCalledWith(
+        "Émission 'rt_module_last_seen_updated' vers 1 admin(s)"
+      );
     });
   });
 
-  describe('emitToPage', () => {
-    test('doit émettre vers les clients d\'une page spécifique', () => {
+  describe('emitToPageExcludingUser', () => {
+    test("doit émettre vers les clients d'une page en excluant un utilisateur spécifique", () => {
       eventsManager.registerClient(mockSocket1, 123, 'user', 'modules');
-      eventsManager.registerClient(mockSocket2, 456, 'admin', 'dashboard');
+      eventsManager.registerClient(mockSocket2, 456, 'admin', 'modules'); // Même page, utilisateur différent
 
       const data = { update: 'Module updated' };
-      eventsManager.emitToPage('modules', 'module_update', data);
+      eventsManager.emitToPageExcludingUser('modules', 'module_update', data, 123);
 
-      expect(mockSocket1.emit).toHaveBeenCalledWith('module_update', data);
-      expect(mockSocket2.emit).not.toHaveBeenCalled();
-
-      // Vérifier que le log de debug est appelé
-      const Logger = require('../../utils/logger');
-      expect(Logger.system.debug).toHaveBeenCalledWith("Émission 'module_update' vers page 'modules' (1 clients)");
+      expect(mockSocket1.emit).not.toHaveBeenCalled(); // Exclu
+      expect(mockSocket2.emit).toHaveBeenCalledWith('module_update', data); // Inclus
     });
 
-    test('ne doit rien émettre si aucun client sur la page', () => {
-      eventsManager.registerClient(mockSocket1, 123, 'user', 'dashboard');
-      eventsManager.emitToPage('modules', 'test', {});
+    test('ne doit rien émettre si tous les clients de la page sont exclus', () => {
+      eventsManager.registerClient(mockSocket1, 123, 'user', 'modules');
+      eventsManager.emitToPageExcludingUser('modules', 'test', {}, 123);
 
       expect(mockSocket1.emit).not.toHaveBeenCalled();
+    });
+
+    test("doit logger correctement avec l'utilisateur exclu", () => {
+      const Logger = require('../../utils/logger');
+      eventsManager.registerClient(mockSocket1, 123, 'user', 'modules');
+      eventsManager.registerClient(mockSocket2, 456, 'admin', 'modules');
+
+      eventsManager.emitToPageExcludingUser('modules', 'test_event', {}, 123);
+
+      expect(Logger.system.debug).toHaveBeenCalledWith(
+        "Émission 'test_event' vers page 'modules' (1 clients, exclu: 123)"
+      );
+    });
+  });
+
+  describe('emitToAdminsExcludingUser', () => {
+    test('doit émettre vers les admins en excluant un utilisateur spécifique', () => {
+      eventsManager.registerClient(mockSocket1, 123, 'admin', 'dashboard');
+      eventsManager.registerClient(mockSocket2, 456, 'admin', 'admin');
+
+      const data = { alert: 'System alert' };
+      eventsManager.emitToAdminsExcludingUser('admin_alert', data, 123);
+
+      expect(mockSocket1.emit).not.toHaveBeenCalled(); // Exclu
+      expect(mockSocket2.emit).toHaveBeenCalledWith('admin_alert', data); // Inclus
+    });
+
+    test('ne doit rien émettre si tous les admins sont exclus', () => {
+      eventsManager.registerClient(mockSocket1, 123, 'admin');
+      eventsManager.emitToAdminsExcludingUser('test', {}, 123);
+
+      expect(mockSocket1.emit).not.toHaveBeenCalled();
+    });
+
+    test('ne doit pas émettre vers les utilisateurs non-admin même si exclus', () => {
+      eventsManager.registerClient(mockSocket1, 123, 'user', 'dashboard');
+      eventsManager.registerClient(mockSocket2, 456, 'admin', 'admin');
+
+      const data = { alert: 'System alert' };
+      eventsManager.emitToAdminsExcludingUser('admin_alert', data, 123);
+
+      expect(mockSocket1.emit).not.toHaveBeenCalled(); // Non-admin
+      expect(mockSocket2.emit).toHaveBeenCalledWith('admin_alert', data); // Admin
     });
   });
 

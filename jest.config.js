@@ -16,7 +16,5 @@ module.exports = {
   testTimeout: 5000,
   maxWorkers: 4,
   coverageProvider: 'v8',
-  testPathIgnorePatterns: [
-    'tests/routes/',
-  ],
+  testPathIgnorePatterns: ['tests/routes/'],
 };

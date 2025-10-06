@@ -124,7 +124,7 @@ describe('BaseDAO - Tests unitaires', () => {
       expect(result).toEqual(mockRows);
     });
 
-    test('insert doit retourner le résultat de l\'insertion', async () => {
+    test("insert doit retourner le résultat de l'insertion", async () => {
       const mockResult = { insertId: 123, affectedRows: 1 };
       mockPool.execute.mockResolvedValue([mockResult]);
 

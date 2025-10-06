@@ -96,12 +96,14 @@ describe('RealTimeAPI', () => {
       expect(api.users).toBe(mockUserEvents);
     });
 
-    test('devrait initialiser correctement l\'API', () => {
+    test("devrait initialiser correctement l'API", () => {
       api.initialize();
 
       expect(api.initialized).toBe(true);
       expect(Logger.app.info).toHaveBeenCalledWith('🚀 Initializing real-time events API');
-      expect(Logger.app.info).toHaveBeenCalledWith('✅ Real-time events API initialized successfully');
+      expect(Logger.app.info).toHaveBeenCalledWith(
+        '✅ Real-time events API initialized successfully'
+      );
     });
 
     test('devrait éviter la double initialisation', () => {
@@ -112,7 +114,7 @@ describe('RealTimeAPI', () => {
       expect(Logger.app.info).toHaveBeenCalledTimes(2); // Seulement les deux premiers appels
     });
 
-    test('devrait retourner l\'état d\'initialisation', () => {
+    test("devrait retourner l'état d'initialisation", () => {
       expect(api.isInitialized()).toBe(false);
       api.initialize();
       expect(api.isInitialized()).toBe(true);
@@ -131,7 +133,7 @@ describe('RealTimeAPI', () => {
       };
     });
 
-    test('devrait enregistrer les gestionnaires d\'événements client', () => {
+    test("devrait enregistrer les gestionnaires d'événements client", () => {
       api.handleClientEvents(mockSocket);
 
       expect(mockSocket.on).toHaveBeenCalledWith('client:authenticate', expect.any(Function));
@@ -140,19 +142,29 @@ describe('RealTimeAPI', () => {
       expect(mockSocket.on).toHaveBeenCalledWith('client:page:changed', expect.any(Function));
     });
 
-    test('devrait gérer l\'authentification client', () => {
+    test("devrait gérer l'authentification client", () => {
       api.handleClientEvents(mockSocket);
 
       // Récupérer le handler d'authentification
-      const authHandler = mockSocket.on.mock.calls.find(call => call[0] === 'client:authenticate')[1];
+      const authHandler = mockSocket.on.mock.calls.find(
+        call => call[0] === 'client:authenticate'
+      )[1];
 
       authHandler({ userId: 'user123', userType: 'user', page: 'dashboard' });
 
-      expect(mockEventsManager.registerClient).toHaveBeenCalledWith(mockSocket, 'user123', 'user', 'dashboard');
-      expect(mockSocket.emit).toHaveBeenCalledWith('client:auth:success', expect.objectContaining({
-        message: 'Authenticated successfully',
-        timestamp: expect.any(Date),
-      }));
+      expect(mockEventsManager.registerClient).toHaveBeenCalledWith(
+        mockSocket,
+        'user123',
+        'user',
+        'dashboard'
+      );
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'client:auth:success',
+        expect.objectContaining({
+          message: 'Authenticated successfully',
+          timestamp: expect.any(Date),
+        })
+      );
       expect(Logger.activity.info).toHaveBeenCalledWith(
         'Client authenticated via API: socket123 (User user123, Page dashboard)'
       );
@@ -176,13 +188,18 @@ describe('RealTimeAPI', () => {
       api.handleClientEvents(mockSocket);
 
       // Récupérer le handler de sync
-      const syncHandler = mockSocket.on.mock.calls.find(call => call[0] === 'client:sync:request')[1];
+      const syncHandler = mockSocket.on.mock.calls.find(
+        call => call[0] === 'client:sync:request'
+      )[1];
 
       syncHandler();
 
-      expect(mockSocket.emit).toHaveBeenCalledWith('client:sync:success', expect.objectContaining({
-        timestamp: expect.any(Date),
-      }));
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'client:sync:success',
+        expect.objectContaining({
+          timestamp: expect.any(Date),
+        })
+      );
       // Vérifier que _sendInitialState a été appelée
       expect(mockModuleEvents.getCurrentStates).toHaveBeenCalled();
       expect(mockSocket.emit).toHaveBeenCalledWith('modules:initial:state', { modules: [] });
@@ -195,12 +212,16 @@ describe('RealTimeAPI', () => {
       api.handleClientEvents(mockSocket);
 
       // Récupérer le handler de changement de page
-      const pageChangeHandler = mockSocket.on.mock.calls.find(call => call[0] === 'client:page:changed')[1];
+      const pageChangeHandler = mockSocket.on.mock.calls.find(
+        call => call[0] === 'client:page:changed'
+      )[1];
 
       pageChangeHandler({ page: 'modules' });
 
       expect(client.page).toBe('modules');
-      expect(Logger.activity.info).toHaveBeenCalledWith('Client socket123 changed to page: modules');
+      expect(Logger.activity.info).toHaveBeenCalledWith(
+        'Client socket123 changed to page: modules'
+      );
     });
 
     test('devrait ignorer le changement de page pour un client non enregistré', () => {
@@ -208,7 +229,9 @@ describe('RealTimeAPI', () => {
       api.handleClientEvents(mockSocket);
 
       // Récupérer le handler de changement de page
-      const pageChangeHandler = mockSocket.on.mock.calls.find(call => call[0] === 'client:page:changed')[1];
+      const pageChangeHandler = mockSocket.on.mock.calls.find(
+        call => call[0] === 'client:page:changed'
+      )[1];
 
       pageChangeHandler({ page: 'modules' });
 
@@ -221,13 +244,15 @@ describe('RealTimeAPI', () => {
       api.handleClientEvents(mockSocket);
 
       // Récupérer le handler de synchronisation
-      const syncHandler = mockSocket.on.mock.calls.find(call => call[0] === 'client:sync:request')[1];
+      const syncHandler = mockSocket.on.mock.calls.find(
+        call => call[0] === 'client:sync:request'
+      )[1];
 
       syncHandler();
 
       // Devrait émettre une erreur car le client n'est pas authentifié
       expect(mockSocket.emit).toHaveBeenCalledWith('client:sync:error', {
-        message: 'Not authenticated'
+        message: 'Not authenticated',
       });
       expect(mockSocket.emit).not.toHaveBeenCalledWith('client:sync:success');
     });
@@ -244,11 +269,11 @@ describe('RealTimeAPI', () => {
       };
     });
 
-    test('devrait rejeter l\'authentification sans userId', () => {
+    test("devrait rejeter l'authentification sans userId", () => {
       api._authenticateClient(mockSocket, {});
 
       expect(mockSocket.emit).toHaveBeenCalledWith('client:auth:error', {
-        message: 'User ID required'
+        message: 'User ID required',
       });
       expect(mockEventsManager.registerClient).not.toHaveBeenCalled();
     });
@@ -257,43 +282,53 @@ describe('RealTimeAPI', () => {
       api._authenticateClient(mockSocket, {
         userId: 'user123',
         userType: 'admin',
-        page: 'admin'
+        page: 'admin',
       });
 
-      expect(mockEventsManager.registerClient).toHaveBeenCalledWith(mockSocket, 'user123', 'admin', 'admin');
+      expect(mockEventsManager.registerClient).toHaveBeenCalledWith(
+        mockSocket,
+        'user123',
+        'admin',
+        'admin'
+      );
       expect(mockSocket.isRegisteredWithEventsManager).toBe(true);
       expect(mockSocket.emit).toHaveBeenCalledWith('client:auth:success', expect.any(Object));
     });
 
-    test('devrait mettre à jour la page d\'un client existant', () => {
+    test("devrait mettre à jour la page d'un client existant", () => {
       // Simuler un client déjà enregistré
       const existingClient = { page: 'dashboard', userId: 'user123' };
       mockEventsManager.connectedClients.set('socket123', existingClient);
 
       api._authenticateClient(mockSocket, {
         userId: 'user123',
-        page: 'modules'
+        page: 'modules',
       });
 
       expect(existingClient.page).toBe('modules');
       expect(mockEventsManager.registerClient).not.toHaveBeenCalled();
-      expect(Logger.activity.debug).toHaveBeenCalledWith('📄 testuser navigated: dashboard → modules');
+      expect(Logger.activity.debug).toHaveBeenCalledWith(
+        '📄 testuser navigated: dashboard → modules'
+      );
     });
 
-    test('devrait gérer les erreurs d\'authentification', () => {
+    test("devrait gérer les erreurs d'authentification", () => {
       mockEventsManager.registerClient.mockImplementation(() => {
         throw new Error('Registration failed');
       });
 
       api._authenticateClient(mockSocket, { userId: 'user123' });
 
-      expect(Logger.activity.error).toHaveBeenCalledWith('Error authenticating client:', expect.any(Error));
+      expect(Logger.activity.error).toHaveBeenCalledWith(
+        'Error authenticating client:',
+        expect.any(Error)
+      );
       expect(mockSocket.emit).toHaveBeenCalledWith('client:auth:error', {
-        message: 'Authentication failed'
+        message: 'Authentication failed',
       });
     });
 
-    test('doit gérer l\'authentification avec changement de page', () => {
+    test("doit gérer l'authentification avec changement de page", () => {
       const mockSocket = {
         id: 'socket1',
         emit: jest.fn(),
@@ -323,7 +358,9 @@ describe('RealTimeAPI', () => {
       // Vérifier que la page a été mise à jour
       expect(existingClient.page).toBe('modules');
       // Vérifier que le log de navigation est appelé
-      expect(Logger.activity.debug).toHaveBeenCalledWith('📄 testuser navigated: dashboard → modules');
+      expect(Logger.activity.debug).toHaveBeenCalledWith(
+        '📄 testuser navigated: dashboard → modules'
+      );
     });
   });
 
@@ -337,30 +374,36 @@ describe('RealTimeAPI', () => {
       };
     });
 
-    test('devrait envoyer l\'état initial pour la page modules', async () => {
+    test("devrait envoyer l'état initial pour la page modules", async () => {
       await api._sendInitialState(mockSocket, 'modules');
 
       expect(mockModuleEvents.getCurrentStates).toHaveBeenCalled();
       expect(mockSocket.emit).toHaveBeenCalledWith('modules:initial:state', { modules: [] });
     });
 
-    test('devrait envoyer l\'état initial pour la page dashboard', async () => {
+    test("devrait envoyer l'état initial pour la page dashboard", async () => {
       await api._sendInitialState(mockSocket, 'dashboard');
 
-      expect(mockSocket.emit).toHaveBeenCalledWith('dashboard:initial:summary', expect.objectContaining({
-        timestamp: expect.any(Date),
-        message: 'Dashboard synchronized',
-      }));
+      expect(mockSocket.emit).toHaveBeenCalledWith(
+        'dashboard:initial:summary',
+        expect.objectContaining({
+          timestamp: expect.any(Date),
+          message: 'Dashboard synchronized',
+        })
+      );
     });
 
-    test('devrait gérer les erreurs lors de l\'envoi de l\'état initial', async () => {
+    test("devrait gérer les erreurs lors de l'envoi de l'état initial", async () => {
       mockModuleEvents.getCurrentStates.mockImplementation(() => {
         throw new Error('Database error');
       });
 
       await api._sendInitialState(mockSocket, 'modules');
 
-      expect(Logger.app.error).toHaveBeenCalledWith('Error sending initial state for page modules:', expect.any(Error));
+      expect(Logger.app.error).toHaveBeenCalledWith(
+        'Error sending initial state for page modules:',
+        expect.any(Error)
+      );
     });
   });
 
@@ -436,7 +479,7 @@ describe('RealTimeAPI', () => {
   });
 
   describe('Utilitaires', () => {
-    test('devrait retourner le nom d\'utilisateur depuis la session', () => {
+    test("devrait retourner le nom d'utilisateur depuis la session", () => {
       const mockSocket = {
         session: { user: { username: 'testuser' } },
       };
@@ -476,7 +519,7 @@ describe('RealTimeAPI', () => {
       };
     });
 
-    test('doit changer la page d\'un client enregistré', () => {
+    test("doit changer la page d'un client enregistré", () => {
       // Simuler un client enregistré
       const client = { page: 'dashboard', userId: 'user123' };
       mockEventsManager.connectedClients.set('socket123', client);
@@ -484,7 +527,9 @@ describe('RealTimeAPI', () => {
       api._handlePageChange(mockSocket, { page: 'modules' });
 
       expect(client.page).toBe('modules');
-      expect(Logger.activity.info).toHaveBeenCalledWith('Client socket123 changed to page: modules');
+      expect(Logger.activity.info).toHaveBeenCalledWith(
+        'Client socket123 changed to page: modules'
+      );
     });
 
     test('doit gérer le changement de page avec un client non trouvé', () => {

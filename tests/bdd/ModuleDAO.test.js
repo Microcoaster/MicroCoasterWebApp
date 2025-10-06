@@ -57,7 +57,7 @@ describe('ModuleDAO', () => {
   });
 
   describe('Récupération des modules utilisateur', () => {
-    test('devrait récupérer les modules d\'un utilisateur', async () => {
+    test("devrait récupérer les modules d'un utilisateur", async () => {
       const mockModules = [
         { id: 1, module_id: 'MOD001', user_id: 1, name: 'Module 1', type: 'switch' },
         { id: 2, module_id: 'MOD002', user_id: 1, name: 'Module 2', type: 'sensor' },
@@ -89,9 +89,7 @@ describe('ModuleDAO', () => {
 
   describe('Récupération de tous les modules', () => {
     test('devrait récupérer tous les modules avec pagination', async () => {
-      const mockModules = [
-        { id: 1, module_id: 'MOD001', name: 'Module 1' },
-      ];
+      const mockModules = [{ id: 1, module_id: 'MOD001', name: 'Module 1' }];
 
       mockPool.execute
         .mockResolvedValueOnce([mockModules]) // Requête principale
@@ -106,13 +104,11 @@ describe('ModuleDAO', () => {
 
     test('devrait appliquer les filtres de recherche', async () => {
       const mockModules = [];
-      mockPool.execute
-        .mockResolvedValueOnce([mockModules])
-        .mockResolvedValueOnce([[{ total: 0 }]]);
+      mockPool.execute.mockResolvedValueOnce([mockModules]).mockResolvedValueOnce([[{ total: 0 }]]);
 
       await moduleDAO.findAll({
         search: 'test',
-        filters: { type: 'switch', name: 'Module' }
+        filters: { type: 'switch', name: 'Module' },
       });
 
       expect(mockPool.execute).toHaveBeenCalledWith(
@@ -123,15 +119,13 @@ describe('ModuleDAO', () => {
 
     test('devrait gérer le tri et la pagination', async () => {
       const mockModules = [];
-      mockPool.execute
-        .mockResolvedValueOnce([mockModules])
-        .mockResolvedValueOnce([[{ total: 0 }]]);
+      mockPool.execute.mockResolvedValueOnce([mockModules]).mockResolvedValueOnce([[{ total: 0 }]]);
 
       await moduleDAO.findAll({
         sortBy: 'name',
         sortOrder: 'ASC',
         limit: 5,
-        offset: 10
+        offset: 10,
       });
 
       const query = mockPool.execute.mock.calls[0][0];
@@ -142,9 +136,7 @@ describe('ModuleDAO', () => {
 
   describe('Modules disponibles', () => {
     test('devrait récupérer les modules disponibles', async () => {
-      const mockModules = [
-        { id: 1, module_id: 'MOD001', user_id: null },
-      ];
+      const mockModules = [{ id: 1, module_id: 'MOD001', user_id: null }];
 
       // Mock findAll pour retourner les modules disponibles
       moduleDAO.findAll = jest.fn().mockResolvedValue(mockModules);
@@ -173,7 +165,7 @@ describe('ModuleDAO', () => {
       });
     });
 
-    test('devrait retourner null si le module n\'existe pas', async () => {
+    test("devrait retourner null si le module n'existe pas", async () => {
       mockPool.execute = jest.fn().mockResolvedValue([[]]);
 
       const result = await moduleDAO.findById('NONEXISTENT');
@@ -186,7 +178,8 @@ describe('ModuleDAO', () => {
     test('devrait réclamer un module avec succès', async () => {
       const mockModule = { id: 1, user_id: null };
 
-      mockPool.execute = jest.fn()
+      mockPool.execute = jest
+        .fn()
         .mockResolvedValueOnce([[mockModule]]) // Vérification
         .mockResolvedValueOnce([{ affectedRows: 1 }]); // Mise à jour
 
@@ -199,7 +192,7 @@ describe('ModuleDAO', () => {
       );
     });
 
-    test('devrait échouer si le module n\'existe pas', async () => {
+    test("devrait échouer si le module n'existe pas", async () => {
       mockPool.execute.mockResolvedValue([[]]);
 
       await expect(moduleDAO.claim('NONEXISTENT', 1)).rejects.toThrow('Module non trouvé');
@@ -210,7 +203,9 @@ describe('ModuleDAO', () => {
 
       mockPool.execute.mockResolvedValue([[mockModule]]);
 
-      await expect(moduleDAO.claim('MOD001', 1)).rejects.toThrow('Module déjà réclamé par un autre utilisateur');
+      await expect(moduleDAO.claim('MOD001', 1)).rejects.toThrow(
+        'Module déjà réclamé par un autre utilisateur'
+      );
     });
   });
 
@@ -218,7 +213,8 @@ describe('ModuleDAO', () => {
     test('devrait libérer un module avec succès', async () => {
       const mockModule = { id: 1, user_id: 1 };
 
-      mockPool.execute = jest.fn()
+      mockPool.execute = jest
+        .fn()
         .mockResolvedValueOnce([[mockModule]]) // Vérification
         .mockResolvedValueOnce([{ affectedRows: 1 }]); // Mise à jour
 
@@ -228,18 +224,20 @@ describe('ModuleDAO', () => {
       expect(moduleDAO.moduleStatusCache.has('MOD001')).toBe(false);
     });
 
-    test('devrait échouer si le module n\'existe pas', async () => {
+    test("devrait échouer si le module n'existe pas", async () => {
       mockPool.execute.mockResolvedValue([[]]);
 
       await expect(moduleDAO.release('NONEXISTENT', 1)).rejects.toThrow('Module non trouvé');
     });
 
-    test('devrait échouer si l\'utilisateur ne possède pas le module', async () => {
+    test("devrait échouer si l'utilisateur ne possède pas le module", async () => {
       const mockModule = { id: 1, user_id: 2 };
 
       mockPool.execute.mockResolvedValue([[mockModule]]);
 
-      await expect(moduleDAO.release('MOD001', 1)).rejects.toThrow('Vous ne pouvez pas libérer un module qui ne vous appartient pas');
+      await expect(moduleDAO.release('MOD001', 1)).rejects.toThrow(
+        'Vous ne pouvez pas libérer un module qui ne vous appartient pas'
+      );
     });
 
     test('devrait gérer les erreurs lors de la vérification du module', async () => {
@@ -251,10 +249,11 @@ describe('ModuleDAO', () => {
   });
 
   describe('Mise à jour du statut', () => {
-    test('devrait mettre à jour le statut d\'un module', async () => {
+    test("devrait mettre à jour le statut d'un module", async () => {
       const mockModule = { id: 1, user_id: 1 };
 
-      mockPool.execute = jest.fn()
+      mockPool.execute = jest
+        .fn()
         .mockResolvedValueOnce([[mockModule]]) // Vérification
         .mockResolvedValueOnce([{}]); // Mise à jour
 
@@ -276,7 +275,9 @@ describe('ModuleDAO', () => {
     test('devrait rejeter un module non certifié', async () => {
       mockPool.execute.mockResolvedValue([[]]);
 
-      await expect(moduleDAO.updateStatus('INVALID', 'online')).rejects.toThrow('Module non certifié - connexion refusée');
+      await expect(moduleDAO.updateStatus('INVALID', 'online')).rejects.toThrow(
+        'Module non certifié - connexion refusée'
+      );
       expect(Logger.modules.warn).toHaveBeenCalledWith(
         '🚨 SÉCURITÉ: Tentative de connexion avec module non certifié INVALID - REJETÉ'
       );
@@ -306,7 +307,7 @@ describe('ModuleDAO', () => {
       expect(moduleDAO.moduleStatusCache.get('OLD_MODULE').status).toBe('offline');
       expect(moduleDAO.moduleStatusCache.get('RECENT_MODULE').status).toBe('online');
       expect(Logger.system.info).toHaveBeenCalledWith(
-        '🧹 1 modules marqués comme hors ligne après 5 minutes d\'inactivité'
+        "🧹 1 modules marqués comme hors ligne après 5 minutes d'inactivité"
       );
     });
 
@@ -317,12 +318,15 @@ describe('ModuleDAO', () => {
       const cleaned = moduleDAO.cleanupStatus(5);
 
       expect(cleaned).toBe(0);
-      expect(Logger.system.error).toHaveBeenCalledWith('Erreur lors du nettoyage des statuts:', expect.any(Error));
+      expect(Logger.system.error).toHaveBeenCalledWith(
+        'Erreur lors du nettoyage des statuts:',
+        expect.any(Error)
+      );
     });
   });
 
   describe('Gestion du cache de statut', () => {
-    test('devrait obtenir le statut d\'un module depuis le cache', () => {
+    test("devrait obtenir le statut d'un module depuis le cache", () => {
       moduleDAO.moduleStatusCache.set('MOD001', {
         status: 'online',
         lastSeen: new Date(),
@@ -401,17 +405,31 @@ describe('ModuleDAO', () => {
         [
           { type: 'switch', count: 5 },
           { type: 'sensor', count: 3 },
-        ]
+        ],
       ];
 
-      mockPool.execute = jest.fn()
-        .mockResolvedValueOnce([[{ total: 10 }]])  // SELECT COUNT(*) as total FROM modules
-        .mockResolvedValueOnce([[{ total: 7 }]])  // SELECT COUNT(*) as total FROM modules WHERE user_id IS NOT NULL
-        .mockResolvedValueOnce([[{ type: 'switch', count: 5 }, { type: 'sensor', count: 3 }]]); // SELECT type, COUNT(*) as count FROM modules GROUP BY type
+      mockPool.execute = jest
+        .fn()
+        .mockResolvedValueOnce([[{ total: 10 }]]) // SELECT COUNT(*) as total FROM modules
+        .mockResolvedValueOnce([[{ total: 7 }]]) // SELECT COUNT(*) as total FROM modules WHERE user_id IS NOT NULL
+        .mockResolvedValueOnce([
+          [
+            { type: 'switch', count: 5 },
+            { type: 'sensor', count: 3 },
+          ],
+        ]); // SELECT type, COUNT(*) as count FROM modules GROUP BY type
 
       // Ajouter des données au cache
-      moduleDAO.moduleStatusCache.set('MOD001', { status: 'online', lastSeen: new Date(), userId: 1 });
-      moduleDAO.moduleStatusCache.set('MOD002', { status: 'offline', lastSeen: new Date(), userId: 1 });
+      moduleDAO.moduleStatusCache.set('MOD001', {
+        status: 'online',
+        lastSeen: new Date(),
+        userId: 1,
+      });
+      moduleDAO.moduleStatusCache.set('MOD002', {
+        status: 'offline',
+        lastSeen: new Date(),
+        userId: 1,
+      });
 
       const stats = await moduleDAO.getStats();
 
@@ -504,7 +522,7 @@ describe('ModuleDAO', () => {
       expect(Logger.modules.error).toHaveBeenCalled();
     });
 
-    test('devrait valider l\'authentification avec succès', async () => {
+    test("devrait valider l'authentification avec succès", async () => {
       const mockModule = {
         id: 1,
         module_id: 'MOD001',
@@ -526,7 +544,9 @@ describe('ModuleDAO', () => {
         type: 'switch',
         claimed: true,
       });
-      expect(Logger.modules.info).toHaveBeenCalledWith('✅ Authentification réussie pour module MOD001');
+      expect(Logger.modules.info).toHaveBeenCalledWith(
+        '✅ Authentification réussie pour module MOD001'
+      );
     });
 
     test('devrait rejeter un module inexistant', async () => {
@@ -536,7 +556,7 @@ describe('ModuleDAO', () => {
 
       expect(result).toBeNull();
       expect(Logger.modules.warn).toHaveBeenCalledWith(
-        '🚨 Tentative d\'authentification avec module inexistant: INVALID'
+        "🚨 Tentative d'authentification avec module inexistant: INVALID"
       );
     });
 
@@ -545,7 +565,7 @@ describe('ModuleDAO', () => {
         id: 1,
         module_id: 'MOD001',
         claimed: false,
-        module_password_hash: 'hashed_password'
+        module_password_hash: 'hashed_password',
       };
 
       mockPool.execute.mockResolvedValue([[mockModule]]);
@@ -554,7 +574,7 @@ describe('ModuleDAO', () => {
 
       expect(result).toBeNull();
       expect(Logger.modules.warn).toHaveBeenCalledWith(
-        '🚨 Tentative d\'authentification avec module non couplé: MOD001'
+        "🚨 Tentative d'authentification avec module non couplé: MOD001"
       );
     });
 
@@ -591,7 +611,7 @@ describe('ModuleDAO', () => {
 
       expect(result).toBeNull();
       expect(Logger.modules.warn).toHaveBeenCalledWith(
-        '🚨 Module MOD001 n\'a pas de password configuré'
+        "🚨 Module MOD001 n'a pas de password configuré"
       );
     });
 
