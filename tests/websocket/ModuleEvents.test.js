@@ -29,8 +29,9 @@ describe('ModuleEvents - Tests unitaires', () => {
   beforeEach(() => {
     // Mock du gestionnaire d'événements
     mockEventsManager = {
-      emitToPage: jest.fn(),
+      emitToPageExcludingUser: jest.fn(),
       emitToAdmins: jest.fn(),
+      emitToAdminsExcludingUser: jest.fn(),
       emitToUser: jest.fn(),
       getStats: jest.fn(() => ({ uniqueUsers: 5 })),
     };
@@ -51,14 +52,14 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(state.moduleInfo).toEqual(moduleInfo);
 
       // Vérifier les émissions d'événements
-      expect(mockEventsManager.emitToPage).toHaveBeenCalledWith('modules', 'rt_module_online', expect.objectContaining({
+      expect(mockEventsManager.emitToPageExcludingUser).toHaveBeenCalledWith('modules', 'rt_module_online', expect.objectContaining({
         moduleId: 'MC-001',
         online: true,
-      }));
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_module_online', expect.objectContaining({
+      }), 123);
+      expect(mockEventsManager.emitToAdminsExcludingUser).toHaveBeenCalledWith('rt_module_online', expect.objectContaining({
         moduleId: 'MC-001',
         online: true,
-      }));
+      }), 123);
       expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:module:online', expect.any(Object));
     });
 
@@ -71,8 +72,8 @@ describe('ModuleEvents - Tests unitaires', () => {
       moduleEvents.moduleOnline('MC-001', { userId: 123 });
 
       // Les événements de changement d'état ne devraient pas être émis
-      expect(mockEventsManager.emitToPage).not.toHaveBeenCalledWith('modules', 'rt_module_online');
-      expect(mockEventsManager.emitToAdmins).not.toHaveBeenCalledWith('rt_module_online');
+      expect(mockEventsManager.emitToPageExcludingUser).not.toHaveBeenCalledWith('modules', 'rt_module_online', expect.any(Object), expect.anything());
+      expect(mockEventsManager.emitToAdmins).not.toHaveBeenCalledWith('rt_module_online', expect.any(Object));
       // Mais emitLastSeenUpdate peut être appelé
     });
 
@@ -105,11 +106,11 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(state.online).toBe(false);
 
       // Vérifier les émissions
-      expect(mockEventsManager.emitToPage).toHaveBeenCalledWith('modules', 'rt_module_offline', expect.objectContaining({
+      expect(mockEventsManager.emitToPageExcludingUser).toHaveBeenCalledWith('modules', 'rt_module_offline', expect.objectContaining({
         moduleId: 'MC-001',
         online: false,
-      }));
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_module_offline', expect.any(Object));
+      }), 123);
+      expect(mockEventsManager.emitToAdminsExcludingUser).toHaveBeenCalledWith('rt_module_offline', expect.any(Object), 123);
       expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:module:offline', expect.any(Object));
     });
 
@@ -117,8 +118,8 @@ describe('ModuleEvents - Tests unitaires', () => {
       moduleEvents.moduleOffline('MC-001', { userId: 123 });
 
       // Les événements de changement d'état ne devraient pas être émis
-      expect(mockEventsManager.emitToPage).not.toHaveBeenCalledWith('modules', 'rt_module_offline');
-      expect(mockEventsManager.emitToAdmins).not.toHaveBeenCalledWith('rt_module_offline');
+      expect(mockEventsManager.emitToPageExcludingUser).not.toHaveBeenCalledWith('modules', 'rt_module_offline', expect.any(Object), expect.anything());
+      expect(mockEventsManager.emitToAdminsExcludingUser).not.toHaveBeenCalledWith('rt_module_offline', expect.any(Object), expect.anything());
       // Mais emitLastSeenUpdate peut être appelé
     });
 
@@ -187,10 +188,10 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(state.telemetry).toEqual(telemetryData);
 
       // Vérifier les émissions
-      expect(mockEventsManager.emitToPage).toHaveBeenCalledWith('modules', 'rt_telemetry_updated', expect.objectContaining({
+      expect(mockEventsManager.emitToPageExcludingUser).toHaveBeenCalledWith('modules', 'rt_telemetry_updated', expect.objectContaining({
         moduleId: 'MC-001',
         telemetry: telemetryData,
-      }));
+      }), undefined);
       expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_telemetry_updated', expect.any(Object));
     });
 
@@ -205,10 +206,10 @@ describe('ModuleEvents - Tests unitaires', () => {
       expect(state).toBeUndefined(); // Aucun état n'est créé
 
       // Vérifier que les événements sont quand même émis
-      expect(mockEventsManager.emitToPage).toHaveBeenCalledWith('modules', 'rt_telemetry_updated', expect.objectContaining({
+      expect(mockEventsManager.emitToPageExcludingUser).toHaveBeenCalledWith('modules', 'rt_telemetry_updated', expect.objectContaining({
         moduleId: 'MC-001',
         telemetry: telemetryData,
-      }));
+      }), undefined);
       expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_telemetry_updated', expect.any(Object));
     });
   });
