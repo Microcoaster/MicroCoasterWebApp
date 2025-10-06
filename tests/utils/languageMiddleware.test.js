@@ -3,7 +3,12 @@
  * @description Tests de la détection de langue, traduction et gestion des cookies
  */
 
-const { detectLanguage, languageMiddleware, switchLanguage, getLanguageInfo } = require('../../middleware/language');
+const {
+  detectLanguage,
+  languageMiddleware,
+  switchLanguage,
+  getLanguageInfo,
+} = require('../../middleware/language');
 
 // Mock du localeLoader
 jest.mock('../../locales', () => ({
@@ -39,7 +44,7 @@ describe('Language Middleware - Tests unitaires', () => {
       expect(localeLoader.isLanguageSupported).toHaveBeenCalledWith('fr');
     });
 
-    test('doit ignorer le cookie si la langue n\'est pas supportée', () => {
+    test("doit ignorer le cookie si la langue n'est pas supportée", () => {
       localeLoader.isLanguageSupported.mockReturnValueOnce(false).mockReturnValueOnce(true);
 
       const req = {
@@ -61,7 +66,7 @@ describe('Language Middleware - Tests unitaires', () => {
       expect(result).toBe('fr');
     });
 
-    test('doit utiliser la langue par défaut si aucune n\'est détectée', () => {
+    test("doit utiliser la langue par défaut si aucune n'est détectée", () => {
       const req = {
         cookies: {},
         get: jest.fn().mockReturnValue(null),
@@ -144,12 +149,16 @@ describe('Language Middleware - Tests unitaires', () => {
 
       switchLanguage(req, res);
 
-      expect(res.cookie).toHaveBeenCalledWith('language', 'fr', expect.objectContaining({
-        maxAge: 365 * 24 * 60 * 60 * 1000,
-        httpOnly: false,
-        secure: false, // car NODE_ENV n'est pas 'production'
-        sameSite: 'lax',
-      }));
+      expect(res.cookie).toHaveBeenCalledWith(
+        'language',
+        'fr',
+        expect.objectContaining({
+          maxAge: 365 * 24 * 60 * 60 * 1000,
+          httpOnly: false,
+          secure: false, // car NODE_ENV n'est pas 'production'
+          sameSite: 'lax',
+        })
+      );
       expect(res.json).toHaveBeenCalledWith({
         success: true,
         language: 'fr',
@@ -192,9 +201,13 @@ describe('Language Middleware - Tests unitaires', () => {
 
       switchLanguage(req, res);
 
-      expect(res.cookie).toHaveBeenCalledWith('language', 'fr', expect.objectContaining({
-        secure: true,
-      }));
+      expect(res.cookie).toHaveBeenCalledWith(
+        'language',
+        'fr',
+        expect.objectContaining({
+          secure: true,
+        })
+      );
 
       delete process.env.NODE_ENV; // Reset
     });

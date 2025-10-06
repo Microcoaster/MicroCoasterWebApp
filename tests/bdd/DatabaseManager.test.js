@@ -109,11 +109,14 @@ describe('DatabaseManager', () => {
       expect(Logger.app.info).toHaveBeenCalledWith('✅ Database Manager initialized successfully');
     });
 
-    test('devrait gérer les erreurs d\'initialisation', async () => {
+    test("devrait gérer les erreurs d'initialisation", async () => {
       mockPool.execute.mockRejectedValue(new Error('Connection failed'));
 
       await expect(DatabaseManager.initialize()).rejects.toThrow('Connection failed');
-      expect(Logger.app.error).toHaveBeenCalledWith('❌ Database Manager initialization failed:', expect.any(Error));
+      expect(Logger.app.error).toHaveBeenCalledWith(
+        '❌ Database Manager initialization failed:',
+        expect.any(Error)
+      );
     });
 
     test('devrait tester la connexion avec succès', async () => {
@@ -131,7 +134,10 @@ describe('DatabaseManager', () => {
       mockPool.execute.mockRejectedValue(new Error('Connection failed'));
 
       await expect(DatabaseManager.testConnection()).rejects.toThrow('Connection failed');
-      expect(Logger.app.error).toHaveBeenCalledWith('❌ Database connection failed:', expect.any(Error));
+      expect(Logger.app.error).toHaveBeenCalledWith(
+        '❌ Database connection failed:',
+        expect.any(Error)
+      );
     });
 
     test('devrait gérer le cas où la requête de test échoue', async () => {
@@ -176,16 +182,24 @@ describe('DatabaseManager', () => {
       fs.promises.readFile.mockRejectedValue(new Error('File not found'));
 
       await expect(DatabaseManager.executeSQLFile('missing.sql')).rejects.toThrow('File not found');
-      expect(Logger.app.error).toHaveBeenCalledWith('❌ Error executing SQL file missing.sql:', expect.any(Error));
+      expect(Logger.app.error).toHaveBeenCalledWith(
+        '❌ Error executing SQL file missing.sql:',
+        expect.any(Error)
+      );
     });
 
-    test('devrait gérer les erreurs d\'exécution SQL', async () => {
+    test("devrait gérer les erreurs d'exécution SQL", async () => {
       const sqlContent = 'INVALID SQL QUERY;';
       fs.promises.readFile.mockResolvedValue(sqlContent);
       mockPool.execute.mockRejectedValue(new Error('SQL syntax error'));
 
-      await expect(DatabaseManager.executeSQLFile('invalid.sql')).rejects.toThrow('SQL syntax error');
-      expect(Logger.app.error).toHaveBeenCalledWith('❌ Error executing SQL file invalid.sql:', expect.any(Error));
+      await expect(DatabaseManager.executeSQLFile('invalid.sql')).rejects.toThrow(
+        'SQL syntax error'
+      );
+      expect(Logger.app.error).toHaveBeenCalledWith(
+        '❌ Error executing SQL file invalid.sql:',
+        expect.any(Error)
+      );
     });
 
     test('devrait ignorer les requêtes vides', async () => {
@@ -221,16 +235,22 @@ describe('DatabaseManager', () => {
       DatabaseManager.executeSQLFile.mockRejectedValueOnce(new Error('Table creation failed'));
 
       await expect(DatabaseManager.initializeDatabase()).rejects.toThrow('Table creation failed');
-      expect(Logger.app.error).toHaveBeenCalledWith('❌ Database initialization failed:', expect.any(Error));
+      expect(Logger.app.error).toHaveBeenCalledWith(
+        '❌ Database initialization failed:',
+        expect.any(Error)
+      );
     });
 
-    test('devrait gérer les erreurs lors de l\'insertion des données par défaut', async () => {
+    test("devrait gérer les erreurs lors de l'insertion des données par défaut", async () => {
       DatabaseManager.executeSQLFile
         .mockResolvedValueOnce(true) // create_tables.sql réussit
         .mockRejectedValueOnce(new Error('Data insertion failed')); // default_data.sql échoue
 
       await expect(DatabaseManager.initializeDatabase()).rejects.toThrow('Data insertion failed');
-      expect(Logger.app.error).toHaveBeenCalledWith('❌ Database initialization failed:', expect.any(Error));
+      expect(Logger.app.error).toHaveBeenCalledWith(
+        '❌ Database initialization failed:',
+        expect.any(Error)
+      );
     });
   });
 
@@ -259,7 +279,9 @@ describe('DatabaseManager', () => {
     test('devrait gérer les erreurs dans getGlobalStats', async () => {
       DatabaseManager.isInitialized = false;
 
-      await expect(DatabaseManager.getGlobalStats()).rejects.toThrow('Database Manager not initialized');
+      await expect(DatabaseManager.getGlobalStats()).rejects.toThrow(
+        'Database Manager not initialized'
+      );
     });
   });
 
@@ -285,7 +307,7 @@ describe('DatabaseManager', () => {
       expect(mockModuleDAO.cleanupStatus).toHaveBeenCalledWith(10);
     });
 
-    test('devrait gérer l\'erreur quand ModuleDAO n\'est pas initialisé', () => {
+    test("devrait gérer l'erreur quand ModuleDAO n'est pas initialisé", () => {
       DatabaseManager.moduleDAO = null;
 
       DatabaseManager.startModuleStatusCleanup(1, 5);
@@ -304,7 +326,10 @@ describe('DatabaseManager', () => {
       // Avancer le temps pour déclencher le nettoyage
       jest.advanceTimersByTime(1 * 60 * 1000);
 
-      expect(Logger.system.error).toHaveBeenCalledWith('❌ Error during module status cleanup:', expect.any(Error));
+      expect(Logger.system.error).toHaveBeenCalledWith(
+        '❌ Error during module status cleanup:',
+        expect.any(Error)
+      );
     });
   });
 
@@ -360,10 +385,13 @@ describe('DatabaseManager', () => {
       mockPool.end.mockRejectedValue(new Error('Close failed'));
 
       await expect(DatabaseManager.close()).rejects.toThrow('Close failed');
-      expect(Logger.app.error).toHaveBeenCalledWith('❌ Error closing database connections:', expect.any(Error));
+      expect(Logger.app.error).toHaveBeenCalledWith(
+        '❌ Error closing database connections:',
+        expect.any(Error)
+      );
     });
 
-    test('devrait gérer le cas où il n\'y a pas de pool à fermer', async () => {
+    test("devrait gérer le cas où il n'y a pas de pool à fermer", async () => {
       DatabaseManager.pool = null;
 
       await DatabaseManager.close();

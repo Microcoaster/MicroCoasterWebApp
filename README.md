@@ -7,6 +7,7 @@ Application web de contrôle pour modules ESP32 gérant les différents composan
 ## 🚀 À propos
 
 Ce dépôt contient l'application web complète pour contrôler les modules MicroCoaster :
+
 - **Interface web** (frontend)
 - **Serveur principal** (backend) pour communiquer avec les ESP32
 - **Communication temps réel** via WebSocket

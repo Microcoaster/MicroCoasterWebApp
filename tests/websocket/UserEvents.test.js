@@ -47,21 +47,28 @@ describe('UserEvents - Tests unitaires', () => {
       userEvents.userLoggedIn(userData, sessionId);
 
       // Vérifier l'émission aux admins
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_user_logged_in', expect.objectContaining({
-        action: 'login',
-        user: expect.objectContaining({
-          id: 123,
-          name: 'Test User',
-          email: 'test@example.com',
-          isAdmin: false,
-        }),
-        sessionId: 'session123',
-      }));
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_user_logged_in',
+        expect.objectContaining({
+          action: 'login',
+          user: expect.objectContaining({
+            id: 123,
+            name: 'Test User',
+            email: 'test@example.com',
+            isAdmin: false,
+          }),
+          sessionId: 'session123',
+        })
+      );
 
       // Vérifier l'émission à l'utilisateur
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:session:new', expect.objectContaining({
-        message: 'Connexion réussie',
-      }));
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'user:session:new',
+        expect.objectContaining({
+          message: 'Connexion réussie',
+        })
+      );
     });
 
     test('doit gérer un utilisateur sans dernière connexion', () => {
@@ -74,12 +81,15 @@ describe('UserEvents - Tests unitaires', () => {
 
       userEvents.userLoggedIn(userData, 'session456');
 
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_user_logged_in', expect.objectContaining({
-        user: expect.objectContaining({
-          isAdmin: true,
-          lastLogin: expect.any(Date),
-        }),
-      }));
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_user_logged_in',
+        expect.objectContaining({
+          user: expect.objectContaining({
+            isAdmin: true,
+            lastLogin: expect.any(Date),
+          }),
+        })
+      );
     });
   });
 
@@ -94,14 +104,17 @@ describe('UserEvents - Tests unitaires', () => {
 
       userEvents.userLoggedOut(userData, sessionId);
 
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_user_logged_out', expect.objectContaining({
-        action: 'logout',
-        user: expect.objectContaining({
-          id: 123,
-          name: 'Test User',
-        }),
-        sessionId: 'session123',
-      }));
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_user_logged_out',
+        expect.objectContaining({
+          action: 'logout',
+          user: expect.objectContaining({
+            id: 123,
+            name: 'Test User',
+          }),
+          sessionId: 'session123',
+        })
+      );
 
       // userLoggedOut n'émet pas à l'utilisateur selon le code
       expect(mockEventsManager.emitToUser).not.toHaveBeenCalled();
@@ -120,18 +133,25 @@ describe('UserEvents - Tests unitaires', () => {
 
       userEvents.userProfileUpdated(userData, sessionId);
 
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('rt_user_profile_updated', expect.objectContaining({
-        action: 'profile_updated',
-        user: expect.objectContaining({
-          id: 123,
-          name: 'Updated Name',
-          isAdmin: false,
-        }),
-      }));
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'rt_user_profile_updated',
+        expect.objectContaining({
+          action: 'profile_updated',
+          user: expect.objectContaining({
+            id: 123,
+            name: 'Updated Name',
+            isAdmin: false,
+          }),
+        })
+      );
 
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'rt_user_profile_updated', expect.objectContaining({
-        action: 'profile_updated',
-      }));
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'rt_user_profile_updated',
+        expect.objectContaining({
+          action: 'profile_updated',
+        })
+      );
     });
   });
 
@@ -145,22 +165,29 @@ describe('UserEvents - Tests unitaires', () => {
 
       userEvents.userPasswordChanged(userData);
 
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('admin:user:password_changed', expect.objectContaining({
-        action: 'password_changed',
-        user: expect.objectContaining({
-          id: 123,
-          name: 'Test User',
-        }),
-      }));
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'admin:user:password_changed',
+        expect.objectContaining({
+          action: 'password_changed',
+          user: expect.objectContaining({
+            id: 123,
+            name: 'Test User',
+          }),
+        })
+      );
 
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:security:password_changed', expect.objectContaining({
-        message: 'Votre mot de passe a été modifié avec succès',
-      }));
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'user:security:password_changed',
+        expect.objectContaining({
+          message: 'Votre mot de passe a été modifié avec succès',
+        })
+      );
     });
   });
 
   describe('userRegistered', () => {
-    test('doit émettre les événements d\'inscription utilisateur', () => {
+    test("doit émettre les événements d'inscription utilisateur", () => {
       const userData = {
         id: 123,
         name: 'New User',
@@ -170,18 +197,25 @@ describe('UserEvents - Tests unitaires', () => {
 
       userEvents.userRegistered(userData);
 
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('admin:user:registered', expect.objectContaining({
-        action: 'registered',
-        user: expect.objectContaining({
-          id: 123,
-          name: 'New User',
-          isAdmin: false,
-        }),
-      }));
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'admin:user:registered',
+        expect.objectContaining({
+          action: 'registered',
+          user: expect.objectContaining({
+            id: 123,
+            name: 'New User',
+            isAdmin: false,
+          }),
+        })
+      );
 
-      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(123, 'user:welcome', expect.objectContaining({
-        message: 'Bienvenue dans MicroCoaster WebApp !',
-      }));
+      expect(mockEventsManager.emitToUser).toHaveBeenCalledWith(
+        123,
+        'user:welcome',
+        expect.objectContaining({
+          message: 'Bienvenue dans MicroCoaster WebApp !',
+        })
+      );
     });
   });
 
@@ -189,11 +223,14 @@ describe('UserEvents - Tests unitaires', () => {
     test('doit émettre les activités utilisateur importantes aux admins', () => {
       userEvents.userActivity(123, 'send_module_command', { moduleId: 'MC-001', command: 'start' });
 
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith('admin:user:activity', expect.objectContaining({
-        userId: 123,
-        activity: 'send_module_command',
-        metadata: { moduleId: 'MC-001', command: 'start' },
-      }));
+      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+        'admin:user:activity',
+        expect.objectContaining({
+          userId: 123,
+          activity: 'send_module_command',
+          metadata: { moduleId: 'MC-001', command: 'start' },
+        })
+      );
     });
 
     test('ne doit pas émettre les activités mineures', () => {
@@ -268,7 +305,7 @@ describe('UserEvents - Tests unitaires', () => {
       });
     });
 
-    test('doit gérer l\'absence de realTimeAPI', () => {
+    test("doit gérer l'absence de realTimeAPI", () => {
       // Pas de mock realTimeAPI
       userEvents.emitStatsToAdmins();
 
@@ -284,7 +321,7 @@ describe('UserEvents - Tests unitaires', () => {
       });
     });
 
-    test('doit gérer les erreurs lors de l\'émission des statistiques', () => {
+    test("doit gérer les erreurs lors de l'émission des statistiques", () => {
       // Simuler une erreur dans getStats
       mockEventsManager.getStats.mockImplementation(() => {
         throw new Error('Stats error');
@@ -301,11 +338,13 @@ describe('UserEvents - Tests unitaires', () => {
       });
     });
 
-    test('doit gérer l\'échec de récupération des statistiques de modules', () => {
+    test("doit gérer l'échec de récupération des statistiques de modules", () => {
       // Mock realTimeAPI avec modules qui lance une erreur
       const mockRealTimeAPI = {
         modules: {
-          getConnectionStats: jest.fn(() => { throw new Error('Module stats error'); }),
+          getConnectionStats: jest.fn(() => {
+            throw new Error('Module stats error');
+          }),
         },
       };
 
@@ -324,7 +363,10 @@ describe('UserEvents - Tests unitaires', () => {
         setTimeout(() => {
           // Vérifier que l'erreur est loggée
           const Logger = require('../../utils/logger');
-          expect(Logger.system.error).toHaveBeenCalledWith('[UserEvents] Stats emission error:', expect.any(Error));
+          expect(Logger.system.error).toHaveBeenCalledWith(
+            '[UserEvents] Stats emission error:',
+            expect.any(Error)
+          );
           resolve();
         }, 350);
       });

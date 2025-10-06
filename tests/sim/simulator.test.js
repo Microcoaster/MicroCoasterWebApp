@@ -6,11 +6,11 @@
  */
 
 const WebSocket = require('ws');
-const { 
-  startSimulator, 
-  disconnect, 
-  moduleState, 
-  config, 
+const {
+  startSimulator,
+  disconnect,
+  moduleState,
+  config,
   setMockWebSocket,
   createAuthenticatedMessage,
   sendMessage,
@@ -23,7 +23,7 @@ const {
   stopTelemetry,
   connect,
   attemptReconnect,
-  gracefulShutdown
+  gracefulShutdown,
 } = require('../../sim/sim-switch-track.cjs');
 
 // Mocks
@@ -107,7 +107,7 @@ describe('ESP32 Switch Track Simulator', () => {
       expect(config.maxReconnectAttempts).toBe(5);
     });
 
-    test('devrait utiliser les variables d\'environnement', () => {
+    test("devrait utiliser les variables d'environnement", () => {
       process.env.SERVER_URL = 'ws://test.com:8080/esp32';
       process.env.MODULE_ID = 'TEST-001';
       process.env.MODULE_PASSWORD = 'testpass';
@@ -127,7 +127,7 @@ describe('ESP32 Switch Track Simulator', () => {
   });
 
   describe('État du module', () => {
-    test('devrait initialiser l\'état du module', () => {
+    test("devrait initialiser l'état du module", () => {
       expect(moduleState.position).toBe('left');
       expect(moduleState.isMoving).toBe(false);
       expect(moduleState.commandCount).toBe(0);
@@ -162,7 +162,7 @@ describe('ESP32 Switch Track Simulator', () => {
       expect(mockWS.send).toHaveBeenCalledWith(expect.stringContaining('"type":"test"'));
     });
 
-    test('devrait échouer si WebSocket n\'est pas ouvert', () => {
+    test("devrait échouer si WebSocket n'est pas ouvert", () => {
       mockWS.readyState = MockWebSocket.CLOSED;
 
       const result = sendMessage('test');
@@ -171,9 +171,11 @@ describe('ESP32 Switch Track Simulator', () => {
       expect(mockWS.send).not.toHaveBeenCalled();
     });
 
-    test('devrait gérer les erreurs d\'envoi', () => {
+    test("devrait gérer les erreurs d'envoi", () => {
       mockWS.readyState = MockWebSocket.OPEN;
-      mockWS.send.mockImplementation(() => { throw new Error('Send failed'); });
+      mockWS.send.mockImplementation(() => {
+        throw new Error('Send failed');
+      });
 
       const result = sendMessage('test');
 
@@ -186,7 +188,7 @@ describe('ESP32 Switch Track Simulator', () => {
       setMockWebSocket(mockWS);
       mockWS.readyState = MockWebSocket.OPEN;
       mockWS.send.mockReturnValue(true);
-      
+
       moduleState.position = 'right';
       moduleState.commandCount = 5;
       moduleState.uptime = Date.now() - 10000; // 10 secondes
@@ -202,7 +204,7 @@ describe('ESP32 Switch Track Simulator', () => {
     test('devrait incrémenter le compteur de télémétrie', () => {
       mockWS.readyState = MockWebSocket.OPEN;
       mockWS.send.mockReturnValue(true);
-      
+
       const initialCount = moduleState.telemetryCount;
 
       sendTelemetry();
@@ -341,7 +343,9 @@ describe('ESP32 Switch Track Simulator', () => {
       handleCommand({ command: 'unknown' });
 
       expect(mockWS.send).toHaveBeenCalledWith(expect.stringContaining('"type":"command_error"'));
-      expect(mockWS.send).toHaveBeenCalledWith(expect.stringContaining('"error":"Unknown command"'));
+      expect(mockWS.send).toHaveBeenCalledWith(
+        expect.stringContaining('"error":"Unknown command"')
+      );
     });
 
     test('devrait gérer les données imbriquées', () => {
@@ -356,7 +360,7 @@ describe('ESP32 Switch Track Simulator', () => {
   });
 
   describe('Gestion des messages', () => {
-    test('devrait gérer l\'authentification réussie', () => {
+    test("devrait gérer l'authentification réussie", () => {
       setMockWebSocket(mockWS);
       mockWS.readyState = MockWebSocket.OPEN;
       mockWS.send.mockReturnValue(true);
@@ -369,7 +373,7 @@ describe('ESP32 Switch Track Simulator', () => {
       );
     });
 
-    test('devrait gérer l\'erreur d\'authentification', () => {
+    test("devrait gérer l'erreur d'authentification", () => {
       handleMessage(JSON.stringify({ type: 'auth_error', message: 'Invalid password' }));
 
       expect(console.error).toHaveBeenCalledWith(

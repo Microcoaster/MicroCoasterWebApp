@@ -357,6 +357,10 @@ module.exports = {
   gracefulShutdown,
   setMockWebSocket,
   // Exporter ws pour les tests
-  get ws() { return ws; },
-  set ws(value) { ws = value; },
+  get ws() {
+    return ws;
+  },
+  set ws(value) {
+    ws = value;
+  },
 };

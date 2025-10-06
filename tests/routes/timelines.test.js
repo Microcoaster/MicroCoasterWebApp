@@ -41,16 +41,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configuration des sessions pour les tests
-app.use(session({
-  secret: 'test-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false }
-}));
+app.use(
+  session({
+    secret: 'test-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false },
+  })
+);
 
 // Mock de l'internationalisation
 app.use((req, res, next) => {
-  req.t = jest.fn((key) => key);
+  req.t = jest.fn(key => key);
   next();
 });
 
@@ -63,7 +65,9 @@ app.use((req, res, next) => {
   res.render = jest.fn((view, data) => {
     if (view === 'timelines') {
       res.type('text/html');
-      res.status(data.error ? 500 : 200).send(`<html>Timelines page${data.error ? ` - Error: ${data.error}` : ''}</html>`);
+      res
+        .status(data.error ? 500 : 200)
+        .send(`<html>Timelines page${data.error ? ` - Error: ${data.error}` : ''}</html>`);
     } else if (view === 'error') {
       res.type('text/html');
       res.status(500).send(`<html>Error page - ${data.message}</html>`);
@@ -97,15 +101,11 @@ describe('Routes Timelines - Tests unitaires', () => {
   });
 
   describe('GET /timelines/', () => {
-    test('doit rediriger vers /login si utilisateur non connecté', (done) => {
-      request(app)
-        .get('/timelines/')
-        .expect(302)
-        .expect('Location', '/login')
-        .end(done);
+    test('doit rediriger vers /login si utilisateur non connecté', done => {
+      request(app).get('/timelines/').expect(302).expect('Location', '/login').end(done);
     });
 
-    test('doit afficher la page des chronologies avec les modules formatés', (done) => {
+    test('doit afficher la page des chronologies avec les modules formatés', done => {
       const mockUser = { id: 123, name: 'Test User', email: 'test@example.com' };
       const mockModules = [
         { module_id: 'MC-0001-STN', name: 'Station 1', type: 'Station', claimed: 1 },
@@ -141,7 +141,7 @@ describe('Routes Timelines - Tests unitaires', () => {
         });
     });
 
-    test('doit gérer les erreurs de base de données', (done) => {
+    test('doit gérer les erreurs de base de données', done => {
       databaseManager.users.findById.mockRejectedValue(new Error('Database error'));
 
       const agent = request.agent(app);

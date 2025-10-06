@@ -23,7 +23,7 @@ jest.mock('winston', () => {
       timestamp: jest.fn(() => 'timestamp-format'),
       errors: jest.fn(() => 'errors-format'),
       json: jest.fn(() => 'json-format'),
-      printf: jest.fn((config) => config), // Retourner la config pour les tests
+      printf: jest.fn(config => config), // Retourner la config pour les tests
     },
   };
 });
@@ -196,7 +196,12 @@ describe('Logger - Tests unitaires', () => {
 
       // Deuxième appel avec mêmes stats - ne doit pas logger
       mockSystemLogger.info.mockClear();
-      logger.system.statsIfChanged('Stats identiques', { users: 5, modules: 3, clients: 2, esp: 1 });
+      logger.system.statsIfChanged('Stats identiques', {
+        users: 5,
+        modules: 3,
+        clients: 2,
+        esp: 1,
+      });
       expect(mockSystemLogger.info).not.toHaveBeenCalled();
 
       // Troisième appel avec stats différentes - doit logger
@@ -214,12 +219,22 @@ describe('Logger - Tests unitaires', () => {
 
       // Changer seulement modules
       mockSystemLogger.info.mockClear();
-      logger.system.statsIfChanged('Modules changés', { users: 10, modules: 5, clients: 2, esp: 1 });
+      logger.system.statsIfChanged('Modules changés', {
+        users: 10,
+        modules: 5,
+        clients: 2,
+        esp: 1,
+      });
       expect(mockSystemLogger.info).toHaveBeenCalledWith('Modules changés');
 
       // Changer seulement clients
       mockSystemLogger.info.mockClear();
-      logger.system.statsIfChanged('Clients changés', { users: 10, modules: 5, clients: 7, esp: 1 });
+      logger.system.statsIfChanged('Clients changés', {
+        users: 10,
+        modules: 5,
+        clients: 7,
+        esp: 1,
+      });
       expect(mockSystemLogger.info).toHaveBeenCalledWith('Clients changés');
 
       // Changer seulement esp
@@ -230,20 +245,30 @@ describe('Logger - Tests unitaires', () => {
 
     test('statsIfChanged doit gérer les stats avec valeurs zéro', () => {
       mockSystemLogger.info.mockClear();
-      
+
       logger.system.statsIfChanged('Stats à zéro', { users: 0, modules: 0, clients: 0, esp: 0 });
       expect(mockSystemLogger.info).toHaveBeenCalledWith('Stats à zéro');
-      
+
       // Même stats à zéro - ne doit pas logger
       mockSystemLogger.info.mockClear();
-      logger.system.statsIfChanged('Stats identiques zéro', { users: 0, modules: 0, clients: 0, esp: 0 });
+      logger.system.statsIfChanged('Stats identiques zéro', {
+        users: 0,
+        modules: 0,
+        clients: 0,
+        esp: 0,
+      });
       expect(mockSystemLogger.info).not.toHaveBeenCalled();
     });
 
     test('statsIfChanged doit gérer les changements de zéro à valeur', () => {
       mockSystemLogger.info.mockClear();
-      
-      logger.system.statsIfChanged('Changement depuis zéro', { users: 1, modules: 0, clients: 0, esp: 0 });
+
+      logger.system.statsIfChanged('Changement depuis zéro', {
+        users: 1,
+        modules: 0,
+        clients: 0,
+        esp: 0,
+      });
       expect(mockSystemLogger.info).toHaveBeenCalledWith('Changement depuis zéro');
     });
   });
@@ -347,7 +372,7 @@ describe('Logger - Tests unitaires', () => {
         user: { id: 123, name: 'Test User' },
         session: { id: 'abc123', startTime: new Date() },
         data: [1, 2, 3, { nested: 'object' }],
-        error: new Error('Test error')
+        error: new Error('Test error'),
       };
 
       expect(() => {
@@ -373,7 +398,7 @@ describe('Logger - Tests unitaires', () => {
   });
 
   describe('Export du module', () => {
-    test('doit exporter l\'objet logger complet', () => {
+    test("doit exporter l'objet logger complet", () => {
       expect(logger).toBeDefined();
       expect(typeof logger).toBe('object');
 

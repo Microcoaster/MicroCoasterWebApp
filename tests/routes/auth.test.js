@@ -102,16 +102,18 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configuration des sessions pour les tests
-app.use(session({
-  secret: 'test-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false }
-}));
+app.use(
+  session({
+    secret: 'test-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false },
+  })
+);
 
 // Mock de l'internationalisation
 app.use((req, res, next) => {
-  req.t = jest.fn((key) => key);
+  req.t = jest.fn(key => key);
   next();
 });
 
@@ -120,10 +122,14 @@ app.use((req, res, next) => {
   res.render = jest.fn((view, data) => {
     if (view === 'login') {
       res.type('text/html');
-      res.status(data.error ? 200 : 200).send(`<html>Login page${data.error ? ` - Error: ${data.error}` : ''}</html>`);
+      res
+        .status(data.error ? 200 : 200)
+        .send(`<html>Login page${data.error ? ` - Error: ${data.error}` : ''}</html>`);
     } else if (view === 'register') {
       res.type('text/html');
-      res.status(data.error ? 200 : 200).send(`<html>Register page${data.error ? ` - Error: ${data.error}` : ''}</html>`);
+      res
+        .status(data.error ? 200 : 200)
+        .send(`<html>Register page${data.error ? ` - Error: ${data.error}` : ''}</html>`);
     } else if (view === 'error') {
       res.type('text/html');
       res.status(403).send(`<html>Error page - ${data.message}</html>`);
@@ -145,7 +151,7 @@ describe('Routes Authentification - Tests unitaires', () => {
   });
 
   describe('Middleware requireAuth', () => {
-    test('doit appeler next() si utilisateur connecté', (done) => {
+    test('doit appeler next() si utilisateur connecté', done => {
       const testApp = express();
       testApp.use((req, res, next) => {
         req.session = { user_id: 123 };
@@ -154,14 +160,10 @@ describe('Routes Authentification - Tests unitaires', () => {
       testApp.use('/protected', requireAuth, (req, res) => res.send('OK'));
       testApp.use(router);
 
-      request(testApp)
-        .get('/protected')
-        .expect(200)
-        .expect('OK')
-        .end(done);
+      request(testApp).get('/protected').expect(200).expect('OK').end(done);
     });
 
-    test('doit rediriger vers /login si utilisateur non connecté', (done) => {
+    test('doit rediriger vers /login si utilisateur non connecté', done => {
       const testApp = express();
       testApp.use((req, res, next) => {
         req.session = {};
@@ -169,16 +171,12 @@ describe('Routes Authentification - Tests unitaires', () => {
       });
       testApp.use('/protected', requireAuth, (req, res) => res.send('OK'));
 
-      request(testApp)
-        .get('/protected')
-        .expect(302)
-        .expect('Location', '/login')
-        .end(done);
+      request(testApp).get('/protected').expect(302).expect('Location', '/login').end(done);
     });
   });
 
   describe('Middleware requireAdmin', () => {
-    test('doit appeler next() si utilisateur admin connecté', (done) => {
+    test('doit appeler next() si utilisateur admin connecté', done => {
       const testApp = express();
       testApp.use((req, res, next) => {
         req.session = { user_id: 123, is_admin: true };
@@ -186,14 +184,10 @@ describe('Routes Authentification - Tests unitaires', () => {
       });
       testApp.use('/admin', requireAdmin, (req, res) => res.send('OK'));
 
-      request(testApp)
-        .get('/admin')
-        .expect(200)
-        .expect('OK')
-        .end(done);
+      request(testApp).get('/admin').expect(200).expect('OK').end(done);
     });
 
-    test('doit retourner 403 si utilisateur non admin', (done) => {
+    test('doit retourner 403 si utilisateur non admin', done => {
       const testApp = express();
       testApp.use((req, res, next) => {
         req.session = { user_id: 123, is_admin: false };
@@ -213,7 +207,7 @@ describe('Routes Authentification - Tests unitaires', () => {
   });
 
   describe('GET /login', () => {
-    test('doit afficher la page de connexion si utilisateur non connecté', (done) => {
+    test('doit afficher la page de connexion si utilisateur non connecté', done => {
       request(app)
         .get('/login')
         .expect(200)
@@ -226,7 +220,7 @@ describe('Routes Authentification - Tests unitaires', () => {
   });
 
   describe('GET /register', () => {
-    test('doit afficher la page d\'enregistrement', (done) => {
+    test("doit afficher la page d'enregistrement", done => {
       request(app)
         .get('/register')
         .expect(200)
@@ -239,7 +233,7 @@ describe('Routes Authentification - Tests unitaires', () => {
   });
 
   describe('POST /login', () => {
-    test('doit retourner une erreur si champs manquants', (done) => {
+    test('doit retourner une erreur si champs manquants', done => {
       request(app)
         .post('/login')
         .send({ email: '', password: '' })
@@ -251,7 +245,7 @@ describe('Routes Authentification - Tests unitaires', () => {
         });
     });
 
-    test('doit retourner une erreur avec des identifiants invalides', (done) => {
+    test('doit retourner une erreur avec des identifiants invalides', done => {
       databaseManager.users.verifyLogin.mockResolvedValue(null);
 
       request(app)
@@ -267,7 +261,7 @@ describe('Routes Authentification - Tests unitaires', () => {
   });
 
   describe('POST /register', () => {
-    test('doit retourner une erreur si champs manquants', (done) => {
+    test('doit retourner une erreur si champs manquants', done => {
       request(app)
         .post('/register')
         .send({ email: '', password: '', confirmPassword: '', name: '' })
@@ -279,14 +273,14 @@ describe('Routes Authentification - Tests unitaires', () => {
         });
     });
 
-    test('doit retourner une erreur si mots de passe ne correspondent pas', (done) => {
+    test('doit retourner une erreur si mots de passe ne correspondent pas', done => {
       request(app)
         .post('/register')
         .send({
           email: 'test@example.com',
           password: 'password123',
           confirmPassword: 'different',
-          name: 'Test User'
+          name: 'Test User',
         })
         .expect(200)
         .end((err, res) => {

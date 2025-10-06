@@ -34,12 +34,14 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Configuration des sessions pour les tests
-app.use(session({
-  secret: 'test-secret',
-  resave: false,
-  saveUninitialized: false,
-  cookie: { secure: false }
-}));
+app.use(
+  session({
+    secret: 'test-secret',
+    resave: false,
+    saveUninitialized: false,
+    cookie: { secure: false },
+  })
+);
 
 // Configuration des vues pour les tests
 app.set('view engine', 'ejs');
@@ -50,7 +52,9 @@ app.use((req, res, next) => {
   res.render = jest.fn((view, data) => {
     if (view === 'admin') {
       res.type('text/html');
-      res.status(data.error ? 500 : 200).send(`<html>Admin page${data.error ? ` - Error: ${data.error}` : ''}</html>`);
+      res
+        .status(data.error ? 500 : 200)
+        .send(`<html>Admin page${data.error ? ` - Error: ${data.error}` : ''}</html>`);
     } else if (view === 'error') {
       res.type('text/html');
       res.status(403).send(`<html>Error page - ${data.message}</html>`);
@@ -77,7 +81,7 @@ describe('Routes Admin - Tests unitaires', () => {
   });
 
   describe('GET /admin/', () => {
-    test('doit retourner 403 si utilisateur non admin', (done) => {
+    test('doit retourner 403 si utilisateur non admin', done => {
       request(app)
         .get('/admin/')
         .expect(403)
@@ -88,7 +92,7 @@ describe('Routes Admin - Tests unitaires', () => {
         });
     });
 
-    test('doit afficher la page d\'administration pour un admin', (done) => {
+    test("doit afficher la page d'administration pour un admin", done => {
       const mockUsers = [
         { id: 1, name: 'User 1', email: 'user1@test.com', is_admin: false },
         { id: 999, name: 'Admin User', email: 'admin@test.com', is_admin: true },
@@ -132,7 +136,7 @@ describe('Routes Admin - Tests unitaires', () => {
         });
     });
 
-    test('doit gérer les erreurs de base de données', (done) => {
+    test('doit gérer les erreurs de base de données', done => {
       // Ce test est remplacé par un test plus simple car le middleware d'authentification
       // bloque avant que l'erreur de base de données ne soit atteinte dans ce contexte de test.
       // L'erreur de base de données est testée implicitement dans les autres tests qui réussissent.
@@ -142,14 +146,11 @@ describe('Routes Admin - Tests unitaires', () => {
   });
 
   describe('GET /admin/api/stats', () => {
-    test('doit retourner 403 si utilisateur non admin', (done) => {
-      request(app)
-        .get('/admin/api/stats')
-        .expect(403)
-        .end(done);
+    test('doit retourner 403 si utilisateur non admin', done => {
+      request(app).get('/admin/api/stats').expect(403).end(done);
     });
 
-    test('doit retourner les statistiques système au format JSON', (done) => {
+    test('doit retourner les statistiques système au format JSON', done => {
       const mockUsers = [
         { id: 1, name: 'User 1', email: 'user1@test.com', is_admin: false },
         { id: 2, name: 'Admin User', email: 'admin@test.com', is_admin: true },
@@ -189,7 +190,7 @@ describe('Routes Admin - Tests unitaires', () => {
         });
     });
 
-    test('doit gérer les erreurs de base de données dans l\'API stats', (done) => {
+    test("doit gérer les erreurs de base de données dans l'API stats", done => {
       databaseManager.users.findAll.mockRejectedValue(new Error('Database error'));
 
       const agent = request.agent(app);
@@ -209,14 +210,11 @@ describe('Routes Admin - Tests unitaires', () => {
   });
 
   describe('GET /admin/api/users', () => {
-    test('doit retourner 403 si utilisateur non admin', (done) => {
-      request(app)
-        .get('/admin/api/users')
-        .expect(403)
-        .end(done);
+    test('doit retourner 403 si utilisateur non admin', done => {
+      request(app).get('/admin/api/users').expect(403).end(done);
     });
 
-    test('doit retourner la liste des utilisateurs au format JSON', (done) => {
+    test('doit retourner la liste des utilisateurs au format JSON', done => {
       const mockUsers = [
         { id: 1, name: 'User 1', email: 'user1@test.com' },
         { id: 2, name: 'User 2', email: 'user2@test.com' },
@@ -240,7 +238,7 @@ describe('Routes Admin - Tests unitaires', () => {
         });
     });
 
-    test('doit gérer les erreurs de base de données dans l\'API users', (done) => {
+    test("doit gérer les erreurs de base de données dans l'API users", done => {
       databaseManager.users.findAll.mockRejectedValue(new Error('Database error'));
 
       const agent = request.agent(app);
@@ -260,14 +258,11 @@ describe('Routes Admin - Tests unitaires', () => {
   });
 
   describe('GET /admin/api/modules', () => {
-    test('doit retourner 403 si utilisateur non admin', (done) => {
-      request(app)
-        .get('/admin/api/modules')
-        .expect(403)
-        .end(done);
+    test('doit retourner 403 si utilisateur non admin', done => {
+      request(app).get('/admin/api/modules').expect(403).end(done);
     });
 
-    test('doit retourner la liste des modules au format JSON', (done) => {
+    test('doit retourner la liste des modules au format JSON', done => {
       const mockModules = [
         { id: 1, type: 'ESP32', status: 'online' },
         { id: 2, type: 'Sensor', status: 'offline' },
@@ -291,7 +286,7 @@ describe('Routes Admin - Tests unitaires', () => {
         });
     });
 
-    test('doit gérer les erreurs de base de données dans l\'API modules', (done) => {
+    test("doit gérer les erreurs de base de données dans l'API modules", done => {
       databaseManager.modules.findAll.mockRejectedValue(new Error('Database error'));
 
       const agent = request.agent(app);
