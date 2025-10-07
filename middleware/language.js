@@ -14,9 +14,10 @@ const localeLoader = require('../locales');
 /**
  * Detect user's preferred language from various sources
  * @param {Request} req - Express request object
+ * @param {Object} [user] - Optional user object with language preference
  * @returns {string} Detected language code
  */
-function detectLanguage(req) {
+function detectLanguage(req, user = null) {
   // 1. Check if language is explicitly set in cookie
   if (req.cookies && req.cookies.language) {
     const cookieLang = req.cookies.language;
@@ -26,7 +27,12 @@ function detectLanguage(req) {
     }
   }
 
-  // 2. Check Accept-Language header
+  // 2. Check user's preferred language from database (if user is provided)
+  if (user && user.language && localeLoader.isLanguageSupported(user.language)) {
+    return user.language;
+  }
+
+  // 3. Check Accept-Language header
   const acceptLanguage = req.get('Accept-Language');
   if (acceptLanguage) {
     // Parse Accept-Language header (simplified)
@@ -43,7 +49,7 @@ function detectLanguage(req) {
     }
   }
 
-  // 3. Default fallback
+  // 4. Default fallback
   return localeLoader.getDefaultLanguage();
 }
 

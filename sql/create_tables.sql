@@ -11,7 +11,13 @@ CREATE TABLE users (
   email VARCHAR(255) UNIQUE NOT NULL,
   password VARCHAR(255) NOT NULL,
   name VARCHAR(255) NOT NULL,
+  language VARCHAR(10) DEFAULT NULL,
   is_admin BOOLEAN DEFAULT FALSE,
+  -- Notification preferences
+  notify_module_status BOOLEAN DEFAULT TRUE, -- Module online/offline notifications
+  notify_system_errors BOOLEAN DEFAULT TRUE, -- System error notifications
+  notify_admin_user_activity BOOLEAN DEFAULT TRUE, -- Admin: user registration/login notifications
+  notify_admin_module_activity BOOLEAN DEFAULT TRUE, -- Admin: module claimed/unclaimed notifications
   last_login TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,

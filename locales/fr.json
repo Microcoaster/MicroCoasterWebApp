@@ -53,6 +53,8 @@
     "login_link": "Se connecter",
     "profile_title": "Profil",
     "full_name": "Nom complet",
+    "email": "Adresse email",
+    "preferred_language": "Langue préférée",
     "current_password": "Mot de passe actuel",
     "new_password": "Nouveau mot de passe",
     "confirm_new_password": "Confirmer le nouveau mot de passe",
@@ -132,7 +134,16 @@
     "module_added_successfully": "Module ajouté avec succès",
     "module_added_toast": "Nouveau module ajouté",
     "module_removed_toast": "Module supprimé",
-    "module_updated_toast": "Module mis à jour"
+    "module_updated_toast": "Module mis à jour",
+    "module_id_required": "L'ID du module est requis",
+    "module_code_required": "Le code du module est requis",
+    "invalid_module_id_format": "Format d'ID de module invalide (attendu MC-XXXX-AP ou MC-XXXX-ST)",
+    "invalid_module_code_format": "Format de code de module invalide (attendu XXXX-XXXX)",
+    "unknown_module_id": "ID de module inconnu",
+    "wrong_module_code": "Code de module incorrect",
+    "module_already_in_list": "Ce module est déjà dans votre liste",
+    "module_claimed_by_other": "Ce module a déjà été revendiqué par un autre utilisateur",
+    "database_error": "Erreur de base de données"
   },
   "admin": {
     "title": "Administration",
@@ -198,6 +209,21 @@
     "english": "English",
     "changed_successfully": "Langue changée avec succès",
     "change_failed": "Échec du changement de langue"
+  },
+  "notifications": {
+    "title": "Préférences de notification",
+    "user_notifications": "Notifications utilisateur",
+    "admin_notifications": "Notifications administrateur",
+    "module_status": "Notifications de statut des modules",
+    "module_status_desc": "Recevoir des notifications quand mes modules se connectent ou se déconnectent",
+    "system_errors": "Erreurs système",
+    "system_errors_desc": "Recevoir des notifications en cas d'erreurs système",
+    "admin_user_activity": "Activité des utilisateurs",
+    "admin_user_activity_desc": "Recevoir des notifications pour les inscriptions et connexions des utilisateurs",
+    "admin_module_activity": "Activité des modules",
+    "admin_module_activity_desc": "Recevoir des notifications quand des modules sont revendiqués ou supprimés",
+    "save_notifications": "Sauvegarder les notifications",
+    "updated_success": "Préférences de notification mises à jour avec succès"
   },
   "error": {
     "title": "Oops! Une erreur s'est produite",

@@ -221,7 +221,7 @@ describe('Routes Modules - Tests unitaires', () => {
         .set('x-test-user-id', '123')
         .send({ module_code: 'ABCD-1234', name: 'Test Module' })
         .expect(302)
-        .expect('Location', /\/modules\?flash=/)
+        .expect('Location', '/modules')
         .end(done);
     });
 
@@ -231,7 +231,7 @@ describe('Routes Modules - Tests unitaires', () => {
         .set('x-test-user-id', '123')
         .send({ module_id: 'MC-0001-STN', name: 'Test Module' })
         .expect(302)
-        .expect('Location', /\/modules\?flash=/)
+        .expect('Location', '/modules')
         .end(done);
     });
 
@@ -245,7 +245,7 @@ describe('Routes Modules - Tests unitaires', () => {
         .set('x-test-user-id', '123')
         .send({ module_id: 'MC-0001-AP', module_code: 'ABCD-1234', name: 'Test Module' })
         .expect(302)
-        .expect('Location', /\/modules\?flash=.*Module%20added%20successfully/)
+        .expect('Location', '/modules')
         .end(err => {
           if (err) return done(err);
           expect(Logger.activity.info).toHaveBeenCalledWith(

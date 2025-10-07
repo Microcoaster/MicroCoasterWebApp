@@ -36,7 +36,7 @@ class UserDAO extends BaseDAO {
   async verifyLogin(email, password) {
     try {
       const user = await this.findOne(
-        'SELECT id, email, name, password, is_admin FROM users WHERE email = ? LIMIT 1',
+        'SELECT id, email, name, language, password, is_admin, notify_module_status, notify_system_errors, notify_admin_user_activity, notify_admin_module_activity FROM users WHERE email = ? LIMIT 1',
         [email]
       );
 
@@ -44,8 +44,32 @@ class UserDAO extends BaseDAO {
         const isValid = await bcrypt.compare(password, user.password);
         if (isValid) {
           // Ne pas retourner le mot de passe hashé
-          const { id, email, name, is_admin, last_login, created_at } = user;
-          return { id, email, name, is_admin, last_login, created_at };
+          const {
+            id,
+            email,
+            name,
+            language,
+            is_admin,
+            notify_module_status,
+            notify_system_errors,
+            notify_admin_user_activity,
+            notify_admin_module_activity,
+            last_login,
+            created_at,
+          } = user;
+          return {
+            id,
+            email,
+            name,
+            language,
+            is_admin,
+            notify_module_status,
+            notify_system_errors,
+            notify_admin_user_activity,
+            notify_admin_module_activity,
+            last_login,
+            created_at,
+          };
         }
       }
 
@@ -98,7 +122,7 @@ class UserDAO extends BaseDAO {
   async findById(userId) {
     try {
       const user = await this.findOne(
-        'SELECT id, email, name, is_admin, last_login, created_at FROM users WHERE id = ?',
+        'SELECT id, email, name, language, is_admin, notify_module_status, notify_system_errors, notify_admin_user_activity, notify_admin_module_activity, last_login, created_at FROM users WHERE id = ?',
         [userId]
       );
       return user;
@@ -280,12 +304,20 @@ class UserDAO extends BaseDAO {
    */
   async updateProfile(userId, updates) {
     try {
-      const allowedFields = ['name', 'email'];
+      const allowedFields = [
+        'name',
+        'email',
+        'language',
+        'notify_module_status',
+        'notify_system_errors',
+        'notify_admin_user_activity',
+        'notify_admin_module_activity',
+      ];
       const fields = [];
       const values = [];
 
       for (const [key, value] of Object.entries(updates)) {
-        if (allowedFields.includes(key) && value !== undefined) {
+        if (allowedFields.includes(key)) {
           fields.push(`${key} = ?`);
           values.push(value);
         }

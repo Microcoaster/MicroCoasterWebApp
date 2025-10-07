@@ -230,9 +230,10 @@ describe('ModuleEvents - Tests unitaires', () => {
         'user:module:removed',
         expect.any(Object)
       );
-      expect(mockEventsManager.emitToAdmins).toHaveBeenCalledWith(
+      expect(mockEventsManager.emitToAdminsExcludingUser).toHaveBeenCalledWith(
         'rt_module_removed',
-        expect.any(Object)
+        expect.any(Object),
+        123
       );
     });
   });

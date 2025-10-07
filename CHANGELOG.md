@@ -4,6 +4,27 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Système de notifications personnalisables complet** : Interface utilisateur dans le profil pour gérer les préférences de notification avec cases à cocher organisées par catégories (utilisateur/administrateur)
+- **Support multilingue avancé** : Colonne `language` dans la base de données, sélecteur de langue dans le profil, détection automatique de la langue préférée de l'utilisateur
+- **Gestionnaire de notifications intelligent** (`NotificationManager.js`) : Filtrage automatique des notifications toast selon les préférences utilisateur avec support des types `module_status`, `system_errors`, `admin_user_activity`, `admin_module_activity`
+- **Notifications toast contextuelles** : Événements temps réel pour les connexions/déconnexions de modules, activités utilisateur, changements de profil, avec exclusion automatique des propriétaires des notifications admin
+- **Refonte complète de l'interface profil** : Mise en page moderne avec sections distinctes pour informations personnelles, changement de mot de passe et préférences de notification
+- **API de notifications intégrée** : Intégration complète du NotificationManager dans tous les gestionnaires d'événements (ModuleEvents, UserEvents) pour une gestion centralisée des notifications
+
+### Modifié
+
+- **Correction des notifications dupliquées** : Suppression du toast côté serveur pour les actions de modules, utilisation exclusive du toast côté client avec traduction pour éviter les doublons
+- **Amélioration de l'exclusion des notifications admin** : Utilisation de `emitToAdminsExcludingUser` pour empêcher les administrateurs de recevoir leurs propres notifications d'activité
+- **Optimisation de l'initialisation temps réel** : Initialisation anticipée de l'API temps réel pour une meilleure stabilité des WebSocket
+- **Sécurisation des formulaires de profil** : Validation stricte des champs et gestion séparée des formulaires de profil/notifications
+
+### Corrigé
+
+- **Élimination des toasts dupliqués** : Un seul toast "Module supprimé avec succès" affiché côté client au lieu de deux toasts (serveur + client)
+- **Gestion correcte des préférences de notification** : Valeurs par défaut TRUE pour toutes les préférences, conversion automatique des valeurs checkbox (`on` → `true`)
+
 ## [0.1.0] - 07-10-2025
 
 ### Corrigé

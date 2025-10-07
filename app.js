@@ -131,10 +131,38 @@ app.use((req, res) => {
 });
 
 // ============================================================================
-// WEBSOCKET SETUP
+// WEBSOCKET SETUP & REAL-TIME API INITIALIZATION
 // ============================================================================
 
 io.app = app;
+
+let realTimeAPI = null;
+
+async function initializeRealTimeAPI() {
+  try {
+    await databaseManager.initialize();
+    await databaseManager.initializeDatabase();
+
+    realTimeAPI = new RealTimeAPI(io, databaseManager);
+    realTimeAPI.initialize();
+    app.locals.realTimeAPI = realTimeAPI;
+
+    AppLogger.app.info('🔄 Real-time Events API initialized early');
+  } catch (error) {
+    AppLogger.app.error('❌ Real-time API initialization failed:', error);
+    throw error;
+  }
+}
+
+// Initialize real-time API before starting server
+initializeRealTimeAPI()
+  .then(() => {
+    startServer();
+  })
+  .catch(error => {
+    AppLogger.app.error('❌ Failed to initialize real-time API:', error);
+    process.exit(1);
+  });
 
 // ============================================================================
 // ERROR HANDLING
@@ -165,17 +193,10 @@ process.on('unhandledRejection', (reason, promise) => {
  */
 async function startServer() {
   try {
-    await databaseManager.initialize();
-    await databaseManager.initializeDatabase();
-
-    const realTimeAPI = new RealTimeAPI(io, databaseManager);
-    realTimeAPI.initialize();
-    app.locals.realTimeAPI = realTimeAPI;
+    // Real-time API already initialized above
 
     // Initialiser les handlers Socket.IO (clients web uniquement)
     websocketHandler(io, null); // Temporaire: sans bridge
-
-    AppLogger.app.info('🔄 Real-time Events API initialized');
 
     databaseManager.startModuleStatusCleanup(1, 5);
 
@@ -209,7 +230,5 @@ async function startServer() {
     process.exit(1);
   }
 }
-
-startServer();
 
 module.exports = { app, server, io };
