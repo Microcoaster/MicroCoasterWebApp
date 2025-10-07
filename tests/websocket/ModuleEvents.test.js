@@ -42,7 +42,7 @@ describe('ModuleEvents - Tests unitaires', () => {
 
   describe('moduleOnline', () => {
     test('doit marquer un module comme en ligne et émettre les événements', () => {
-      const moduleInfo = { userId: 123, name: 'Test Module', type: 'Station' };
+      const moduleInfo = { userId: 123, name: 'Test Module', type: 'Audio Player' };
 
       moduleEvents.moduleOnline('MC-001', moduleInfo);
 
@@ -423,7 +423,7 @@ describe('ModuleEvents - Tests unitaires', () => {
         disconnect: jest.fn(),
       };
 
-      moduleEvents.registerESP(mockSocket, 'MC-001', 'Station');
+      moduleEvents.registerESP(mockSocket, 'MC-001', 'Audio Player');
 
       // Cette méthode utilise setTimeout dans moduleOnline, donc on doit attendre
       return new Promise(resolve => {
@@ -665,7 +665,7 @@ describe('ModuleEvents - Tests unitaires', () => {
   describe('emitLastSeenUpdate', () => {
     test('doit émettre la mise à jour de dernière activité avec logging', () => {
       const lastSeen = new Date();
-      const moduleInfo = { userId: 123, type: 'Station' };
+      const moduleInfo = { userId: 123, type: 'Audio Player' };
 
       moduleEvents.emitLastSeenUpdate('MC-001', lastSeen, moduleInfo);
 
@@ -675,7 +675,7 @@ describe('ModuleEvents - Tests unitaires', () => {
           moduleId: 'MC-001',
           lastSeen,
           userId: 123,
-          type: 'Station',
+          type: 'Audio Player',
         })
       );
 
@@ -688,7 +688,7 @@ describe('ModuleEvents - Tests unitaires', () => {
 
     test('doit émettre la mise à jour sans notification utilisateur si pas de userId', () => {
       const lastSeen = new Date();
-      const moduleInfo = { type: 'Station' }; // Pas de userId
+      const moduleInfo = { type: 'Audio Player' }; // Pas de userId
 
       moduleEvents.emitLastSeenUpdate('MC-001', lastSeen, moduleInfo);
 
@@ -697,7 +697,7 @@ describe('ModuleEvents - Tests unitaires', () => {
         expect.objectContaining({
           moduleId: 'MC-001',
           lastSeen,
-          type: 'Station',
+          type: 'Audio Player',
         })
       );
 

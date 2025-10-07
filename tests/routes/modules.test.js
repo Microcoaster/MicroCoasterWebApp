@@ -110,7 +110,7 @@ describe('Routes Modules - Tests unitaires', () => {
     test('doit afficher la page des modules avec inférence de types', done => {
       const mockUser = { id: 123, name: 'Test User', email: 'test@example.com' };
       const mockModules = [
-        { id: 1, module_id: 'MC-0001-STN', name: 'Station 1', type: null },
+        { id: 1, module_id: 'MC-0001-AP', name: 'Audio Player 1', type: 'Audio Player' },
         { id: 2, module_id: 'MC-0002-ST', name: 'Switch Track', type: null },
         { id: 3, module_id: 'MC-0003-UNK', name: 'Unknown Module', type: null },
       ];
@@ -157,7 +157,7 @@ describe('Routes Modules - Tests unitaires', () => {
 
     test('doit retourner les modules au format JSON avec inférence de types', done => {
       const mockModules = [
-        { id: 1, module_id: 'MC-0001-STN', name: 'Station 1', type: null },
+        { id: 1, module_id: 'MC-0001-AP', name: 'Audio Player 1', type: 'Audio Player' },
         { id: 2, module_id: 'MC-0002-ST', name: 'Switch Track', type: null },
       ];
 
@@ -223,43 +223,19 @@ describe('Routes Modules - Tests unitaires', () => {
 
     test('doit réussir à claimer un module avec des données valides', done => {
       databaseManager.execute
-        .mockResolvedValueOnce([[{ id: 1, user_id: null, claimed: 0, module_code: 'ABCD-1234' }]]) // Vérification
+        .mockResolvedValueOnce([[{ id: 1, user_id: null, module_code: 'ABCD-1234' }]]) // Vérification
         .mockResolvedValueOnce(); // Update
 
       request(app)
         .post('/modules/claim')
         .set('x-test-user-id', '123')
-        .send({ module_id: 'MC-0001-STN', module_code: 'ABCD-1234', name: 'Test Module' })
+        .send({ module_id: 'MC-0001-AP', module_code: 'ABCD-1234', name: 'Test Module' })
         .expect(302)
         .expect('Location', /\/modules\?flash=.*Module%20added%20successfully/)
         .end(err => {
           if (err) return done(err);
           expect(Logger.activity.info).toHaveBeenCalledWith(
-            '✅ Module claimed: MC-0001-STN (Station) by user 123'
-          );
-          done();
-        });
-    });
-  });
-
-  describe('POST /modules/add', () => {
-    test('doit retourner 401 si utilisateur non connecté', done => {
-      request(app).post('/modules/add').expect(302).expect('Location', '/login').end(done);
-    });
-
-    test('doit réussir à ajouter un module', done => {
-      databaseManager.execute.mockResolvedValue();
-
-      request(app)
-        .post('/modules/add')
-        .set('x-test-user-id', '123')
-        .send({ module_id: 'MC-0002-ST', name: 'Switch Track' })
-        .expect(302)
-        .expect('Location', /\/modules\?flash=.*Module%20added%20successfully/)
-        .end(err => {
-          if (err) return done(err);
-          expect(Logger.activity.info).toHaveBeenCalledWith(
-            '➕ Module added: MC-0002-ST (Switch Track) by user 123'
+            '✅ Module claimed: MC-0001-AP (Audio Player) by user 123'
           );
           done();
         });
@@ -269,7 +245,7 @@ describe('Routes Modules - Tests unitaires', () => {
   describe('POST /modules/delete/:moduleId', () => {
     test('doit retourner 401 si utilisateur non connecté', done => {
       request(app)
-        .post('/modules/delete/MC-0001-STN')
+        .post('/modules/delete/MC-0001-AP')
         .expect(302)
         .expect('Location', '/login')
         .end(done);
@@ -277,11 +253,11 @@ describe('Routes Modules - Tests unitaires', () => {
 
     test('doit réussir à supprimer (unclaim) un module', done => {
       databaseManager.execute
-        .mockResolvedValueOnce([{ id: 1, module_id: 'MC-0001-STN', user_id: 123 }]) // Vérification
+        .mockResolvedValueOnce([{ id: 1, module_id: 'MC-0001-AP', user_id: 123 }]) // Vérification
         .mockResolvedValueOnce(); // Update
 
       request(app)
-        .post('/modules/delete/MC-0001-STN')
+        .post('/modules/delete/MC-0001-AP')
         .set('x-test-user-id', '123')
         .expect(200)
         .expect('Content-Type', /json/)
@@ -290,7 +266,7 @@ describe('Routes Modules - Tests unitaires', () => {
           expect(res.body.success).toBe(true);
           expect(res.body.message).toBe('Module deleted successfully');
           expect(Logger.activity.info).toHaveBeenCalledWith(
-            '🗑️ Module unclaimed: MC-0001-STN by user 123'
+            '🗑️ Module unclaimed: MC-0001-AP by user 123'
           );
           done();
         });
@@ -300,7 +276,7 @@ describe('Routes Modules - Tests unitaires', () => {
   describe('POST /modules/update/:moduleId', () => {
     test('doit retourner 401 si utilisateur non connecté', done => {
       request(app)
-        .post('/modules/update/MC-0001-STN')
+        .post('/modules/update/MC-0001-AP')
         .expect(302)
         .expect('Location', '/login')
         .end(done);
@@ -308,13 +284,13 @@ describe('Routes Modules - Tests unitaires', () => {
 
     test('doit réussir à mettre à jour un module', done => {
       databaseManager.execute
-        .mockResolvedValueOnce([{ id: 1, module_id: 'MC-0001-STN', user_id: 123 }]) // Vérification
+        .mockResolvedValueOnce([{ id: 1, module_id: 'MC-0001-AP', user_id: 123 }]) // Vérification
         .mockResolvedValueOnce(); // Update
 
       request(app)
-        .post('/modules/update/MC-0001-STN')
+        .post('/modules/update/MC-0001-AP')
         .set('x-test-user-id', '123')
-        .send({ name: 'Updated Station', type: 'Station' })
+        .send({ name: 'Updated Station', type: 'Audio Player' })
         .expect(200)
         .expect('Content-Type', /json/)
         .end((err, res) => {
@@ -322,7 +298,7 @@ describe('Routes Modules - Tests unitaires', () => {
           expect(res.body.success).toBe(true);
           expect(res.body.message).toBe('Module updated successfully');
           expect(Logger.activity.info).toHaveBeenCalledWith(
-            '📝 Module updated: MC-0001-STN by user 123'
+            '📝 Module updated: MC-0001-AP by user 123'
           );
           done();
         });

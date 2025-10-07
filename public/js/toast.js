@@ -395,7 +395,8 @@
     });
 
     socket.on('rt_module_added', function (data) {
-      showToast(`➕ Nouveau module ajouté: ${data.moduleId}`, 'success', 5000);
+      const moduleId = data.module?.module_id || 'Unknown';
+      showToast(`➕ ${window.t('modules.module_added_toast')}: ${moduleId}`, 'success', 5000);
 
       if (getCurrentPageName() === 'admin' && window.loadModulesTable) {
         window.loadModulesTable();
@@ -403,7 +404,8 @@
     });
 
     socket.on('rt_module_removed', function (data) {
-      showToast(`🗑️ Module supprimé: ${data.moduleId}`, 'warning', 5000);
+      const moduleId = data.module?.module_id || 'Unknown';
+      showToast(`🗑️ ${window.t('modules.module_removed_toast')}: ${moduleId}`, 'warning', 5000);
 
       if (getCurrentPageName() === 'admin' && window.loadModulesTable) {
         window.loadModulesTable();
@@ -411,7 +413,8 @@
     });
 
     socket.on('rt_module_updated', function (data) {
-      showToast(`🔧 Module mis à jour: ${data.moduleId}`, 'info', 4000);
+      const moduleId = data.module?.module_id || 'Unknown';
+      showToast(`🔧 ${window.t('modules.module_updated_toast')}: ${moduleId}`, 'info', 4000);
 
       if (getCurrentPageName() === 'admin' && window.loadModulesTable) {
         window.loadModulesTable();

@@ -13,6 +13,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 - Remplacement des instructions `console` par le système de logging structuré approprié
 - Suppression des variables, fonctions et paramètres inutilisés dans tout le code source
 - Nettoyage du code mort et amélioration de la maintenabilité
+- Correction des traductions toast pour les messages de modules
+- Amélioration de l'affichage des états vides dans l'interface modules
 
 ### Refactorisé
 
@@ -21,6 +23,35 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 - Renommage de `emitToPage` en `emitToPageExcludingUser` avec fonctionnalité d'exclusion d'utilisateur
 - Ajout de `emitToAdminsExcludingUser` pour éviter les doubles notifications
 - Conversion complète des concaténations de chaînes classiques (`+`) en template literals ES6+ (`${}`) pour améliorer la lisibilité et maintenabilité du code
+- **Refactorisation majeure de la base de données : suppression de la colonne redondante `claimed`**
+- Remplacement de toutes les vérifications `claimed = 0/1` par des requêtes optimisées `user_id IS NULL/IS NOT NULL`
+- Suppression de la route `/add` dépréciée qui permettait la création arbitraire de modules
+- Nettoyage du ModuleDAO et suppression des références au champ `claimed`
+- Simplification des événements WebSocket en supprimant les propriétés `claimed`
+- Suppression du support des anciens types de modules non fonctionnels (Station, Light FX, Smoke Machine, Launch Track)
+- Conservation uniquement des modules Audio Player (AP) et Switch Track (ST) opérationnels
+
+### Supprimé
+
+- Suppression de la colonne BOOLEAN `claimed` et de son index inefficace dans la table modules
+- Suppression de la route `POST /modules/add` qui permettait la création dangereuse de modules virtuels
+- Suppression du support des types de modules non implémentés : Station (STN), Light FX (LFX), Smoke Machine (SM), Launch Track (LT)
+- Suppression des propriétés `claimed` et `unclaimed` des statistiques de modules
+- Suppression des références `claimed` dans tous les événements WebSocket et objets module
+
+### Optimisé
+
+- Amélioration significative des performances de base de données en supprimant l'index boolean inefficace
+- Utilisation optimisée de l'index existant sur `user_id` pour les requêtes de modules
+- Réduction de la redondance de données et simplification du schéma de base de données
+- Requêtes plus rapides pour la gestion des modules (claim/unclaim)
+- Validation plus stricte des formats de modules ID pour éviter les erreurs
+
+### Sécurité
+
+- Suppression de la route `POST /modules/add` qui permettait la création non contrôlée de modules
+- Renforcement de la sécurité en limitant les actions utilisateurs aux modules pré-enregistrés uniquement
+- Validation obligatoire des codes de sécurité pour toute opération de claim de module
 
 ### Ajouté
 

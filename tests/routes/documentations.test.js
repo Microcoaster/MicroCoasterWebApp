@@ -18,6 +18,11 @@ jest.mock('../../bdd/DatabaseManager', () => ({
 
 // Mock du logger
 jest.mock('../../utils/logger', () => ({
+  app: {
+    debug: jest.fn(),
+    info: jest.fn(),
+    error: jest.fn(),
+  },
   activity: {
     debug: jest.fn(),
     info: jest.fn(),

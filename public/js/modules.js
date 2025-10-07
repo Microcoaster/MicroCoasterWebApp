@@ -13,230 +13,6 @@ window.ws_sendCommand = window.ws_sendCommand || function () {};
 const controllersByMid = new Map();
 
 /**
- * Crée un contrôleur de station interactif
- * Génère l'interface de contrôle pour un module de type station avec boutons et indicateurs
- * @param {HTMLElement} panel - Élément DOM du panneau de la station
- * @returns {Object} Objet contrôleur avec méthodes de gestion
- */
-function makeStationController(panel) {
-  const IMG = {
-    ON: urlImg('button_green_on.png'),
-    OFF: urlImg('button_green_off.png'),
-    SW_A: urlImg('switch_0.png'),
-    SW_B: urlImg('switch_1.png'),
-    LED_ON: urlImg('led_on.png'),
-    LED_OFF: urlImg('led_off.png'),
-    ESTOP: urlImg('emergency_button.png'),
-    RESET: urlImg('reset_button.png'),
-  };
-  preload(Object.values(IMG));
-
-  const estopImg = panel.querySelector('[data-role="st_estop"]');
-  const nsfImg = panel.querySelector('[data-role="st_nsf"]');
-  const dispatchImg = panel.querySelector('[data-role="st_dispatch"]');
-  const gatesImg = panel.querySelector('[data-role="st_gates"]');
-  const harnessImg = panel.querySelector('[data-role="st_harness"]');
-
-  let gatesClosed = false,
-    harnessLocked = false,
-    nextSectionFree = true;
-  let inDispatch = false,
-    dispatchTmr = null;
-  let blinkTmr = null,
-    blinkOn = false;
-  let gatesCooldown = false,
-    harnessCooldown = false;
-  let estop = false;
-
-  /**
-   * Met à jour l'image d'un commutateur selon son état
-   * @param {HTMLElement} img - Élément image du commutateur
-   * @param {boolean} isB - True pour position B, false pour position A
-   * @returns {void}
-   * @private
-   */
-  const setSwitch = (img, isB) => {
-    if (img) img.src = isB ? IMG.SW_B : IMG.SW_A;
-  };
-
-  /**
-   * Met à jour l'indicateur Next Section Free
-   * @param {boolean} on - État de la section suivante (libre ou occupée)
-   * @returns {void}
-   * @private
-   */
-  const setNSF = on => {
-    if (nsfImg) nsfImg.src = on ? IMG.LED_ON : IMG.LED_OFF;
-  };
-
-  /**
-   * Met à jour l'état verrouillé/déverrouillé du panneau de station
-   * @returns {void}
-   * @private
-   */
-  function updateDisabled() {
-    const lock = estop || inDispatch;
-    panel.classList.toggle('locked', lock);
-    const isOffline = panel.classList.contains('offline');
-    if (estopImg) estopImg.style.pointerEvents = isOffline ? 'none' : 'auto';
-  }
-
-  /**
-   * Applique l'état visuel de la lampe de dispatch (clignotante)
-   * @returns {void}
-   * @private
-   */
-  function applyDispatchLamp() {
-    if (dispatchImg) dispatchImg.src = blinkOn ? IMG.ON : IMG.OFF;
-  }
-
-  /**
-   * Démarre le clignotement de la lampe de dispatch
-   * @returns {void}
-   * @private
-   */
-  function startBlink() {
-    if (blinkTmr || inDispatch || estop) return;
-    blinkOn = false;
-    applyDispatchLamp();
-    blinkTmr = setInterval(() => {
-      blinkOn = !blinkOn;
-      applyDispatchLamp();
-    }, 800);
-  }
-  /**
-   * Arrête le clignotement de la lampe de dispatch
-   * @param {boolean} [forceOff=true] - Force l'état éteint
-   * @returns {void}
-   * @private
-   */
-  function stopBlink(forceOff = true) {
-    if (blinkTmr) {
-      clearInterval(blinkTmr);
-      blinkTmr = null;
-    }
-    blinkOn = !forceOff;
-    applyDispatchLamp();
-  }
-
-  /**
-   * Vérifie si le dispatch est autorisé selon les conditions de sécurité
-   * @returns {boolean} True si le dispatch est possible
-   * @private
-   */
-  const canDispatch = () =>
-    !estop && nextSectionFree && gatesClosed && harnessLocked && !inDispatch;
-
-  /**
-   * Réévalue tous les états et met à jour l'interface de la station
-   * @returns {void}
-   * @private
-   */
-  function reevaluate() {
-    setNSF(nextSectionFree && !estop);
-    setSwitch(gatesImg, gatesClosed);
-    setSwitch(harnessImg, harnessLocked);
-    if (canDispatch()) startBlink();
-    else stopBlink(true);
-  }
-
-  estopImg?.addEventListener('click', () => {
-    estop = !estop;
-    estopImg.src = estop ? IMG.RESET : IMG.ESTOP;
-    if (estop) stopBlink(true);
-    updateDisabled();
-    reevaluate();
-  });
-
-  gatesImg?.addEventListener('click', () => {
-    if (estop || inDispatch || gatesCooldown) return;
-    gatesClosed = !gatesClosed;
-    gatesCooldown = true;
-    setTimeout(() => (gatesCooldown = false), 3000);
-    reevaluate();
-    window.ws_sendCommand(panel, gatesClosed ? 'gates_close' : 'gates_open', {}, gatesImg);
-  });
-
-  harnessImg?.addEventListener('click', () => {
-    if (estop || inDispatch || harnessCooldown) return;
-    harnessLocked = !harnessLocked;
-    harnessCooldown = true;
-    setTimeout(() => (harnessCooldown = false), 3000);
-    reevaluate();
-  });
-
-  dispatchImg?.addEventListener('click', () => {
-    if (!canDispatch()) return;
-    inDispatch = true;
-    updateDisabled();
-    stopBlink(false);
-    nextSectionFree = false;
-    reevaluate();
-    window.ws_sendCommand(panel, 'start', {}, dispatchImg);
-
-    clearTimeout(dispatchTmr);
-    dispatchTmr = setTimeout(() => {
-      inDispatch = false;
-      nextSectionFree = true;
-      updateDisabled();
-      reevaluate();
-    }, 10000);
-  });
-
-  /**
-   * Callback exécuté lorsque le module station passe en ligne
-   * Met à jour l'état de l'interface et réévalue les conditions
-   * @returns {void}
-   * @private
-   */
-  function onPresenceOnline() {
-    updateDisabled();
-    reevaluate();
-  }
-  /**
-   * Callback exécuté lorsque le module station passe hors ligne
-   * Arrête le clignotement et remet l'interface en mode sécurisé
-   * @returns {void}
-   * @private
-   */
-  function onPresenceOffline() {
-    stopBlink(true);
-    setNSF(false);
-    updateDisabled();
-  }
-
-  /**
-   * Met à jour l'état de la station avec les données de télémétrie
-   * Synchronise l'interface avec l'état réel du module physique
-   * @param {Object} [t={}] - Données de télémétrie (gates, harness, nsf, estop)
-   * @returns {void}
-   * @private
-   */
-  function updateTelemetry(t = {}) {
-    if ('gates' in t) gatesClosed = !!t.gates;
-    if ('harness' in t) harnessLocked = !!t.harness;
-    if ('nsf' in t) nextSectionFree = !!t.nsf;
-    if ('estop' in t) estop = !!t.estop;
-    updateDisabled();
-    reevaluate();
-  }
-
-  updateDisabled();
-  reevaluate();
-
-  return {
-    onPresenceOnline,
-    onPresenceOffline,
-    updateTelemetry,
-    destroy() {
-      clearInterval(blinkTmr);
-      blinkTmr = null;
-      clearTimeout(dispatchTmr);
-    },
-  };
-}
-
-/**
  * Crée un contrôleur d'aiguillage interactif
  * Génère l'interface de contrôle pour un module de type aiguillage avec indicateurs de position
  * @param {HTMLElement} root - Élément DOM racine du panneau d'aiguillage
@@ -277,8 +53,9 @@ function makeSwitchController(root) {
    * @private
    */
   const update = () => {
-    setLED(ledL, left);
-    setLED(ledR, !left);
+    const isOffline = root.classList.contains('offline');
+    setLED(ledL, left && !isOffline);
+    setLED(ledR, !left && !isOffline);
     setSW(!left);
   };
 
@@ -325,825 +102,6 @@ function makeSwitchController(root) {
 
   update();
   return { onPresenceOnline, onPresenceOffline, updateTelemetry, destroy() {} };
-}
-
-/**
- * Crée un contrôleur d'éclairage interactif
- * Génère l'interface de contrôle pour un module d'éclairage avec réglage de luminosité
- * @param {HTMLElement} panel - Élément DOM du panneau d'éclairage
- * @returns {Object} Objet contrôleur avec méthodes de gestion d'éclairage
- */
-function makeLightController(panel) {
-  const IMG = {
-    A: urlImg('switch_0.png'),
-    B: urlImg('switch_1.png'),
-    LED_ON: urlImg('led_on.png'),
-    LED_OFF: urlImg('led_off.png'),
-  };
-  preload(Object.values(IMG));
-  let lightOn = false,
-    cooldown = false;
-  const sw = panel.querySelector('[data-role="light_sw"]');
-  const led = panel.querySelector('[data-role="light_led"]');
-
-  /**
-   * Met à jour l'état visuel de la LED d'éclairage
-   * @param {boolean} on - État de la LED (allumée/éteinte)
-   * @returns {void}
-   * @private
-   */
-  const setLED = on => {
-    if (led) led.src = on ? IMG.LED_ON : IMG.LED_OFF;
-  };
-
-  /**
-   * Met à jour l'état visuel du commutateur d'éclairage
-   * @param {boolean} on - État du commutateur (activé/désactivé)
-   * @returns {void}
-   * @private
-   */
-  const setSW = on => {
-    if (sw) sw.src = on ? IMG.B : IMG.A;
-  };
-
-  /**
-   * Applique l'état visuel complet du contrôleur d'éclairage
-   * Synchronise le commutateur et la LED selon l'état actuel
-   * @returns {void}
-   * @private
-   */
-  const apply = () => {
-    setSW(lightOn);
-    setLED(lightOn);
-  };
-
-  sw?.addEventListener('click', () => {
-    if (cooldown) return;
-    lightOn = !lightOn;
-    apply();
-    window.ws_sendCommand(panel, 'led', { pin: 23, value: lightOn }, sw);
-    cooldown = true;
-    setTimeout(() => (cooldown = false), 3000);
-  });
-
-  /**
-   * Callback exécuté lorsque le module d'éclairage passe en ligne
-   * @returns {void}
-   * @private
-   */
-  function onPresenceOnline() {
-    apply();
-  }
-
-  /**
-   * Callback exécuté lorsque le module d'éclairage passe hors ligne
-   * @returns {void}
-   * @private
-   */
-  function onPresenceOffline() {
-    lightOn = false;
-    apply();
-  }
-
-  /**
-   * Met à jour l'état de l'éclairage avec les données de télémétrie
-   * @param {Object} payload - Données reçues (led, light, on)
-   * @returns {void}
-   * @private
-   */
-  function updateTelemetry(payload) {
-    const on = payload.led ?? payload.light ?? payload.on;
-    if (on !== undefined) {
-      lightOn = !!on;
-      apply();
-    }
-  }
-
-  apply();
-  return { onPresenceOnline, onPresenceOffline, updateTelemetry, destroy() {} };
-}
-
-/**
- * Crée un contrôleur de lanceur interactif
- * Génère l'interface de contrôle pour un module de type lanceur avec contrôles de vitesse et direction
- * @param {HTMLElement} panel - Élément DOM du panneau de lanceur
- * @returns {Object} Objet contrôleur avec méthodes de gestion de lanceur
- */
-function makeLaunchController(panel) {
-  const IMG = {
-    BTN_ON: urlImg('button_green_on.png'),
-    BTN_OFF: urlImg('button_green_off.png'),
-    LED_ON: urlImg('led_on.png'),
-    LED_OFF: urlImg('led_off.png'),
-    SW_A: urlImg('switch_0.png'),
-    SW_B: urlImg('switch_1.png'),
-  };
-  preload(Object.values(IMG));
-
-  let direction = 'forward',
-    speed = 60;
-  let inLaunch = false,
-    blinkOn = false,
-    blinkTmr = null,
-    dirCooldown = false;
-
-  const MIN_LDUR = 2,
-    MAX_LDUR = 10;
-  let lDuration = 5;
-  let LN_STEP = 36,
-    LN_BASE = 0;
-
-  const ledImg = panel.querySelector('[data-role="ln_ready"]');
-  const btnImg = panel.querySelector('[data-role="ln_btn"]');
-  const dirImg = panel.querySelector('[data-role="ln_dir"]');
-  const dirLbl = panel.querySelector('[data-role="ln_dir_lbl"]');
-  const gauge = panel.querySelector('[data-role="ln_gauge"]');
-  const spVal = panel.querySelector('[data-role="ln_speed_val"]');
-  const plusBtn = panel.querySelector('[data-role="ln_plus"]');
-  const minusBtn = panel.querySelector('[data-role="ln_minus"]');
-
-  const lnRoll = panel.querySelector('[data-role="ln_roll"]');
-  const lnTrack = panel.querySelector('[data-role="ln_track"]');
-  const lnPlus = panel.querySelector('[data-role="ln_dur_plus"]');
-  const lnMinus = panel.querySelector('[data-role="ln_dur_minus"]');
-
-  /**
-   * Met à jour l'état verrouillé du panneau de lanceur
-   * @param {boolean} on - True pour verrouiller, false pour déverrouiller
-   * @returns {void}
-   * @private
-   */
-  const setLocked = on => panel.classList.toggle('locked', on);
-
-  /**
-   * Met à jour l'état de la LED de prêt du lanceur
-   * @param {boolean} on - État de la LED (allumée/éteinte)
-   * @returns {void}
-   * @private
-   */
-  const setLED = on => {
-    if (ledImg) ledImg.src = on ? IMG.LED_ON : IMG.LED_OFF;
-  };
-
-  /**
-   * Met à jour l'interface de direction du lanceur
-   * Synchronise l'image et le label de direction avec traduction
-   * @returns {void}
-   * @private
-   */
-  function setDirUI() {
-    if (!dirImg || !dirLbl) return;
-    dirImg.src = direction === 'forward' ? IMG.SW_A : IMG.SW_B;
-
-    if (typeof window.t === 'function' && window.MC && window.MC.translations) {
-      dirLbl.textContent = direction === 'forward' ? t('modules.forward') : t('modules.backward');
-    } else {
-      dirLbl.textContent = direction === 'forward' ? 'Forward' : 'Backward';
-      if (!window.pendingTranslationUpdates) window.pendingTranslationUpdates = [];
-      window.pendingTranslationUpdates.push(() => {
-        if (dirLbl && typeof window.t === 'function') {
-          dirLbl.textContent =
-            direction === 'forward' ? t('modules.forward') : t('modules.backward');
-        }
-      });
-    }
-  }
-  /**
-   * Met à jour l'affichage de la vitesse du lanceur
-   * Synchronise la valeur affichée et la jauge visuelle
-   * @returns {void}
-   * @private
-   */
-  function setSpeedUI() {
-    if (spVal) spVal.textContent = speed;
-    if (gauge) gauge.style.setProperty('--p', speed);
-  }
-
-  /**
-   * Applique l'état visuel de la lampe de lancement
-   * @returns {void}
-   * @private
-   */
-  function applyLamp() {
-    if (btnImg) btnImg.src = blinkOn ? IMG.BTN_ON : IMG.BTN_OFF;
-  }
-
-  /**
-   * Démarre le clignotement de la lampe de lancement
-   * @returns {void}
-   * @private
-   */
-  function startBlink() {
-    if (blinkTmr || inLaunch) return;
-    blinkOn = false;
-    applyLamp();
-    blinkTmr = setInterval(() => {
-      blinkOn = !blinkOn;
-      applyLamp();
-    }, 800);
-  }
-
-  /**
-   * Arrête le clignotement de la lampe de lancement
-   * @param {boolean} [forceOff=true] - Force l'état éteint
-   * @returns {void}
-   * @private
-   */
-  function stopBlink(forceOff = true) {
-    if (blinkTmr) {
-      clearInterval(blinkTmr);
-      blinkTmr = null;
-    }
-    blinkOn = !forceOff;
-    applyLamp();
-  }
-
-  /**
-   * Calcule si le lanceur est prêt à être utilisé
-   * @returns {boolean} True si prêt (vitesse > 0 et pas en cours de lancement)
-   * @private
-   */
-  const computeReady = () => speed > 0 && !inLaunch;
-
-  /**
-   * Réévalue tous les états du lanceur et met à jour l'interface
-   * @returns {void}
-   * @private
-   */
-  function reevaluate() {
-    const ok = computeReady();
-    setLED(ok);
-    ok ? startBlink() : stopBlink(true);
-  }
-
-  dirImg?.addEventListener('click', () => {
-    if (inLaunch || dirCooldown) return;
-    direction = direction === 'forward' ? 'backward' : 'forward';
-    setDirUI();
-    window.ws_sendCommand(panel, direction, { speed }, dirImg);
-    dirCooldown = true;
-    setTimeout(() => (dirCooldown = false), 3000);
-  });
-
-  /**
-   * Modifie la vitesse du lanceur par incrément
-   * @param {number} d - Incrément de vitesse (positif ou négatif)
-   * @returns {void}
-   * @private
-   */
-  function stepSpeed(d) {
-    speed = Math.max(0, Math.min(100, speed + d));
-    setSpeedUI();
-    reevaluate();
-    window.ws_sendCommand(panel, 'speed', { value: speed });
-  }
-
-  /**
-   * Configure un contrôle avec support tap/hold pour un élément
-   * @param {HTMLElement} el - Élément à configurer
-   * @param {Function} onTap - Callback pour un tap simple
-   * @param {Function} onHoldStep - Callback répété pendant le hold
-   * @returns {void}
-   * @private
-   */
-  function pressControl(el, onTap, onHoldStep) {
-    if (!el) return;
-    let pressed = false,
-      holdT = null,
-      repT = null,
-      holding = false;
-    const start = e => {
-      if (e.pointerType && e.pointerType !== 'mouse') e.preventDefault();
-      if (pressed) return;
-      pressed = true;
-      holding = false;
-      holdT = setTimeout(() => {
-        if (!pressed) return;
-        holding = true;
-        repT = setInterval(onHoldStep, 90);
-      }, 300);
-    };
-    const end = () => {
-      if (!pressed) return;
-      clearTimeout(holdT);
-      clearInterval(repT);
-      if (!holding) onTap();
-      pressed = false;
-      holding = false;
-      holdT = repT = null;
-    };
-    el.addEventListener('pointerdown', start);
-    window.addEventListener('pointerup', end);
-    window.addEventListener('pointercancel', end);
-  }
-  pressControl(
-    plusBtn,
-    () => stepSpeed(+10),
-    () => stepSpeed(+1)
-  );
-  pressControl(
-    minusBtn,
-    () => stepSpeed(-10),
-    () => stepSpeed(-1)
-  );
-  gauge?.addEventListener('click', () => stepSpeed(+10));
-
-  /**
-   * Contraint une valeur dans les limites de durée de lancement
-   * @param {number} v - Valeur à contraindre
-   * @returns {number} Valeur limitée entre MIN_LDUR et MAX_LDUR
-   * @private
-   */
-  const lnClamp = v => Math.max(MIN_LDUR, Math.min(MAX_LDUR, v));
-
-  /**
-   * Crée les éléments numériques pour le sélecteur de durée
-   * @returns {void}
-   * @private
-   */
-  function ensureNumbers() {
-    if (!lnTrack || lnTrack.children.length) return;
-    const frag = document.createDocumentFragment();
-    for (let i = MIN_LDUR; i <= MAX_LDUR; i++) {
-      const d = document.createElement('div');
-      d.className = 'num';
-      d.style.cssText = 'height:36px;line-height:36px;font-weight:900;font-size:26px;';
-      d.textContent = i;
-      frag.appendChild(d);
-    }
-    lnTrack.appendChild(frag);
-  }
-
-  /**
-   * Calibre le sélecteur de durée rotatif
-   * Calcule les dimensions et positions pour l'animation
-   * @returns {void}
-   * @private
-   */
-  function lnCalibrate() {
-    if (!lnRoll || !lnTrack || !lnTrack.firstElementChild) return;
-    lnTrack.style.transform = 'translateY(0px)';
-    LN_STEP = lnTrack.firstElementChild.offsetHeight || 36;
-    const center = lnRoll.clientHeight / 2;
-    const rFirst = lnTrack.firstElementChild.getBoundingClientRect();
-    const rTrack = lnTrack.getBoundingClientRect();
-    const firstCenter = rFirst.top - rTrack.top + LN_STEP / 2;
-    LN_BASE = Math.round(center - firstCenter);
-  }
-
-  /**
-   * Met à jour l'interface du sélecteur de durée
-   * Position le sélecteur et met à jour les états des boutons
-   * @returns {void}
-   * @private
-   */
-  function lnSetUI() {
-    if (!lnRoll || !lnTrack) return;
-    lDuration = lnClamp(lDuration);
-    const idx = lDuration - MIN_LDUR;
-    const offset = Math.round(LN_BASE - idx * LN_STEP);
-    lnTrack.style.transform = `translateY(${offset}px)`;
-    [...lnTrack.children].forEach((el, i) => el.classList.toggle('active', i === idx));
-    lnRoll.setAttribute('aria-label', `${lDuration} seconds`);
-    if (lnPlus) lnPlus.disabled = lDuration >= MAX_LDUR;
-    if (lnMinus) lnMinus.disabled = lDuration <= MIN_LDUR;
-  }
-
-  /**
-   * Modifie la durée de lancement par incrément
-   * @param {number} d - Incrément de durée (positif ou négatif)
-   * @returns {boolean} True si la modification a été appliquée
-   * @private
-   */
-  function lnNudge(d) {
-    const next = lnClamp(lDuration + d);
-    if (next === lDuration) return false;
-    lDuration = next;
-    lnSetUI();
-    reevaluate();
-  }
-
-  pressControl(
-    lnPlus,
-    () => {
-      lnNudge(+1);
-    },
-    () => {
-      lnNudge(+1);
-    }
-  );
-  pressControl(
-    lnMinus,
-    () => {
-      lnNudge(-1);
-    },
-    () => {
-      lnNudge(-1);
-    }
-  );
-  if (lnRoll) {
-    lnRoll.addEventListener(
-      'wheel',
-      e => {
-        if (inLaunch) return;
-        e.preventDefault();
-        lnNudge(e.deltaY > 0 ? -1 : +1);
-      },
-      { passive: false }
-    );
-    lnRoll.addEventListener('click', e => {
-      if (inLaunch) return;
-      const r = lnRoll.getBoundingClientRect();
-      const mid = r.top + r.height / 2;
-      lnNudge(e.clientY < mid ? -1 : +1);
-    });
-  }
-
-  btnImg?.addEventListener('click', () => {
-    if (!computeReady()) return;
-    inLaunch = true;
-    setLocked(true);
-    setLED(false);
-    stopBlink(true);
-    window.ws_sendCommand(panel, direction, { speed, duration: lnClamp(lDuration) }, btnImg);
-    const runSec = lnRoll && lnTrack ? lnClamp(lDuration) : 10;
-    setTimeout(() => {
-      inLaunch = false;
-      setLocked(false);
-      reevaluate();
-    }, runSec * 1000);
-  });
-
-  function onPresenceOnline() {
-    setLocked(false);
-    reevaluate();
-  }
-  function onPresenceOffline() {
-    stopBlink(true);
-    setLED(false);
-    setLocked(true);
-  }
-  function updateTelemetry(payload) {
-    if ('speed' in payload) {
-      const val = Math.max(0, Math.min(100, Number(payload.speed) || 0));
-      speed = val;
-      setSpeedUI();
-    }
-    if ('direction' in payload) {
-      const d = String(payload.direction).toLowerCase();
-      direction = d === 'backward' ? 'backward' : 'forward';
-      setDirUI();
-    }
-    if ('ready' in payload) {
-      setLED(!!payload.ready);
-    }
-    reevaluate();
-  }
-
-  setDirUI();
-  setSpeedUI();
-  if (lnRoll && lnTrack) {
-    ensureNumbers();
-    /**
-     * Actualise l'affichage du sélecteur rotatif de durée
-     * Recalibre et met à jour l'interface lors des changements de taille
-     * @returns {void}
-     * @private
-     */
-    const refreshRoller = () => {
-      lnCalibrate();
-      lnSetUI();
-    };
-    /**
-     * Tente d'actualiser le sélecteur lorsqu'il devient visible
-     * Utilise requestAnimationFrame pour attendre que l'élément soit rendu
-     * @returns {void}
-     * @private
-     */
-    const tryWhenVisible = () => {
-      const vis = lnRoll.offsetParent !== null && lnRoll.getBoundingClientRect().height > 0;
-      if (vis) refreshRoller();
-      else requestAnimationFrame(tryWhenVisible);
-    };
-    tryWhenVisible();
-    window.addEventListener('resize', refreshRoller);
-    panel.addEventListener('mc:visible', refreshRoller);
-    panel.addEventListener('mc:online', refreshRoller);
-
-    if (window.ResizeObserver) {
-      const ro = new ResizeObserver(refreshRoller);
-      ro.observe(lnRoll);
-    }
-  }
-  reevaluate();
-
-  return {
-    onPresenceOnline,
-    onPresenceOffline,
-    updateTelemetry,
-    destroy() {
-      clearInterval(blinkTmr);
-    },
-  };
-}
-
-/**
- * Crée un contrôleur de machine à fumée interactive
- * Gère l'interface de contrôle pour modules de type Smoke Machine avec durée ajustable
- * @param {HTMLElement} panel - Élément DOM du panneau du contrôleur de fumée
- * @returns {Object} Objet contrôleur avec méthodes de gestion d'état et télémétrie
- */
-function makeSmokeController(panel) {
-  const IMG = {
-    BTN_ON: urlImg('button_green_on.png'),
-    BTN_OFF: urlImg('button_green_off.png'),
-    LED_ON: urlImg('led_on.png'),
-    LED_OFF: urlImg('led_off.png'),
-  };
-  preload(Object.values(IMG));
-
-  const MIN = 5,
-    MAX = 20;
-  let duration = 8,
-    inRun = false,
-    ready = true,
-    blinkOn = false,
-    blinkTmr = null;
-  let STEP = 36,
-    BASE = 0;
-
-  const led = panel.querySelector('[data-role="sm_ready"]');
-  const btn = panel.querySelector('[data-role="sm_btn"]');
-  const roll = panel.querySelector('[data-role="sm_roll"]');
-  const track = panel.querySelector('[data-role="sm_track"]');
-  const plus = panel.querySelector('[data-role="sm_plus"]');
-  const minus = panel.querySelector('[data-role="sm_minus"]');
-
-  /**
-   * Contraint une valeur dans les limites de durée de fumée
-   * @param {number} v - Valeur à contraindre
-   * @returns {number} Valeur limitée entre MIN et MAX
-   * @private
-   */
-  const clamp = v => Math.max(MIN, Math.min(MAX, v));
-
-  /**
-   * Met à jour l'état verrouillé du panneau de fumée
-   * @param {boolean} on - True pour verrouiller, false pour déverrouiller
-   * @returns {void}
-   * @private
-   */
-  const setLocked = on => panel.classList.toggle('locked', on);
-
-  /**
-   * Met à jour l'état de la LED de prêt de la machine à fumée
-   * @param {boolean} on - État de la LED (allumée/éteinte)
-   * @returns {void}
-   * @private
-   */
-  const setLED = on => {
-    if (led) led.src = on ? IMG.LED_ON : IMG.LED_OFF;
-  };
-
-  /**
-   * Applique l'état visuel du bouton de fumée
-   * @returns {void}
-   * @private
-   */
-  function applyBtn() {
-    if (btn) btn.src = blinkOn ? IMG.BTN_ON : IMG.BTN_OFF;
-  }
-
-  /**
-   * Démarre le clignotement du bouton de fumée
-   * @returns {void}
-   * @private
-   */
-  function startBlink() {
-    if (blinkTmr || inRun) return;
-    blinkOn = false;
-    applyBtn();
-    blinkTmr = setInterval(() => {
-      blinkOn = !blinkOn;
-      applyBtn();
-    }, 800);
-  }
-
-  /**
-   * Arrête le clignotement du bouton de fumée
-   * @param {boolean} [forceOff=true] - Force l'état éteint
-   * @returns {void}
-   * @private
-   */
-  function stopBlink(forceOff = true) {
-    if (blinkTmr) {
-      clearInterval(blinkTmr);
-      blinkTmr = null;
-    }
-    blinkOn = !forceOff;
-    applyBtn();
-  }
-
-  /**
-   * Calcule si la machine à fumée est prête à être utilisée
-   * @returns {boolean} True si prête (pas en cours, ready et durée > 0)
-   * @private
-   */
-  const computeReady = () => !inRun && ready && duration > 0;
-
-  /**
-   * Réévalue tous les états de la machine à fumée et met à jour l'interface
-   * @returns {void}
-   * @private
-   */
-  function reevaluate() {
-    const ok = computeReady();
-    setLED(ok);
-    ok ? startBlink() : stopBlink(true);
-  }
-
-  if (track) {
-    for (let i = MIN; i <= MAX; i++) {
-      const d = document.createElement('div');
-      d.className = 'num';
-      d.textContent = i;
-      track.appendChild(d);
-    }
-  }
-
-  /**
-   * Calibre le sélecteur de durée rotatif de la machine à fumée
-   * @returns {void}
-   * @private
-   */
-  function calibrate() {
-    if (!roll || !track || !track.firstElementChild) return;
-    track.style.transform = 'translateY(0px)';
-    STEP = track.firstElementChild.offsetHeight || 36;
-    const center = roll.clientHeight / 2;
-    const rFirst = track.firstElementChild.getBoundingClientRect();
-    const rTrack = track.getBoundingClientRect();
-    const firstCenter = rFirst.top - rTrack.top + STEP / 2;
-    BASE = Math.round(center - firstCenter);
-  }
-
-  /**
-   * Met à jour l'interface du sélecteur de durée de fumée
-   * @returns {void}
-   * @private
-   */
-  function setRollUI() {
-    if (!roll || !track) return;
-    duration = clamp(duration);
-    const idx = duration - MIN;
-    const offset = Math.round(BASE - idx * STEP);
-    track.style.transform = `translateY(${offset}px)`;
-    [...track.children].forEach((el, i) => el.classList.toggle('active', i === idx));
-    roll.setAttribute('aria-label', `${duration} seconds`);
-    if (plus) plus.disabled = duration >= MAX;
-    if (minus) minus.disabled = duration <= MIN;
-  }
-
-  /**
-   * Modifie la durée de fumée par incrément
-   * @param {number} d - Incrément de durée (positif ou négatif)
-   * @returns {boolean} True si la modification a été appliquée
-   * @private
-   */
-  function nudge(d) {
-    const next = clamp(duration + d);
-    if (next === duration) return false;
-    duration = next;
-    setRollUI();
-    reevaluate();
-    return true;
-  }
-
-  /**
-   * Configure un contrôle avec support tap/hold pour la fumée
-   * @param {HTMLElement} el - Élément à configurer
-   * @param {number} delta - Incrément pour les actions
-   * @returns {void}
-   * @private
-   */
-  function bindHold(el, delta) {
-    if (!el) return;
-    let pressed = false,
-      holdT = null,
-      repT = null,
-      holding = false;
-    /** Callback pour tap simple - incrémente la durée */
-    const tap = () => {
-      nudge(delta);
-    };
-    /** Callback pour répétition - incrémente continuellement */
-    const rep = () => {
-      if (!nudge(delta)) clearInterval(repT);
-    };
-    /** Callback de début d'interaction - gère tap et hold */
-    const start = e => {
-      if (e.pointerType && e.pointerType !== 'mouse') e.preventDefault();
-      if (pressed || inRun) return;
-      pressed = true;
-      holding = false;
-      holdT = setTimeout(() => {
-        if (!pressed) return;
-        holding = true;
-        repT = setInterval(rep, 90);
-      }, 300);
-    };
-    /** Callback de fin d'interaction - nettoie les timers */
-    const end = () => {
-      if (!pressed) return;
-      clearTimeout(holdT);
-      clearInterval(repT);
-      if (!holding) tap();
-      pressed = false;
-      holding = false;
-    };
-    el.addEventListener('pointerdown', start);
-    window.addEventListener('pointerup', end);
-    window.addEventListener('pointercancel', end);
-  }
-  bindHold(plus, +1);
-  bindHold(minus, -1);
-
-  roll?.addEventListener(
-    'wheel',
-    e => {
-      if (inRun) return;
-      e.preventDefault();
-      nudge(e.deltaY > 0 ? -1 : +1);
-    },
-    { passive: false }
-  );
-  roll?.addEventListener('click', e => {
-    if (inRun) return;
-    const r = roll.getBoundingClientRect();
-    const mid = r.top + r.height / 2;
-    nudge(e.clientY < mid ? -1 : +1);
-  });
-
-  btn?.addEventListener('click', () => {
-    if (!computeReady()) return;
-    inRun = true;
-    setLocked(true);
-    setLED(false);
-    stopBlink(true);
-    window.ws_sendCommand(panel, 'smoke_start', { duration }, btn);
-    setTimeout(() => {
-      inRun = false;
-      setLocked(false);
-      reevaluate();
-    }, duration * 1000);
-  });
-
-  function onPresenceOnline() {
-    setLocked(false);
-    reevaluate();
-  }
-  function onPresenceOffline() {
-    stopBlink(true);
-    setLED(false);
-    setLocked(true);
-  }
-  function updateTelemetry(payload) {
-    if ('ready' in payload) {
-      ready = !!payload.ready;
-      reevaluate();
-    }
-  }
-
-  /**
-   * Actualise l'affichage du sélecteur de durée de fumée
-   * Recalibre et met à jour l'interface lors des changements de taille
-   * @returns {void}
-   * @private
-   */
-  const refreshSmoke = () => {
-    calibrate();
-    setRollUI();
-  };
-
-  calibrate();
-  setRollUI();
-  reevaluate();
-  window.addEventListener('resize', refreshSmoke);
-  panel.addEventListener('mc:visible', refreshSmoke);
-  panel.addEventListener('mc:online', refreshSmoke);
-  if (window.ResizeObserver && roll) {
-    const ro = new ResizeObserver(refreshSmoke);
-    ro.observe(roll);
-  }
-
-  return {
-    onPresenceOnline,
-    onPresenceOffline,
-    updateTelemetry,
-    destroy() {
-      clearInterval(blinkTmr);
-    },
-  };
 }
 
 /**
@@ -1266,7 +224,7 @@ function makeAudioController(panel) {
       if (p && p.catch) p.catch(() => {});
       stopBlink(false);
     } else {
-      startBlink();
+      if (!panel.classList.contains('offline')) startBlink();
     }
   }
 
@@ -1282,12 +240,12 @@ function makeAudioController(panel) {
     setTimeout(() => {
       cooldown = false;
       panel.classList.remove('locked');
-      if (tag.paused) startBlink();
+      if (tag.paused && !panel.classList.contains('offline')) startBlink();
     }, 30000);
   }
 
   btn?.addEventListener('click', () => {
-    if (cooldown) return;
+    if (cooldown || panel.classList.contains('offline')) return;
     beginCooldown();
 
     if (!tag.src) load(false);
@@ -1302,10 +260,10 @@ function makeAudioController(panel) {
     if (!cooldown) stopBlink(false);
   });
   tag.addEventListener('pause', () => {
-    if (!cooldown) startBlink();
+    if (!cooldown && !panel.classList.contains('offline')) startBlink();
   });
   tag.addEventListener('ended', () => {
-    if (!cooldown) startBlink();
+    if (!cooldown && !panel.classList.contains('offline')) startBlink();
   });
 
   /**
@@ -1373,14 +331,14 @@ function makeAudioController(panel) {
     }
     if ('playing' in payload) {
       const playing = !!payload.playing;
+      const isOffline = panel.classList.contains('offline');
       if (playing) stopBlink(false);
-      else startBlink();
+      else if (!isOffline) startBlink();
     }
   }
 
   render();
   load(false);
-  startBlink();
 
   return {
     onPresenceOnline,
@@ -1406,20 +364,8 @@ function makeAudioController(panel) {
 
     let controller = null;
     switch (type) {
-      case 'Station':
-        controller = makeStationController(panel);
-        break;
       case 'Switch Track':
         controller = makeSwitchController(panel);
-        break;
-      case 'Light FX':
-        controller = makeLightController(panel);
-        break;
-      case 'Launch Track':
-        controller = makeLaunchController(panel);
-        break;
-      case 'Smoke Machine':
-        controller = makeSmokeController(panel);
         break;
       case 'Audio Player':
         controller = makeAudioController(panel);
@@ -1482,7 +428,6 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
   function applyFilters() {
     const only = !!cb?.checked;
     const q = (qInp?.value || '').trim().toLowerCase();
-    const serverDown = !!window.__serverDown;
 
     let visibleCount = 0;
     let totalModules = 0;
@@ -1492,7 +437,7 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       let show = true;
 
       if (only) {
-        show = serverDown ? false : panel.classList.contains('online');
+        show = panel.classList.contains('online');
       }
 
       if (show && q) {
@@ -1519,9 +464,9 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 
     if (empty) {
       if (totalModules === 0) {
-        empty.hidden = true;
+        empty.hidden = false;
       } else {
-        empty.hidden = serverDown || !(only && visibleCount === 0);
+        empty.hidden = !(only && visibleCount === 0);
       }
     }
 
@@ -1588,34 +533,6 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 (() => {
   let socket;
 
-  /**
-   * Affiche ou masque la bannière d'état du serveur
-   * @param {boolean} show - True pour afficher, false pour masquer
-   * @returns {void}
-   * @private
-   */
-  function setServerBanner(show) {
-    const el = document.getElementById('serverState');
-    if (el) el.hidden = !show;
-    window.__serverDown = !!show;
-    window.applyOnlineFilter?.();
-  }
-
-  let showDownTimer = null;
-
-  /**
-   * Masque immédiatement la bannière de serveur déconnecté
-   * @returns {void}
-   * @private
-   */
-  function hideDownBanner() {
-    if (showDownTimer) {
-      clearTimeout(showDownTimer);
-      showDownTimer = null;
-    }
-    setServerBanner(false);
-  }
-
   // Par défaut, offline
   document.querySelectorAll('.panel[data-mid]').forEach(p => {
     p.classList.add('offline', 'disabled');
@@ -1672,8 +589,6 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
       ctl?.updateTelemetry?.(payload);
     });
   }
-
-  // Plus besoin de reconnectionManager - global.js s'en charge
 
   /**
    * Établit la connexion WebSocket pour les modules
@@ -1754,8 +669,7 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
 
     // Télémétrie des modules
     socket.on('module_telemetry', data => {
-      // La télémétrie implique que le module est en ligne (synchronisation initiale)
-      setPresence(data.moduleId, true);
+      // Mettre à jour la télémétrie sans changer le statut de présence
       updateTelemetry(data.moduleId, data);
     });
 
@@ -1858,22 +772,6 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
   } else {
     connectSocket();
   }
-
-  /**
-   * Fonction globale de reconnexion WebSocket pour débogage
-   * Force la reconnexion du socket et masque la bannière de déconnexion
-   * @returns {void}
-   * @global
-   */
-  window.mc_socketReconnect = () => {
-    hideDownBanner();
-    if (socket) {
-      socket.disconnect();
-      socket.connect();
-    } else {
-      connectSocket();
-    }
-  };
 })();
 
 /**
@@ -2056,7 +954,7 @@ delForm?.addEventListener('submit', async e => {
       controllersByMid.delete(moduleId);
 
       // Afficher un message de succès
-      window.showToast?.('Module deleted successfully', 'success', 2200);
+      window.showToast?.(window.t('modules.module_deleted_successfully'), 'success', 2200);
 
       // Rafraîchir les filtres
       window.applyOnlineFilter?.();

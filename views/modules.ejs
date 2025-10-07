@@ -110,31 +110,7 @@
               </div>
 
               <div class="tiles-grid">
-                <% if (moduleType === 'Station') { %>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.estop') %></div>
-                    <div class="face">
-                      <img data-role="st_estop" class="clickable" src="/assets/img/emergency_button.png" alt="E-STOP">
-                    </div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.next_section_free') %></div>
-                    <div class="face"><img data-role="st_nsf" src="/assets/img/led_off.png" alt="NSF"></div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.dispatch') %></div>
-                    <div class="face"><img data-role="st_dispatch" class="clickable" src="/assets/img/button_green_off.png" alt="Dispatch"></div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.gates_open_closed') %></div>
-                    <div class="face"><img data-role="st_gates" class="clickable" src="/assets/img/switch_0.png" alt="Gates"></div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.harness_unlock_lock') %></div>
-                    <div class="face"><img data-role="st_harness" class="clickable" src="/assets/img/switch_0.png" alt="Harness"></div>
-                  </div>
-
-                <% } else if (moduleType === 'Switch Track') { %>
+                <% if (moduleType === 'Switch Track') { %>
                   <div class="tile">
                     <div class="label"><%= t('modules.transfer_mode') %></div>
                     <div class="face"><img data-role="swt_transfer" class="clickable" src="/assets/img/switch_0.png" alt="Transfer"></div>
@@ -146,81 +122,6 @@
                   <div class="tile">
                     <div class="label"><%= t('modules.switch_right') %></div>
                     <div class="face"><img data-role="swt_right" src="/assets/img/led_off.png" alt="Right"></div>
-                  </div>
-
-                <% } else if (moduleType === 'Light FX') { %>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.light_switch') %></div>
-                    <div class="face"><img data-role="light_sw" class="clickable" src="/assets/img/switch_0.png" alt="Light Switch"></div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.light_status') %></div>
-                    <div class="face"><img data-role="light_led" src="/assets/img/led_off.png" alt="Light LED"></div>
-                  </div>
-
-                <% } else if (moduleType === 'Launch Track') { %>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.launch_ready') %></div>
-                    <div class="face"><img data-role="ln_ready" src="/assets/img/led_off.png" alt="Ready"></div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.launch') %></div>
-                    <div class="face"><img data-role="ln_btn" class="clickable" src="/assets/img/button_green_off.png" alt="Launch"></div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.direction') %></div>
-                    <div class="face">
-                      <img data-role="ln_dir" class="clickable" src="/assets/img/switch_0.png" alt="Direction">
-                      <div data-role="ln_dir_lbl" class="direction-text"><%= t('modules.forward') %></div>
-                    </div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.speed') %></div>
-                    <div class="face" style="display:grid;place-items:center;gap:8px">
-                      <button data-role="ln_gauge" class="gauge clickable" aria-label="<%= t('modules.speed') %>">
-                        <span class="gauge-val"><b data-role="ln_speed_val">60</b><small>%</small></span>
-                      </button>
-                      <div class="g-ctrl">
-                        <button data-role="ln_minus" class="btn-dark" aria-label="<%= t('modules.decrease') %>">−</button>
-                        <button data-role="ln_plus"  class="btn-dark" aria-label="<%= t('modules.increase') %>">+</button>
-                      </div>
-                    </div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.duration') %></div>
-                    <div class="face">
-                      <div class="roller" data-role="ln_roll" aria-live="polite" aria-label="<%= t('modules.duration') %>">
-                        <div class="roller-track" data-role="ln_track"></div>
-                        <div class="roller-unit">s</div>
-                      </div>
-                      <div class="g-ctrl">
-                        <button data-role="ln_dur_minus" class="btn-dark" aria-label="<%= t('modules.decrease') %>">−</button>
-                        <button data-role="ln_dur_plus"  class="btn-dark" aria-label="<%= t('modules.increase') %>">+</button>
-                      </div>
-                    </div>
-                  </div>
-
-                <% } else if (moduleType === 'Smoke Machine') { %>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.heater_ready') %></div>
-                    <div class="face"><img data-role="sm_ready" src="/assets/img/led_off.png" alt="Ready"></div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.smoke') %></div>
-                    <div class="face"><img data-role="sm_btn" class="clickable" src="/assets/img/button_green_off.png" alt="Smoke"></div>
-                  </div>
-                  <div class="tile">
-                    <div class="label"><%= t('modules.duration') %></div>
-                    <div class="face">
-                      <div class="roller" data-role="sm_roll" aria-live="polite" aria-label="<%= t('modules.duration') %>">
-                        <div class="roller-track" data-role="sm_track"></div>
-                        <div class="roller-unit">s</div>
-                      </div>
-                      <div class="g-ctrl">
-                        <button data-role="sm_minus" class="btn-dark" aria-label="<%= t('modules.decrease') %>">−</button>
-                        <button data-role="sm_plus"  class="btn-dark" aria-label="<%= t('modules.increase') %>">+</button>
-                      </div>
-                    </div>
                   </div>
 
                 <% } else if (moduleType === 'Audio Player') { %>
