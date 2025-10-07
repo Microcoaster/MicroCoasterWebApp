@@ -4,6 +4,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 ## [Unreleased]
 
+## [0.1.0] - 07-10-2025
+
 ### Corrigé
 
 - Correction des doubles notifications pour les propriétaires de modules administrateurs
@@ -79,5 +81,6 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 - Ce fichier CHANGELOG pour suivre toute les prochaines modifications
 
-[unreleased]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.0.0...HEAD
+[unreleased]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.1.0...HEAD
+[0.1.0]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.0.0...v0.1.0
 [0.0.0]: https://github.com/Microcoaster/MicroCoasterWebApp/releases/tag/v0.0.0

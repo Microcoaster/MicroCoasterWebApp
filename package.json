@@ -1,6 +1,6 @@
 {
   "name": "microcoaster-webapp-server",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "MicroCoaster WebApp - Express Server with Socket.io",
   "main": "app.js",
   "private": true,
