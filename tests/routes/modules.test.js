@@ -60,6 +60,20 @@ app.use(
 // Middleware d'authentification pour les tests
 app.use(global.testAuthMiddleware);
 
+// Mock du middleware d'internationalisation
+app.use((req, res, next) => {
+  req.t = jest.fn(key => {
+    // Mock simple qui retourne la clé pour les tests
+    const translations = {
+      'modules.module_added_successfully': 'Module added successfully',
+      'modules.module_deleted_successfully': 'Module deleted successfully',
+      'modules.module_updated_successfully': 'Module updated successfully',
+    };
+    return translations[key] || key;
+  });
+  next();
+});
+
 // Mock du realTimeAPI
 app.locals.realTimeAPI = {
   emitModuleAdded: jest.fn(),
