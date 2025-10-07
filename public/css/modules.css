@@ -813,7 +813,7 @@
 /* ===== CONTRÔLES DÉSACTIVÉS QUAND MODULE OFFLINE ===== */
 .panel.offline .gauge,
 .panel.offline .btn-dark,
-.panel.offline [data-role="au_play"],
+.panel.offline [data-role='au_play'],
 .panel.offline .roller,
 .panel.offline .track {
   cursor: not-allowed !important;
@@ -823,7 +823,7 @@
 
 .panel.offline .gauge:hover,
 .panel.offline .btn-dark:hover,
-.panel.offline [data-role="au_play"]:hover,
+.panel.offline [data-role='au_play']:hover,
 .panel.offline .track:hover {
   filter: none !important;
   transform: none !important;
@@ -831,6 +831,6 @@
 
 .panel.offline .gauge:active,
 .panel.offline .btn-dark:active,
-.panel.offline [data-role="au_play"]:active {
+.panel.offline [data-role='au_play']:active {
   transform: none !important;
 }

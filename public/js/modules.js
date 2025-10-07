@@ -104,11 +104,6 @@ function makeSwitchController(root) {
   return { onPresenceOnline, onPresenceOffline, updateTelemetry, destroy() {} };
 }
 
-
-
-
-
-
 /**
  * Crée un contrôleur de lecteur audio interactif
  * Gère la lecture de pistes audio avec playlist dynamique et contrôles de lecture

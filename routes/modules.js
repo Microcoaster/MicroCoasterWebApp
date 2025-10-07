@@ -221,7 +221,9 @@ router.post('/claim', requireAuth, async (req, res) => {
     }
 
     Logger.activity.info(`✅ Module claimed: ${moduleIdTrim} (${type}) by user ${userId}`);
-    res.redirect(`/modules?flash=${encodeURIComponent(req.t('modules.module_added_successfully'))}`);
+    res.redirect(
+      `/modules?flash=${encodeURIComponent(req.t('modules.module_added_successfully'))}`
+    );
   } catch (error) {
     Logger.modules.error('Error claiming module:', error);
     res.redirect(`/modules?flash=${encodeURIComponent('Database error occurred')}`);

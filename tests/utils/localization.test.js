@@ -47,7 +47,9 @@ describe('LocaleLoader', () => {
     });
 
     test('devrait gérer les erreurs de chargement de fichiers', () => {
-      const loggerSpy = jest.spyOn(require('../../utils/logger').system, 'error').mockImplementation(() => {});
+      const loggerSpy = jest
+        .spyOn(require('../../utils/logger').system, 'error')
+        .mockImplementation(() => {});
 
       // Configurer les mocks pour retourner des erreurs
       mockPath.join.mockReturnValueOnce('/path/to/fr.json').mockReturnValueOnce('/path/to/en.json');
