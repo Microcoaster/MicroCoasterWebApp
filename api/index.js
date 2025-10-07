@@ -90,6 +90,7 @@ class RealTimeAPI {
       const { userId, userType = 'user', page = 'unknown' } = data;
 
       if (!userId) {
+        socket.emit('client:auth:error', { message: 'User ID required' });
         Logger.activity.warn(`Authentication failed: User ID required for socket ${socket.id}`);
         return;
       }
@@ -101,6 +102,10 @@ class RealTimeAPI {
         // Nouveau client - enregistrer
         this.events.registerClient(socket, userId, userType, page);
         socket.isRegisteredWithEventsManager = true;
+        socket.emit('client:auth:success', {
+          message: 'Authenticated successfully',
+          timestamp: new Date(),
+        });
         Logger.activity.info(
           `Client authenticated via API: ${socket.id} (User ${userId}, Page ${page})`
         );
@@ -115,6 +120,7 @@ class RealTimeAPI {
 
       this._sendInitialState(socket, page);
     } catch (error) {
+      socket.emit('client:auth:error', { message: 'Authentication failed' });
       Logger.activity.error('Error authenticating client:', error);
     }
   }
@@ -139,10 +145,12 @@ class RealTimeAPI {
   _handleSyncRequest(socket) {
     const client = this.events.connectedClients.get(socket.id);
     if (!client) {
+      socket.emit('client:sync:error', { message: 'Not authenticated' });
       Logger.activity.warn(`Sync request from unauthenticated client: ${socket.id}`);
       return;
     }
 
+    socket.emit('client:sync:success', { timestamp: new Date() });
     this._sendInitialState(socket, client.page);
   }
 
@@ -175,8 +183,9 @@ class RealTimeAPI {
     try {
       switch (page) {
         case 'modules': {
-          // État initial des modules envoyé silencieusement
+          // État initial des modules
           const moduleStates = this.modules.getCurrentStates();
+          socket.emit('modules:initial:state', { modules: Object.values(moduleStates) });
           Logger.activity.debug(
             `Sent initial module states to ${socket.id}: ${Object.keys(moduleStates).length} modules`
           );
@@ -184,7 +193,11 @@ class RealTimeAPI {
         }
 
         case 'dashboard':
-          // Résumé initial du dashboard envoyé silencieusement
+          // Résumé initial du dashboard
+          socket.emit('dashboard:initial:summary', {
+            message: 'Dashboard synchronized',
+            timestamp: new Date(),
+          });
           Logger.activity.debug(`Sent initial dashboard summary to ${socket.id}`);
           break;
       }

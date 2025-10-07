@@ -71,7 +71,6 @@ router.get('/', requireAuth, async (req, res) => {
       module_id: module.module_id,
       name: module.name || module.module_id,
       type: module.type || mcInferType(module.module_id, module.name),
-      claimed: module.claimed || 0,
       isOnline: false,
     }));
 

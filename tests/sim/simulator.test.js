@@ -72,8 +72,8 @@ describe('ESP32 Switch Track Simulator', () => {
     });
 
     // Mock console
-    jest.spyOn(console, 'log').mockImplementation(() => {});
-    jest.spyOn(console, 'error').mockImplementation(() => {});
+    jest.spyOn(process.stdout, 'write').mockImplementation(() => {});
+    jest.spyOn(process.stderr, 'write').mockImplementation(() => {});
 
     // Créer une instance mock WebSocket
     mockWS = new WebSocket();
@@ -93,7 +93,7 @@ describe('ESP32 Switch Track Simulator', () => {
     // Reset ws to null
     setMockWebSocket(null);
 
-    // Restaurer les mocks de console
+    // Restaurer les mocks de process
     jest.restoreAllMocks();
   });
 
@@ -367,19 +367,16 @@ describe('ESP32 Switch Track Simulator', () => {
 
       handleMessage(JSON.stringify({ type: 'auth_success' }));
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK]'),
-        '✅ Authentifié'
+      expect(process.stdout.write).toHaveBeenCalledWith(
+        expect.stringContaining('[SWITCH-TRACK] ✅ Authentifié')
       );
     });
 
     test("devrait gérer l'erreur d'authentification", () => {
       handleMessage(JSON.stringify({ type: 'auth_error', message: 'Invalid password' }));
 
-      expect(console.error).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK] ❌'),
-        '❌ Erreur auth:',
-        'Invalid password'
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('[SWITCH-TRACK] ❌ ❌ Erreur auth: Invalid password')
       );
     });
 
@@ -406,20 +403,16 @@ describe('ESP32 Switch Track Simulator', () => {
     test('devrait gérer les messages inconnus', () => {
       handleMessage(JSON.stringify({ type: 'unknown' }));
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK]'),
-        '📥 Message:',
-        'unknown'
+      expect(process.stdout.write).toHaveBeenCalledWith(
+        expect.stringContaining('[SWITCH-TRACK] 📥 Message: unknown')
       );
     });
 
     test('devrait gérer les erreurs de parsing JSON', () => {
       handleMessage('invalid json');
 
-      expect(console.error).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK] ❌'),
-        'Erreur parsing:',
-        expect.stringContaining('Unexpected token')
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('[SWITCH-TRACK] ❌ Erreur parsing:')
       );
     });
   });
@@ -432,9 +425,8 @@ describe('ESP32 Switch Track Simulator', () => {
 
       startTelemetry();
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK]'),
-        expect.stringContaining('📡 Télémétrie démarrée')
+      expect(process.stdout.write).toHaveBeenCalledWith(
+        expect.stringContaining('[SWITCH-TRACK] 📡 Télémétrie démarrée')
       );
 
       // Avancer le temps pour déclencher la télémétrie
@@ -452,9 +444,8 @@ describe('ESP32 Switch Track Simulator', () => {
       startTelemetry();
       stopTelemetry();
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK]'),
-        '📡 Télémétrie arrêtée'
+      expect(process.stdout.write).toHaveBeenLastCalledWith(
+        expect.stringContaining('[SWITCH-TRACK] 📡 Télémétrie arrêtée')
       );
     });
   });
@@ -474,9 +465,8 @@ describe('ESP32 Switch Track Simulator', () => {
       const closeHandler = mockWSInstance.on.mock.calls.find(call => call[0] === 'close')[1];
       closeHandler(1000, 'Normal closure');
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK]'),
-        expect.stringContaining('🔌 Connexion fermée')
+      expect(process.stdout.write).toHaveBeenCalledWith(
+        expect.stringContaining('[SWITCH-TRACK] 🔌 Connexion fermée')
       );
     });
 
@@ -488,10 +478,8 @@ describe('ESP32 Switch Track Simulator', () => {
       const testError = new Error('Connection failed');
       errorHandler(testError);
 
-      expect(console.error).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK] ❌'),
-        'Erreur WebSocket:',
-        'Connection failed'
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('[SWITCH-TRACK] ❌ Erreur WebSocket: Connection failed')
       );
     });
   });
@@ -528,9 +516,9 @@ describe('ESP32 Switch Track Simulator', () => {
       disconnect();
 
       expect(mockWS.close).toHaveBeenCalled();
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK]'),
-        '🔌 Déconnexion...'
+      expect(process.stdout.write).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining('[SWITCH-TRACK] 🔌 Déconnexion...')
       );
     });
   });
@@ -541,9 +529,9 @@ describe('ESP32 Switch Track Simulator', () => {
 
       gracefulShutdown();
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK]'),
-        '🛑 Arrêt du simulateur...'
+      expect(process.stdout.write).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining('[SWITCH-TRACK] 🛑 Arrêt du simulateur...')
       );
       expect(mockExit).toHaveBeenCalledWith(0);
 
@@ -555,14 +543,11 @@ describe('ESP32 Switch Track Simulator', () => {
 
       process.emit('uncaughtException', new Error('Test error'));
 
-      expect(console.error).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK] ❌'),
-        'Exception:',
-        expect.any(Error)
+      expect(process.stderr.write).toHaveBeenCalledWith(
+        expect.stringContaining('[SWITCH-TRACK] ❌ Exception:')
       );
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK]'),
-        '🛑 Arrêt du simulateur...'
+      expect(process.stdout.write).toHaveBeenCalledWith(
+        expect.stringContaining('[SWITCH-TRACK] 🛑 Arrêt du simulateur...')
       );
       expect(mockExit).toHaveBeenCalledWith(0);
 
@@ -574,9 +559,9 @@ describe('ESP32 Switch Track Simulator', () => {
     test('devrait démarrer le simulateur', () => {
       startSimulator();
 
-      expect(console.log).toHaveBeenCalledWith(
-        expect.stringContaining('[SWITCH-TRACK]'),
-        '🚀 Démarrage simulateur ESP32 Switch Track'
+      expect(process.stdout.write).toHaveBeenNthCalledWith(
+        1,
+        expect.stringContaining('[SWITCH-TRACK] 🚀 Démarrage simulateur ESP32 Switch Track')
       );
       expect(WebSocket).toHaveBeenCalledWith(config.serverUrl);
     });

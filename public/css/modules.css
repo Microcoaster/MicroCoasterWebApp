@@ -720,21 +720,9 @@
 /* ===== GRILLES ADAPTATIVES PAR TYPE DE MODULE ===== */
 
 /* Panneaux avec beaucoup d'éléments - taille minimum réduite */
-.panel[data-type='Station'] .tiles-grid,
-.panel[data-type='Launch Track'] .tiles-grid {
+.panel[data-type='Audio Player'] .tiles-grid,
+.panel[data-type='Switch Track'] .tiles-grid {
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-}
-
-/* Audio Player - 2 colonnes max avec tiles plus larges */
-.panel[data-type='Audio Player'] .tiles-grid {
-  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-  max-width: 100%;
-}
-
-/* Switch Track et Light FX - taille réduite */
-.panel[data-type='Switch Track'] .tiles-grid,
-.panel[data-type='Light FX'] .tiles-grid {
-  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
 }
 
 /* ===== RESPONSIVE MOBILE ===== */
@@ -820,4 +808,29 @@
 /* ===== ÉTATS SPÉCIFIQUES MODULES ===== */
 .server-state {
   display: none;
+}
+
+/* ===== CONTRÔLES DÉSACTIVÉS QUAND MODULE OFFLINE ===== */
+.panel.offline .gauge,
+.panel.offline .btn-dark,
+.panel.offline [data-role="au_play"],
+.panel.offline .roller,
+.panel.offline .track {
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+  opacity: 0.5 !important;
+}
+
+.panel.offline .gauge:hover,
+.panel.offline .btn-dark:hover,
+.panel.offline [data-role="au_play"]:hover,
+.panel.offline .track:hover {
+  filter: none !important;
+  transform: none !important;
+}
+
+.panel.offline .gauge:active,
+.panel.offline .btn-dark:active,
+.panel.offline [data-role="au_play"]:active {
+  transform: none !important;
 }

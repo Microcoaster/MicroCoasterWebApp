@@ -30,7 +30,6 @@ CREATE TABLE modules (
   module_password_hash VARCHAR(255) NOT NULL, -- Hash du password pour authentification WebSocket
   name VARCHAR(255),
   type VARCHAR(50),
-  claimed BOOLEAN DEFAULT FALSE,
   status ENUM('online', 'offline') DEFAULT 'offline',
   last_seen TIMESTAMP NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -39,7 +38,6 @@ CREATE TABLE modules (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE SET NULL,
   INDEX idx_module_id (module_id),
   INDEX idx_user_id (user_id),
-  INDEX idx_claimed (claimed),
   INDEX idx_type (type),
   INDEX idx_status (status),
   INDEX idx_last_seen (last_seen)

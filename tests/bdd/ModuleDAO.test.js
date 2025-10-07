@@ -402,7 +402,6 @@ describe('ModuleDAO', () => {
       mockPool.execute = jest
         .fn()
         .mockResolvedValueOnce([[{ total: 10 }]]) // SELECT COUNT(*) as total FROM modules
-        .mockResolvedValueOnce([[{ total: 7 }]]) // SELECT COUNT(*) as total FROM modules WHERE user_id IS NOT NULL
         .mockResolvedValueOnce([
           [
             { type: 'switch', count: 5 },
@@ -428,8 +427,6 @@ describe('ModuleDAO', () => {
         total: 10,
         online: 1,
         offline: 9,
-        claimed: 7,
-        unclaimed: 3,
         byType: { switch: 5, sensor: 3 },
         inCache: 2,
       });
@@ -444,8 +441,6 @@ describe('ModuleDAO', () => {
         total: 0,
         online: 0,
         offline: 0,
-        claimed: 0,
-        unclaimed: 0,
         byType: {},
         inCache: 0,
       });
@@ -496,7 +491,6 @@ describe('ModuleDAO', () => {
         id: 1,
         module_id: 'MOD001',
         module_password_hash: 'hashed_password',
-        claimed: true,
       };
 
       mockPool.execute = jest.fn().mockResolvedValue([[mockModule]]);
@@ -519,7 +513,6 @@ describe('ModuleDAO', () => {
         module_id: 'MOD001',
         user_id: 1,
         type: 'switch',
-        claimed: true,
         module_password_hash: 'hashed_password',
       };
 
@@ -533,7 +526,6 @@ describe('ModuleDAO', () => {
         moduleId: 'MOD001',
         userId: 1,
         type: 'switch',
-        claimed: true,
       });
       expect(Logger.modules.info).toHaveBeenCalledWith(
         '✅ Authentification réussie pour module MOD001'
@@ -555,7 +547,7 @@ describe('ModuleDAO', () => {
       const mockModule = {
         id: 1,
         module_id: 'MOD001',
-        claimed: false,
+        user_id: null,
         module_password_hash: 'hashed_password',
       };
 
@@ -573,7 +565,7 @@ describe('ModuleDAO', () => {
       const mockModule = {
         id: 1,
         module_id: 'MOD001',
-        claimed: true,
+        user_id: 1,
         module_password_hash: 'hashed_password',
       };
 
@@ -592,7 +584,7 @@ describe('ModuleDAO', () => {
       const mockModule = {
         id: 1,
         module_id: 'MOD001',
-        claimed: true,
+        user_id: 1,
         module_password_hash: 'À_DÉFINIR',
       };
 

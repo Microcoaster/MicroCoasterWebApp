@@ -50,7 +50,7 @@ describe('RealTimeAPI', () => {
 
     // Mock ModuleEvents
     mockModuleEvents = {
-      getCurrentStates: jest.fn().mockReturnValue({ modules: [] }),
+      getCurrentStates: jest.fn().mockReturnValue({}),
       getConnectionStats: jest.fn().mockReturnValue({ online: 3, total: 5 }),
       moduleOnline: jest.fn(),
       moduleOffline: jest.fn(),

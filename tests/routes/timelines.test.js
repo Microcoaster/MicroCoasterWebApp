@@ -108,7 +108,7 @@ describe('Routes Timelines - Tests unitaires', () => {
     test('doit afficher la page des chronologies avec les modules formatés', done => {
       const mockUser = { id: 123, name: 'Test User', email: 'test@example.com' };
       const mockModules = [
-        { module_id: 'MC-0001-STN', name: 'Station 1', type: 'Station', claimed: 1 },
+        { module_id: 'MC-0001-AP', name: 'Audio Player 1', type: 'Audio Player', claimed: 1 },
         { module_id: 'MC-0002-ST', name: null, type: null, claimed: 1 },
         { module_id: 'MC-0003-UNK', name: 'Unknown Module', type: null, claimed: 0 },
       ];

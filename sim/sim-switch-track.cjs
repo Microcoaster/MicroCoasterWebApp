@@ -17,7 +17,15 @@ const config = {
 };
 
 // Module state
-const moduleState = 'OFF';
+const moduleState = {
+  position: 'left',
+  isMoving: false,
+  lastCommand: null,
+  commandCount: 0,
+  telemetryCount: 0,
+  uptime: Date.now(),
+  reconnectAttempts: 0,
+};
 
 let ws = null;
 let telemetryTimer = null;

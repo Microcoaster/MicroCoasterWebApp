@@ -250,6 +250,20 @@ class DatabaseManager {
     }
     return this.moduleDAO;
   }
+
+  /**
+   * Exécute une requête SQL brute
+   * Délègue à this.pool.execute() pour les requêtes SQL directes
+   * @param {string} sql - Requête SQL à exécuter
+   * @param {Array} [params=[]] - Paramètres de la requête
+   * @returns {Promise<Array>} Résultat de la requête [rows, fields]
+   */
+  async execute(sql, params = []) {
+    if (!this.pool) {
+      throw new Error('Database Manager not initialized');
+    }
+    return await this.pool.execute(sql, params);
+  }
 }
 
 // Export d'une instance singleton

@@ -8,6 +8,8 @@
 // Mocks globaux pour éviter l'initialisation automatique
 jest.mock('fs', () => ({
   readFileSync: jest.fn(() => '{}'), // Retourne un JSON vide par défaut
+  existsSync: jest.fn(() => true),
+  mkdirSync: jest.fn(),
 }));
 
 jest.mock('path', () => ({
@@ -45,7 +47,7 @@ describe('LocaleLoader', () => {
     });
 
     test('devrait gérer les erreurs de chargement de fichiers', () => {
-      const consoleSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const loggerSpy = jest.spyOn(require('../../utils/logger').system, 'error').mockImplementation(() => {});
 
       // Configurer les mocks pour retourner des erreurs
       mockPath.join.mockReturnValueOnce('/path/to/fr.json').mockReturnValueOnce('/path/to/en.json');
@@ -58,14 +60,14 @@ describe('LocaleLoader', () => {
 
       LocaleLoader.loadAllLanguages();
 
-      expect(consoleSpy).toHaveBeenCalledWith(
+      expect(loggerSpy).toHaveBeenCalledWith(
         '[LocaleLoader] Error loading language fr:',
         'File not found'
       );
       expect(LocaleLoader.languages.has('fr')).toBe(false);
       expect(LocaleLoader.languages.has('en')).toBe(true);
 
-      consoleSpy.mockRestore();
+      loggerSpy.mockRestore();
     });
   });
 

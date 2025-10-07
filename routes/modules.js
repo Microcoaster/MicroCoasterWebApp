@@ -2,7 +2,16 @@
  * Routes de gestion des modules - Interface modules utilisateur
  *
  * Gère la gestion complète des modules IoT incluant l'ajout, suppression,
- * mise à jour, claim et inférence automatique des types de modules.
+ * mise à jour, claim et inférence automatique des     // Émettre événement temps réel : module ajouté
+    if (req.app.locals.realTimeAPI) {
+      req.app.locals.realTimeAPI.emitModuleAdded({
+        module_id: moduleIdTrim,
+        name: nameTrim,
+        type: type,
+        userId: userId,
+        createdAt: new Date(),
+      });
+    }dules.
  *
  * @module modules
  * @description Routes de gestion des modules avec claim, CRUD et inférence de types
@@ -29,27 +38,19 @@ function endsWithCi(haystack, needle) {
 /**
  * Infère automatiquement le type d'un module depuis son ID ou nom
  * Utilise les conventions de nommage MicroCoaster pour déterminer le type
- * @param {string} moduleId - ID du module (ex: MC-0001-STN)
+ * @param {string} moduleId - ID du module (ex: MC-0001-AP)
  * @param {string} [name=''] - Nom optionnel du module
- * @returns {string} Type inféré (Station, Launch Track, Switch Track, etc.)
+ * @returns {string} Type inféré (Audio Player, Switch Track, ou Unknown)
  * @private
  */
 function mcInferType(moduleId, name = '') {
   const mid = moduleId?.toUpperCase().trim() || '';
-  if (endsWithCi(mid, 'STN')) return 'Station';
-  if (endsWithCi(mid, 'LFX')) return 'Light FX';
   if (endsWithCi(mid, 'AP')) return 'Audio Player';
-  if (endsWithCi(mid, 'SM')) return 'Smoke Machine';
   if (endsWithCi(mid, 'ST')) return 'Switch Track';
-  if (endsWithCi(mid, 'LT')) return 'Launch Track';
 
   const nm = name?.toUpperCase().trim() || '';
-  if (endsWithCi(nm, ' STN')) return 'Station';
-  if (endsWithCi(nm, ' LFX')) return 'Light FX';
   if (endsWithCi(nm, ' AP')) return 'Audio Player';
-  if (endsWithCi(nm, ' SM')) return 'Smoke Machine';
   if (endsWithCi(nm, ' ST')) return 'Switch Track';
-  if (endsWithCi(nm, ' LT')) return 'Launch Track';
 
   return 'Unknown';
 }
@@ -148,9 +149,9 @@ router.post('/claim', requireAuth, async (req, res) => {
       return res.redirect(`/modules?flash=${encodeURIComponent('Module code is required')}`);
     }
 
-    if (!/^MC-\d{4}-(STN|LFX|AP|SM|ST|LT)$/i.test(module_id.trim())) {
+    if (!/^MC-\d{4}-(AP|ST)$/i.test(module_id.trim())) {
       return res.redirect(
-        `/modules?flash=${encodeURIComponent('Invalid Module ID format (expected MC-XXXX-(type))')}`
+        `/modules?flash=${encodeURIComponent('Invalid Module ID format (expected MC-XXXX-AP or MC-XXXX-ST)')}`
       );
     }
 
@@ -168,7 +169,7 @@ router.post('/claim', requireAuth, async (req, res) => {
     const databaseManager = require('../bdd/DatabaseManager');
 
     const [existingModules] = await databaseManager.execute(
-      'SELECT id, user_id, claimed, module_code FROM modules WHERE module_id = ? LIMIT 1',
+      'SELECT id, user_id, module_code FROM modules WHERE module_id = ? LIMIT 1',
       [moduleIdTrim]
     );
 
@@ -184,7 +185,7 @@ router.post('/claim', requireAuth, async (req, res) => {
     }
 
     // Vérifier si le module est déjà claimé
-    if (existingModule.claimed === 1) {
+    if (existingModule.user_id !== null) {
       if (existingModule.user_id === userId) {
         return res.redirect(
           `/modules?flash=${encodeURIComponent('This module is already in your list')}`
@@ -202,8 +203,8 @@ router.post('/claim', requireAuth, async (req, res) => {
     await databaseManager.execute(
       `
       UPDATE modules 
-      SET user_id = ?, name = ?, type = ?, claimed = 1, updated_at = NOW()
-      WHERE id = ? AND claimed = 0
+      SET user_id = ?, name = ?, type = ?, updated_at = NOW()
+      WHERE id = ? AND user_id IS NULL
     `,
       [userId, nameTrim, type, existingModule.id]
     );
@@ -215,71 +216,15 @@ router.post('/claim', requireAuth, async (req, res) => {
         name: nameTrim,
         type: type,
         userId: userId,
-        claimed: true,
         updatedAt: new Date(),
       });
     }
 
     Logger.activity.info(`✅ Module claimed: ${moduleIdTrim} (${type}) by user ${userId}`);
-    res.redirect(`/modules?flash=${encodeURIComponent('Module added successfully')}`);
+    res.redirect(`/modules?flash=${encodeURIComponent(req.t('modules.module_added_successfully'))}`);
   } catch (error) {
     Logger.modules.error('Error claiming module:', error);
     res.redirect(`/modules?flash=${encodeURIComponent('Database error occurred')}`);
-  }
-});
-
-/**
- * Route d'ajout direct d'un module (méthode legacy)
- * Ajoute directement un module sans validation de code sécurisé (compatibilité)
- * @param {Request} req - Requête Express avec données module_id, name
- * @param {Response} res - Réponse Express avec redirection et message de statut
- * @returns {Promise<void>}
- * @deprecated Utiliser /claim avec code de sécurité à la place
- */
-router.post('/add', requireAuth, async (req, res) => {
-  try {
-    const { module_id, name } = req.body;
-    const userId = req.session.user_id;
-
-    if (!module_id || module_id.trim() === '') {
-      return res.redirect(`/modules?flash=${encodeURIComponent('Module ID is required')}`);
-    }
-
-    // Inférer le type
-    const type = mcInferType(module_id, name);
-
-    // Ajouter le module en base
-    const databaseManager = require('../bdd/DatabaseManager');
-    await databaseManager.execute(
-      `
-      INSERT INTO modules (user_id, module_id, name, type, claimed, created_at)
-      VALUES (?, ?, ?, ?, 1, NOW())
-    `,
-      [userId, module_id.trim(), name?.trim() || null, type]
-    );
-
-    // Émettre événement temps réel : module ajouté
-    if (req.app.locals.realTimeAPI) {
-      req.app.locals.realTimeAPI.emitModuleAdded({
-        module_id: module_id.trim(),
-        name: name?.trim() || null,
-        type: type,
-        userId: userId,
-        claimed: true,
-        createdAt: new Date(),
-      });
-    }
-
-    Logger.activity.info(`➕ Module added: ${module_id} (${type}) by user ${userId}`);
-    res.redirect(`/modules?flash=${encodeURIComponent('Module added successfully')}`);
-  } catch (error) {
-    Logger.modules.error('Error adding module:', error);
-
-    if (error.code === 'ER_DUP_ENTRY') {
-      res.redirect(`/modules?flash=${encodeURIComponent('Module already exists')}`);
-    } else {
-      res.redirect(`/modules?flash=${encodeURIComponent('Error adding module')}`);
-    }
   }
 });
 
@@ -308,7 +253,7 @@ router.post('/delete/:moduleId', requireAuth, async (req, res) => {
     await databaseManager.execute(
       `
       UPDATE modules 
-      SET claimed = 0, user_id = NULL, name = NULL, updated_at = NOW()
+      SET user_id = NULL, name = NULL, updated_at = NOW()
       WHERE module_id = ? AND user_id = ?
     `,
       [moduleId, userId]
@@ -319,7 +264,6 @@ router.post('/delete/:moduleId', requireAuth, async (req, res) => {
       req.app.locals.realTimeAPI.emitModuleRemoved({
         module_id: moduleId,
         userId: userId,
-        claimed: false,
         updatedAt: new Date(),
       });
     }
