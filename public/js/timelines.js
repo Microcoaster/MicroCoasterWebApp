@@ -306,8 +306,8 @@ class TimelineSequencer {
       const left = leftPercent * trackWidth;
       const width = widthPercent * trackWidth;
 
-      element.style.left = left + 'px';
-      element.style.width = Math.max(width, 50) + 'px'; // Minimum 50px
+      element.style.left = `${left}px`;
+      element.style.width = `${Math.max(width, 50)}px`; // Minimum 50px
       element.style.display = 'block';
       element.style.opacity = '1';
     } else {
@@ -373,7 +373,7 @@ class TimelineSequencer {
       if (position >= 0 && position <= trackWidth) {
         const marker = document.createElement('div');
         marker.className = 'time-marker';
-        marker.style.left = position + 'px';
+        marker.style.left = `${position}px`;
         marker.innerHTML = `
           <div class="marker-line"></div>
           <div class="marker-label">${this.formatTime(time)}</div>
@@ -391,11 +391,11 @@ class TimelineSequencer {
    */
   formatTime(seconds) {
     if (seconds < 60) {
-      return seconds < 10 ? seconds.toFixed(1) + 's' : Math.round(seconds) + 's';
+      return seconds < 10 ? `${seconds.toFixed(1)}s` : `${Math.round(seconds)}s`;
     }
     const minutes = Math.floor(seconds / 60);
     const remainingSeconds = Math.round(seconds % 60);
-    return remainingSeconds === 0 ? minutes + 'min' : minutes + 'min' + remainingSeconds + 's';
+    return remainingSeconds === 0 ? `${minutes}min` : `${minutes}min${remainingSeconds}s`;
   }
 
   // ================================================================================
@@ -485,8 +485,8 @@ class TimelineSequencer {
       const y = e.clientY - rect.top - 60; // Compensation pour la règle
 
       this.addElementToTimeline(moduleData, x, y);
-    } catch (error) {
-      console.error('Erreur lors du drop:', error);
+    } catch {
+      // Ignorer les erreurs de drop
     }
   }
 
@@ -499,11 +499,10 @@ class TimelineSequencer {
    * Crée l'élément DOM et configure ses propriétés par défaut
    * @param {Object} moduleData - Données du module à ajouter
    * @param {number} x - Position X en pixels
-   * @param {number} y - Position Y en pixels
    * @returns {void}
    * @public
    */
-  addElementToTimeline(moduleData, x, y) {
+  addElementToTimeline(moduleData, x) {
     const timePosition = Math.max(0, this.pixelToTime(x));
     const moduleConfig = this.getModuleConfig(moduleData.type);
     const defaultAction = Object.keys(moduleConfig.actions)[0];
@@ -578,7 +577,7 @@ class TimelineSequencer {
 
     // Position verticale basée sur l'index
     const elementIndex = this.elements.findIndex(e => e.element === element);
-    element.style.top = Math.max(80, 100 + elementIndex * 80) + 'px';
+    element.style.top = `${Math.max(80, 100 + elementIndex * 80)}px`;
   }
 
   updateElementPositions() {
@@ -808,19 +807,13 @@ class TimelineSequencer {
     const moduleConfig = this.getModuleConfig(timelineElement.element.dataset.moduleType);
     const actionConfig = moduleConfig.actions[actionType];
 
-    timelineElement.element.querySelector('.element-duration').textContent = duration + 's';
+    timelineElement.element.querySelector('.element-duration').textContent = `${duration}s`;
     timelineElement.element.querySelector('.element-action').textContent = actionConfig.name;
 
     const startTime = parseFloat(timelineElement.element.dataset.startTime);
     this.positionElement(timelineElement.element, startTime, duration);
 
     modal.remove();
-    console.log('Configuration sauvegardée:', {
-      module: timelineElement.moduleData.name,
-      action: actionType,
-      duration,
-      params: actionParams,
-    });
   }
 
   /**
@@ -837,14 +830,12 @@ class TimelineSequencer {
 
     const rect = element.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
-    const offsetY = e.clientY - rect.top;
 
     const handleMouseMove = e => {
       if (!this.draggedElement) return;
 
       const trackRect = this.track.getBoundingClientRect();
       const x = e.clientX - trackRect.left - offsetX;
-      const y = e.clientY - trackRect.top - offsetY;
 
       const timePosition = Math.max(0, this.pixelToTime(x));
 
@@ -1151,8 +1142,7 @@ class TimelineSequencer {
       try {
         const sequence = JSON.parse(e.target.result);
         this.loadSequence(sequence);
-      } catch (error) {
-        console.error("Erreur lors de l'import:", error);
+      } catch {
         this.websocketManager.showAlert('danger', "Erreur lors de l'import du fichier");
       }
     };

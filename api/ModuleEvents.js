@@ -85,9 +85,16 @@ class ModuleEvents {
         ...moduleInfo,
       };
 
-      // Émettre aux différents publics selon les permissions
-      this.events.emitToPage('modules', 'rt_module_online', eventData);
-      this.events.emitToAdmins('rt_module_online', eventData);
+      // Émettre aux utilisateurs sur la page modules UNIQUEMENT s'ils ne sont pas propriétaires du module
+      this.events.emitToPageExcludingUser(
+        'modules',
+        'rt_module_online',
+        eventData,
+        moduleInfo.userId
+      );
+
+      // Émettre aux admins UNIQUEMENT s'ils ne sont pas propriétaires du module
+      this.events.emitToAdminsExcludingUser('rt_module_online', eventData, moduleInfo.userId);
 
       // Notifier le propriétaire du module si défini
       if (moduleInfo.userId) {
@@ -132,8 +139,15 @@ class ModuleEvents {
         ...moduleInfo,
       };
 
-      this.events.emitToPage('modules', 'rt_module_offline', eventData);
-      this.events.emitToAdmins('rt_module_offline', eventData);
+      this.events.emitToPageExcludingUser(
+        'modules',
+        'rt_module_offline',
+        eventData,
+        moduleInfo.userId
+      );
+
+      // Émettre aux admins UNIQUEMENT s'ils ne sont pas propriétaires du module
+      this.events.emitToAdminsExcludingUser('rt_module_offline', eventData, moduleInfo.userId);
 
       if (moduleInfo.userId) {
         this.events.emitToUser(moduleInfo.userId, 'user:module:offline', eventData);
@@ -261,7 +275,12 @@ class ModuleEvents {
     };
 
     // Émettre la mise à jour de télémétrie aux pages concernées
-    this.events.emitToPage('modules', 'rt_telemetry_updated', eventData);
+    this.events.emitToPageExcludingUser(
+      'modules',
+      'rt_telemetry_updated',
+      eventData,
+      moduleInfo.userId
+    );
     this.events.emitToAdmins('rt_telemetry_updated', eventData);
     this.emitLastSeenUpdate(moduleId, currentTime, moduleInfo);
   }

@@ -436,24 +436,19 @@ class ModuleDAO extends BaseDAO {
   async getStats() {
     try {
       // Statistiques de la base de données
-      const [totalResult, claimedResult] = await Promise.all([
+      const [totalResult] = await Promise.all([
         this.findOne('SELECT COUNT(*) as total FROM modules'),
-        this.findOne('SELECT COUNT(*) as total FROM modules WHERE user_id IS NOT NULL'),
       ]);
 
       const dbTotal = totalResult?.total || 0;
-      const claimed = claimedResult?.total || 0;
 
       // Statistiques en temps réel du cache
       let online = 0;
-      let offline = 0;
       const byType = {};
 
-      for (const [moduleId, statusInfo] of this.moduleStatusCache.entries()) {
+      for (const [, statusInfo] of this.moduleStatusCache.entries()) {
         if (statusInfo.status === 'online') {
           online++;
-        } else {
-          offline++;
         }
       }
 
@@ -470,8 +465,6 @@ class ModuleDAO extends BaseDAO {
         total: dbTotal,
         online: online,
         offline: Math.max(0, dbTotal - online), // Modules en DB mais pas online
-        claimed: claimed,
-        unclaimed: Math.max(0, dbTotal - claimed),
         byType: byType,
         inCache: this.moduleStatusCache.size,
       };
@@ -481,8 +474,6 @@ class ModuleDAO extends BaseDAO {
         total: 0,
         online: 0,
         offline: 0,
-        claimed: 0,
-        unclaimed: 0,
         byType: {},
         inCache: 0,
       };
@@ -528,7 +519,7 @@ class ModuleDAO extends BaseDAO {
   async findByModuleIdWithHash(moduleId) {
     try {
       const module = await this.findOne(
-        'SELECT id, user_id, module_id, module_password_hash, type, claimed FROM modules WHERE module_id = ?',
+        'SELECT id, user_id, module_id, module_password_hash, type FROM modules WHERE module_id = ?',
         [moduleId]
       );
       return module;
@@ -554,7 +545,7 @@ class ModuleDAO extends BaseDAO {
         return null;
       }
 
-      if (!module.claimed) {
+      if (module.user_id === null) {
         Logger.modules.warn(`🚨 Tentative d'authentification avec module non couplé: ${moduleId}`);
         return null;
       }
@@ -581,7 +572,6 @@ class ModuleDAO extends BaseDAO {
         moduleId: module.module_id,
         userId: module.user_id,
         type: module.type,
-        claimed: module.claimed,
       };
     } catch (error) {
       Logger.modules.error("Erreur lors de la validation d'authentification:", error);

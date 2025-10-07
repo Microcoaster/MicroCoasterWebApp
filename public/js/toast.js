@@ -249,7 +249,7 @@
 
     // Création du toast avec le style original
     const el = document.createElement('div');
-    el.className = 'toast ' + type;
+    el.className = `toast ${type}`;
     el.innerHTML = `
             ${getToastIcon(type)}
             <span class="toast-message">${message}</span>
@@ -385,8 +385,18 @@
       }
     });
 
+    // Événements pour les propriétaires de modules (évite les doublons avec rt_module_*)
+    socket.on('user:module:online', function (data) {
+      showToast(`🟢 Votre module ${data.moduleId} est connecté`, 'success', 3000);
+    });
+
+    socket.on('user:module:offline', function (data) {
+      showToast(`🔴 Votre module ${data.moduleId} est déconnecté`, 'error', 4000);
+    });
+
     socket.on('rt_module_added', function (data) {
-      showToast(`➕ Nouveau module ajouté: ${data.moduleId}`, 'success', 5000);
+      const moduleId = data.module?.module_id || 'Unknown';
+      showToast(`➕ ${window.t('modules.module_added_toast')}: ${moduleId}`, 'success', 5000);
 
       if (getCurrentPageName() === 'admin' && window.loadModulesTable) {
         window.loadModulesTable();
@@ -394,7 +404,8 @@
     });
 
     socket.on('rt_module_removed', function (data) {
-      showToast(`🗑️ Module supprimé: ${data.moduleId}`, 'warning', 5000);
+      const moduleId = data.module?.module_id || 'Unknown';
+      showToast(`🗑️ ${window.t('modules.module_removed_toast')}: ${moduleId}`, 'warning', 5000);
 
       if (getCurrentPageName() === 'admin' && window.loadModulesTable) {
         window.loadModulesTable();
@@ -402,7 +413,8 @@
     });
 
     socket.on('rt_module_updated', function (data) {
-      showToast(`🔧 Module mis à jour: ${data.moduleId}`, 'info', 4000);
+      const moduleId = data.module?.module_id || 'Unknown';
+      showToast(`🔧 ${window.t('modules.module_updated_toast')}: ${moduleId}`, 'info', 4000);
 
       if (getCurrentPageName() === 'admin' && window.loadModulesTable) {
         window.loadModulesTable();
@@ -423,24 +435,6 @@
     socket.on('rt_module_last_seen_updated', function (data) {
       if (getCurrentPageName() === 'admin' && window.updateModuleLastSeen) {
         window.updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-      }
-    });
-
-    socket.on('module_online', function (data) {
-      showToast(`🟢 Module ${data.moduleId} connecté`, 'success', 3000);
-
-      if (getCurrentPageName() === 'admin' && window.updateModuleStatus) {
-        window.updateModuleStatus(data.moduleId, true);
-        window.socket.emit('request_stats');
-      }
-    });
-
-    socket.on('module_offline', function (data) {
-      showToast(`🔴 Module ${data.moduleId} déconnecté`, 'error', 4000);
-
-      if (getCurrentPageName() === 'admin' && window.updateModuleStatus) {
-        window.updateModuleStatus(data.moduleId, false);
-        window.socket.emit('request_stats');
       }
     });
   }

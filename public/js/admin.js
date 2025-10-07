@@ -929,63 +929,6 @@ function updateSimpleStats(data) {
 }
 
 /**
- * Met à jour complètement les données d'un utilisateur dans le tableau
- * Synchronise nom, email et rôle avec les données reçues en temps réel
- * @param {Object} user - Objet utilisateur avec propriétés id, name, email, isAdmin
- * @returns {void}
- * @public
- */
-function updateUserInTable(user) {
-  // Chercher la ligne utilisateur par ID
-  const userRows = document.querySelectorAll(`tr[data-user-id="${user.id}"]`);
-
-  userRows.forEach(row => {
-    // Mettre à jour le nom
-    const nameCell = row.querySelector('.user-name');
-    if (nameCell) {
-      nameCell.textContent = user.name;
-    }
-
-    // Mettre à jour l'email
-    const emailCell = row.querySelector('.user-email');
-    if (emailCell) {
-      emailCell.textContent = user.email;
-    }
-
-    // Mettre à jour le badge de rôle si nécessaire
-    const roleCell = row.querySelector('.user-role');
-    if (roleCell) {
-      const roleText = user.isAdmin ? 'ADMINISTRATEUR' : 'UTILISATEUR';
-      const badgeClass = user.isAdmin ? 'badge badge-admin' : 'badge badge-user';
-
-      roleCell.textContent = roleText;
-      roleCell.className = `${badgeClass} user-role`;
-    }
-  });
-}
-
-/**
- * Met à jour l'horodatage de dernière connexion d'un utilisateur
- * Formate automatiquement la date au format local français
- * @param {string} userId - Identifiant unique de l'utilisateur
- * @param {Date} loginTime - Horodatage de la connexion
- * @returns {void}
- * @public
- */
-function updateUserLastLogin(userId, loginTime) {
-  // Chercher la ligne utilisateur par ID
-  const userRows = document.querySelectorAll(`tr[data-user-id="${userId}"]`);
-
-  userRows.forEach(row => {
-    // Mettre à jour la colonne "Dernière connexion" (5ème td = index 4)
-    const loginCell = row.children[4]; // 0: name, 1: email, 2: role, 3: modules, 4: last_login
-    if (loginCell) {
-      loginCell.textContent = loginTime.toLocaleString('fr-FR');
-    }
-  });
-}
-
-/**
  * Exporte les fonctions principales pour utilisation externe
  */
 window.getTypeBadge = getTypeBadge;
@@ -1067,26 +1010,6 @@ function setupUserEvents() {
 }
 
 /**
- * Met à jour l'affichage de dernière activité avec tooltip informatif
- * Trouve tous les éléments du module et met à jour leur affichage
- * @param {string} moduleId - Identifiant unique du module
- * @param {Date} timestamp - Horodatage de la dernière activité
- * @returns {void}
- * @public
- */
-function updateModuleLastActivity(moduleId, timestamp) {
-  const moduleRows = document.querySelectorAll(`[data-module-id="${moduleId}"]`);
-
-  moduleRows.forEach(row => {
-    const lastActivityCell = row.querySelector('.module-last-activity');
-    if (lastActivityCell) {
-      lastActivityCell.textContent = timestamp.toLocaleString();
-      lastActivityCell.title = `Dernière télémétrie: ${timestamp.toLocaleString()}`;
-    }
-  });
-}
-
-/**
  * Affiche une notification temps réel dans l'interface d'administration
  * Utilise le système toast global et une zone de notifications spécialisée
  * @param {string} message - Message à afficher dans la notification
@@ -1128,3 +1051,4 @@ function showRealTimeNotification(message) {
 // Export des fonctions pour utilisation globale
 window.updateModuleStatus = updateModuleStatus;
 window.updateModuleLastSeen = updateModuleLastSeen;
+window.showRealTimeNotification = showRealTimeNotification;

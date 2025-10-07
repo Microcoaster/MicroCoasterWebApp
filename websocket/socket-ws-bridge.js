@@ -1,5 +1,5 @@
 /**
- * Bridge Socket.IO ↔ WebSocket - Adaptateur de protocoles
+ * Bridge Socket.IO ↔ WebSocket - Adaptateur de communication
  *
  * Adaptateur permettant la communication entre clients Socket.IO (web)
  * et modules ESP32 WebSocket natif avec compatibilité totale.
@@ -57,7 +57,7 @@ class SocketWSBridge {
    * @returns {boolean} True si commande envoyée, false si module déconnecté
    * @public
    */
-  sendCommandToESP(moduleId, command, params = {}, userId = null) {
+  sendCommandToESP(moduleId, command, params = {}) {
     try {
       // Vérifier que l'ESP32 est connecté via WebSocket natif
       if (!this.esp32Server.isESPConnected(moduleId)) {
@@ -154,7 +154,7 @@ class SocketWSBridge {
 
     Logger.esp.info(`🌐 Bridge: Web command received for ${moduleId}: ${command}`);
 
-    return this.sendCommandToESP(moduleId, command, params, socketIOClient.userId);
+    return this.sendCommandToESP(moduleId, command, params);
   }
 
   /**

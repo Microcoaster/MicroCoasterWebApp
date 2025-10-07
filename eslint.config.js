@@ -81,11 +81,62 @@ module.exports = [
         // Variables spécifiques au projet (définies ailleurs)
         urlImg: 'readonly',
         preload: 'readonly',
+        // Fonction de traduction
+        t: 'readonly',
+        // Objet de locales
+        locales: 'readonly',
+        // APIs du navigateur
+        cancelAnimationFrame: 'readonly',
+        Blob: 'readonly',
+        URL: 'readonly',
+        FileReader: 'readonly',
+        // Librairies externes
+        bootstrap: 'readonly',
       },
     },
   },
 
-  // Fichiers à ignorer
+  // Configuration spécifique pour les fichiers de test
+  {
+    files: ['tests/**/*.test.js', '**/*.test.js', 'tests/setup.js'],
+    languageOptions: {
+      globals: {
+        // Globals Jest
+        jest: 'readonly',
+        describe: 'readonly',
+        it: 'readonly',
+        test: 'readonly',
+        expect: 'readonly',
+        beforeEach: 'readonly',
+        afterEach: 'readonly',
+        beforeAll: 'readonly',
+        afterAll: 'readonly',
+        // Variables globales pour le navigateur dans les tests
+        window: 'readonly',
+        document: 'readonly',
+        console: 'readonly',
+        $: 'readonly',
+        jQuery: 'readonly',
+        io: 'readonly',
+        setTimeout: 'readonly',
+        setInterval: 'readonly',
+        clearTimeout: 'readonly',
+        clearInterval: 'readonly',
+        requestAnimationFrame: 'readonly',
+        localStorage: 'readonly',
+        fetch: 'readonly',
+        Image: 'readonly',
+        CustomEvent: 'readonly',
+        ResizeObserver: 'readonly',
+        navigator: 'readonly',
+        alert: 'readonly',
+        confirm: 'readonly',
+      },
+    },
+    rules: {
+      'no-console': 'off', // Autoriser console.log dans les tests
+    },
+  },
   {
     ignores: [
       'node_modules/',

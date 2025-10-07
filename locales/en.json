@@ -129,7 +129,12 @@
     "increase": "Increase",
     "offline_status": "offline",
     "online_status": "online",
-    "module_type_tooltip": "Module type"
+    "module_type_tooltip": "Module type",
+    "module_deleted_successfully": "Module deleted successfully",
+    "module_added_successfully": "Module added successfully",
+    "module_added_toast": "New module added",
+    "module_removed_toast": "Module removed",
+    "module_updated_toast": "Module updated"
   },
   "admin": {
     "title": "Administration",

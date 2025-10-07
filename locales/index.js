@@ -11,13 +11,22 @@
 
 const fs = require('fs');
 const path = require('path');
+const Logger = require('../utils/logger');
 
 class LocaleLoader {
   constructor() {
     this.languages = new Map();
     this.supportedLanguages = ['fr', 'en'];
     this.defaultLanguage = 'en';
-    this.loadAllLanguages();
+  }
+
+  /**
+   * Initialise le chargeur de langues (charge tous les fichiers)
+   */
+  initialize() {
+    if (this.languages.size === 0) {
+      this.loadAllLanguages();
+    }
   }
 
   /**
@@ -30,7 +39,7 @@ class LocaleLoader {
         const content = fs.readFileSync(filePath, 'utf8');
         this.languages.set(lang, JSON.parse(content));
       } catch (error) {
-        console.error(`[LocaleLoader] Error loading language ${lang}:`, error.message);
+        Logger.system.error(`[LocaleLoader] Error loading language ${lang}:`, error.message);
       }
     });
   }
@@ -156,7 +165,16 @@ class LocaleLoader {
   }
 }
 
-// Instance singleton
-const localeLoader = new LocaleLoader();
+// Instance singleton - initialisation différée
+let localeLoaderInstance = null;
 
-module.exports = localeLoader;
+function getLocaleLoader() {
+  if (!localeLoaderInstance) {
+    localeLoaderInstance = new LocaleLoader();
+    localeLoaderInstance.initialize();
+  }
+  return localeLoaderInstance;
+}
+
+// Pour la compatibilité, exposer directement l'instance
+module.exports = getLocaleLoader();

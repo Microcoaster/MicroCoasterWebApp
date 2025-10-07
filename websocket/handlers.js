@@ -155,26 +155,11 @@ function broadcastToWebByCode(realTimeAPI, userCode, event, data) {
 }
 
 /**
- * Récupère tous les sockets d'un utilisateur connecté
- * @param {RealTimeAPI} realTimeAPI - Instance de l'API temps réel
- * @param {number} userId - ID de l'utilisateur
- * @returns {Socket[]} Liste des sockets de l'utilisateur
- */
-function getUserSockets(realTimeAPI, userId) {
-  if (!realTimeAPI?.events) return [];
-
-  return Array.from(realTimeAPI.events.connectedClients.values()).filter(
-    client => client.userId === userId
-  );
-}
-
-/**
  * Gestionnaire principal des connexions WebSocket pour les clients web
  * @param {SocketIO.Server} io - Serveur Socket.IO
- * @param {Object} socketWSBridge - Passerelle vers WebSocket natif ESP32
  * @exports {Function} Gestionnaire de connexions WebSocket
  */
-module.exports = function (io, socketWSBridge) {
+module.exports = function (io) {
   Logger.app.info('🔌 Gestionnaire WebSocket initialisé (Socket.io pour Web uniquement)');
 
   /**

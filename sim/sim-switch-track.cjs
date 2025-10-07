@@ -17,13 +17,13 @@ const config = {
 };
 
 // Module state
-let moduleState = {
+const moduleState = {
   position: 'left',
   isMoving: false,
-  uptime: Date.now(),
   lastCommand: null,
   commandCount: 0,
   telemetryCount: 0,
+  uptime: Date.now(),
   reconnectAttempts: 0,
 };
 
@@ -35,12 +35,12 @@ let reconnectTimer = null;
 // Utilities
 const log = (...args) => {
   const timestamp = new Date().toISOString().substr(11, 8);
-  console.log(`[${timestamp}] [SWITCH-TRACK]`, ...args);
+  process.stdout.write(`[${timestamp}] [SWITCH-TRACK] ${args.join(' ')}\n`);
 };
 
 const error = (...args) => {
   const timestamp = new Date().toISOString().substr(11, 8);
-  console.error(`[${timestamp}] [SWITCH-TRACK] ❌`, ...args);
+  process.stderr.write(`[${timestamp}] [SWITCH-TRACK] ❌ ${args.join(' ')}\n`);
 };
 
 // Message handling
@@ -148,10 +148,11 @@ function handleCommand(data) {
     case 'switch_right':
       simulateMovement('right');
       break;
-    case 'toggle':
+    case 'toggle': {
       const newPosition = moduleState.position === 'left' ? 'right' : 'left';
       simulateMovement(newPosition);
       break;
+    }
     case 'get_status':
       sendMessage('status_response', {
         position: moduleState.position,
@@ -313,7 +314,7 @@ process.on('uncaughtException', err => {
   gracefulShutdown();
 });
 
-process.on('unhandledRejection', (reason, promise) => {
+process.on('unhandledRejection', reason => {
   error('Promesse rejetée:', reason);
 });
 
@@ -332,9 +333,35 @@ if (require.main === module) {
   startSimulator();
 }
 
+// Fonction pour les tests : définir le WebSocket mock
+function setMockWebSocket(mockWS) {
+  ws = mockWS;
+}
+
 module.exports = {
   startSimulator,
   disconnect,
   moduleState,
   config,
+  // Exports pour les tests
+  createAuthenticatedMessage,
+  sendMessage,
+  sendTelemetry,
+  sendHeartbeat,
+  simulateMovement,
+  handleCommand,
+  handleMessage,
+  startTelemetry,
+  stopTelemetry,
+  connect,
+  attemptReconnect,
+  gracefulShutdown,
+  setMockWebSocket,
+  // Exporter ws pour les tests
+  get ws() {
+    return ws;
+  },
+  set ws(value) {
+    ws = value;
+  },
 };

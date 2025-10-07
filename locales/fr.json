@@ -127,9 +127,12 @@
     "unknown_module": "Module inconnu",
     "decrease": "Diminuer",
     "increase": "Augmenter",
-    "offline_status": "hors ligne",
-    "online_status": "en ligne",
-    "module_type_tooltip": "Type de module"
+    "module_type_tooltip": "Type de module",
+    "module_deleted_successfully": "Module supprimé avec succès",
+    "module_added_successfully": "Module ajouté avec succès",
+    "module_added_toast": "Nouveau module ajouté",
+    "module_removed_toast": "Module supprimé",
+    "module_updated_toast": "Module mis à jour"
   },
   "admin": {
     "title": "Administration",

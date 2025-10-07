@@ -123,7 +123,7 @@ class ESP32WebSocketServer {
    * @private
    */
   async handleESPMessage(ws, message) {
-    const { type, moduleId, password } = message;
+    const { type } = message;
 
     Logger.esp.debug(`[RX ESP32] ${ws.moduleId || 'unidentified'} -> ${type}`);
 
@@ -137,7 +137,7 @@ class ESP32WebSocketServer {
         break;
 
       case 'heartbeat':
-        await this.handleHeartbeat(ws, message);
+        await this.handleHeartbeat(ws);
         break;
 
       case 'command_response':
@@ -285,18 +285,11 @@ class ESP32WebSocketServer {
    * Gère les heartbeats ESP32
    * Maintient la connexion active et met à jour le statut du module
    * @param {WebSocket} ws - Socket WebSocket ESP32
-   * @param {Object} message - Données de heartbeat
-   * @param {number} [message.uptime] - Temps de fonctionnement du module
-   * @param {number} [message.position] - Position actuelle
-   * @param {number} [message.wifiRSSI] - Force du signal WiFi
-   * @param {number} [message.freeHeap] - Mémoire libre disponible
    * @returns {Promise<void>}
    * @private
    */
-  async handleHeartbeat(ws, message) {
+  async handleHeartbeat(ws) {
     if (!ws.moduleId) return;
-
-    const { uptime, position, wifiRSSI, freeHeap } = message;
 
     Logger.esp.debug(`💓 Heartbeat from ${ws.moduleId}`);
 
@@ -342,7 +335,7 @@ class ESP32WebSocketServer {
    * @returns {void}
    * @private
    */
-  handleESPDisconnection(ws, code, reason) {
+  handleESPDisconnection(ws, code) {
     const moduleInfo = this.modulesBySocket.get(ws);
 
     if (!moduleInfo) {
