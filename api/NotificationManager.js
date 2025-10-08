@@ -181,8 +181,7 @@ class NotificationManager {
   async emitProfileUpdated(userData) {
     const data = {
       type: 'success',
-      title: 'Profil mis à jour',
-      message: `Le profil de ${userData.name} a été modifié`,
+      messageKey: 'notifications.profile_updated',
       timestamp: new Date(),
       user: {
         id: userData.id,
@@ -204,8 +203,7 @@ class NotificationManager {
   async emitPasswordChanged(userData) {
     const data = {
       type: 'success',
-      title: 'Mot de passe modifié',
-      message: `Le mot de passe de ${userData.name} a été changé`,
+      messageKey: 'notifications.password_changed',
       timestamp: new Date(),
       user: {
         id: userData.id,
@@ -227,8 +225,8 @@ class NotificationManager {
   async emitUserRegistered(userData) {
     const data = {
       type: 'info',
-      title: 'Nouvel utilisateur',
-      message: `${userData.name} s'est inscrit sur la plateforme`,
+      messageKey: 'notifications.user_registered',
+      messageParams: { name: userData.name },
       timestamp: new Date(),
       user: {
         id: userData.id,
@@ -251,8 +249,8 @@ class NotificationManager {
     );
     const data = {
       type: 'info',
-      title: 'Connexion utilisateur',
-      message: `${userData.name} s'est connecté`,
+      messageKey: 'notifications.user_logged_in',
+      messageParams: { name: userData.name },
       timestamp: new Date(),
       user: {
         id: userData.id,
@@ -271,8 +269,8 @@ class NotificationManager {
   async emitUserLoggedOut(userData) {
     const data = {
       type: 'info',
-      title: 'Déconnexion utilisateur',
-      message: `${userData.name} s'est déconnecté`,
+      messageKey: 'notifications.user_logged_out',
+      messageParams: { name: userData.name },
       timestamp: new Date(),
       user: {
         id: userData.id,
@@ -291,11 +289,11 @@ class NotificationManager {
    * @param {Object} moduleInfo - Informations du module
    */
   async emitModuleStatusChanged(moduleId, online, moduleInfo) {
-    const status = online ? 'connecté' : 'déconnecté';
+    const statusKey = online ? 'connected' : 'disconnected';
     const data = {
       type: online ? 'success' : 'warning',
-      title: `Module ${status}`,
-      message: `Module ${moduleId} ${online ? 'connecté' : 'déconnecté'}`,
+      messageKey: `notifications.module_${statusKey}`,
+      messageParams: { moduleId: moduleId },
       timestamp: new Date(),
       module: {
         id: moduleId,
@@ -309,8 +307,7 @@ class NotificationManager {
     if (moduleInfo.userId) {
       const ownerData = {
         ...data,
-        title: `Votre module ${status}`,
-        message: `Votre module ${moduleId} est ${status}`,
+        messageKey: `notifications.owner_module_${statusKey}`,
       };
       this.events.emitToUser(moduleInfo.userId, 'notification:toast', ownerData);
     }
@@ -325,16 +322,15 @@ class NotificationManager {
    * @param {Object} moduleData - Données du module
    */
   async emitModuleAction(action, moduleData) {
-    const actionText = {
-      added: 'ajouté',
-      removed: 'supprimé',
-      updated: 'mis à jour',
+    const actionKeyMap = {
+      added: 'module_added',
+      removed: 'module_removed',
+      updated: 'module_updated',
     };
 
     const data = {
       type: 'info',
-      title: `Module ${actionText[action]}`,
-      message: `Module ${moduleData.module_id} a été ${actionText[action]}`,
+      messageKey: `notifications.${actionKeyMap[action]}`,
       timestamp: new Date(),
       module: moduleData,
     };

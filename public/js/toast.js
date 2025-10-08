@@ -99,6 +99,13 @@
                 line-height: 1.4;
             }
 
+            .toast-title {
+                font-weight: 600;
+                font-size: 14px;
+                margin-bottom: 4px;
+                color: var(--text);
+            }
+
             .toast-close {
                 background: none;
                 border: none;
@@ -223,7 +230,7 @@
    * @returns {HTMLElement} Élément toast créé
    * @public
    */
-  function showToast(message, type = 'success', duration = TOAST_CONFIG.defaultDuration) {
+  function showToast(message, type = 'success', duration = TOAST_CONFIG.defaultDuration, title = '') {
     // Validation des paramètres
     if (!message || typeof message !== 'string') {
       return null;
@@ -250,8 +257,10 @@
     // Création du toast avec le style original
     const el = document.createElement('div');
     el.className = `toast ${type}`;
+    const titleHtml = title ? `<div class="toast-title">${title}</div>` : '';
     el.innerHTML = `
             ${getToastIcon(type)}
+            ${titleHtml}
             <span class="toast-message">${message}</span>
             <button class="toast-close" aria-label="Close">
                 <svg viewBox="0 0 20 20" fill="currentColor">
@@ -350,7 +359,14 @@
 
     // Gestionnaire pour les nouvelles notifications toast filtrées par préférences
     socket.on('notification:toast', function (data) {
-      showToast(data.message, data.type, data.duration || 4000);
+      let message = data.message || '';
+
+      // Traduction côté client si clé disponible
+      if (data.messageKey && window.t) {
+        message = window.t(data.messageKey, data.messageParams || {});
+      }
+
+      showToast(message, data.type, data.duration || 4000);
     });
   }
 
