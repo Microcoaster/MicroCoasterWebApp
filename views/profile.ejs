@@ -51,7 +51,7 @@
               <form method="post" action="/profile" class="profile-form">
                 <div class="form-group">
                   <label for="name"><%= t('auth.full_name') %></label>
-                  <input type="text" id="name" name="name" value="<%= user.name.replace(/"/g, '&quot;') %>" required autocomplete="name">
+                  <input type="text" id="name" name="name" value="<%- user.name %>" required autocomplete="name">
                 </div>
                 <div class="form-group">
                   <label for="email"><%= t('auth.email') %></label>
