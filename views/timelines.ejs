@@ -26,7 +26,7 @@
                draggable="true"
                data-module-id="<%= module.module_id.replace(/"/g, '&quot;') %>"
                data-module-name="<%= (module.name || '').replace(/"/g, '&quot;') %>"
-               data-module-type="<%= (module.type || '').replace(/"/g, '&quot;') %>"
+               data-module-type="<%= module.type || '' %>"
                data-is-online="<%= module.isOnline %>">
             
             <div class="module-header">
