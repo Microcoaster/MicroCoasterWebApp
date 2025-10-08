@@ -230,7 +230,12 @@
    * @returns {HTMLElement} Élément toast créé
    * @public
    */
-  function showToast(message, type = 'success', duration = TOAST_CONFIG.defaultDuration, title = '') {
+  function showToast(
+    message,
+    type = 'success',
+    duration = TOAST_CONFIG.defaultDuration,
+    title = ''
+  ) {
     // Validation des paramètres
     if (!message || typeof message !== 'string') {
       return null;
