@@ -26,7 +26,7 @@
    <input type="text" id="name" name="name" placeholder="<%= t('auth.full_name_placeholder') %>" 
      value="<%= (locals.formData?.name || '').replace(/"/g, '&quot;') %>" required autocomplete="name">
    <input type="email" id="email" name="email" placeholder="<%= t('auth.email_placeholder') %>" 
-     value="<%= (locals.formData?.email || '').replace(/"/g, '&quot;') %>" required autocomplete="email">
+     value="<%- locals.formData?.email || '' %>" required autocomplete="email">
    <input type="password" id="password" name="password" placeholder="<%= t('auth.password_min_chars') %>" required autocomplete="new-password">
    <input type="password" id="confirmPassword" name="confirmPassword" placeholder="<%= t('auth.confirm_password_placeholder') %>" required autocomplete="new-password">
    <button type="submit"><%= t('auth.create_account_button') %></button>
