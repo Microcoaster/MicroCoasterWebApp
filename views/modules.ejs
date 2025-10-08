@@ -219,7 +219,7 @@
     window.MC = { 
       wsCode: '<%- JSON.stringify(user.code) %>',
       userId: '<%- JSON.stringify(user.id) %>',
-      userName: '<%- JSON.stringify(user.name) %>'
+      userName: '<%= JSON.stringify(user.name) %>'
     };
   </script>
   <script src="/js/modules.js"></script>
