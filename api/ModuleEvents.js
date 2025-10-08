@@ -5,7 +5,6 @@
  * des états, télémétrie, synchronisation et monitoring des connexions ESP32.
  *
  * @module ModuleEvents
- * @description Gestionnaire d'événements temps réel pour les modules IoT
  */
 
 const Logger = require('../utils/logger');
@@ -19,13 +18,20 @@ class ModuleEvents {
   /**
    * Constructeur du gestionnaire d'événements modules
    * @param {EventsManager} eventsManager - Gestionnaire d'événements centralisé
+   * @param {NotificationManager} notificationManager - Gestionnaire de notifications (optionnel)
    */
-  constructor(eventsManager) {
+  constructor(eventsManager, notificationManager = null) {
     /**
      * Gestionnaire d'événements centralisé
      * @type {EventsManager}
      */
     this.events = eventsManager;
+
+    /**
+     * Gestionnaire de notifications
+     * @type {NotificationManager}
+     */
+    this.notifications = notificationManager;
 
     /**
      * Logger pour les opérations de modules
@@ -101,6 +107,11 @@ class ModuleEvents {
         this.events.emitToUser(moduleInfo.userId, 'user:module:online', eventData);
       }
 
+      // Émettre notification toast si NotificationManager disponible
+      if (this.notifications) {
+        this.notifications.emitModuleStatusChanged(moduleId, true, moduleInfo);
+      }
+
       // Mettre à jour les statistiques pour les admins
       this.emitStatsToAdmins();
     }
@@ -153,6 +164,11 @@ class ModuleEvents {
         this.events.emitToUser(moduleInfo.userId, 'user:module:offline', eventData);
       }
 
+      // Émettre notification toast si NotificationManager disponible
+      if (this.notifications) {
+        this.notifications.emitModuleStatusChanged(moduleId, false, moduleInfo);
+      }
+
       this.emitStatsToAdmins();
     }
 
@@ -185,6 +201,11 @@ class ModuleEvents {
     }
 
     this.events.emitToAdmins('rt_module_added', eventData);
+
+    // Émettre notification toast si NotificationManager disponible
+    if (this.notifications) {
+      this.notifications.emitModuleAction('added', moduleData);
+    }
   }
 
   /**
@@ -211,8 +232,13 @@ class ModuleEvents {
       this.events.emitToUser(moduleData.userId, 'user:module:removed', eventData);
     }
 
-    // Notifier tous les administrateurs
-    this.events.emitToAdmins('rt_module_removed', eventData);
+    // Notifier tous les administrateurs (en excluant l'utilisateur qui a supprimé le module)
+    this.events.emitToAdminsExcludingUser('rt_module_removed', eventData, moduleData.userId);
+
+    // Émettre notification toast si NotificationManager disponible
+    if (this.notifications) {
+      this.notifications.emitModuleAction('removed', moduleData);
+    }
 
     // Les statistiques sont mises à jour automatiquement par handlers.js
   }
@@ -242,6 +268,11 @@ class ModuleEvents {
 
     // Notifier tous les administrateurs
     this.events.emitToAdmins('rt_module_updated', eventData);
+
+    // Émettre notification toast si NotificationManager disponible
+    if (this.notifications) {
+      this.notifications.emitModuleAction('updated', moduleData);
+    }
   }
 
   // ================================================================================

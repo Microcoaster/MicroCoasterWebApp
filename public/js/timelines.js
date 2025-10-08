@@ -945,12 +945,12 @@ class TimelineSequencer {
    */
   playSequence() {
     if (!this.websocketManager.isConnected) {
-      this.websocketManager.showAlert('danger', locales.errorNotConnected);
+      window.showToast?.(locales.errorNotConnected, 'error', 3000);
       return;
     }
 
     if (this.elements.length === 0) {
-      this.websocketManager.showAlert('warning', locales.timeline.noElements);
+      window.showToast?.(locales.timeline.noElements, 'warning', 3000);
       return;
     }
 
@@ -1143,7 +1143,7 @@ class TimelineSequencer {
         const sequence = JSON.parse(e.target.result);
         this.loadSequence(sequence);
       } catch {
-        this.websocketManager.showAlert('danger', "Erreur lors de l'import du fichier");
+        window.showToast?.("Erreur lors de l'import du fichier", 'error', 3000);
       }
     };
     reader.readAsText(file);

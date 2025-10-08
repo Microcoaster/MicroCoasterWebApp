@@ -99,6 +99,13 @@
                 line-height: 1.4;
             }
 
+            .toast-title {
+                font-weight: 600;
+                font-size: 14px;
+                margin-bottom: 4px;
+                color: var(--text);
+            }
+
             .toast-close {
                 background: none;
                 border: none;
@@ -223,7 +230,12 @@
    * @returns {HTMLElement} Élément toast créé
    * @public
    */
-  function showToast(message, type = 'success', duration = TOAST_CONFIG.defaultDuration) {
+  function showToast(
+    message,
+    type = 'success',
+    duration = TOAST_CONFIG.defaultDuration,
+    title = ''
+  ) {
     // Validation des paramètres
     if (!message || typeof message !== 'string') {
       return null;
@@ -250,8 +262,10 @@
     // Création du toast avec le style original
     const el = document.createElement('div');
     el.className = `toast ${type}`;
+    const titleHtml = title ? `<div class="toast-title">${title}</div>` : '';
     el.innerHTML = `
             ${getToastIcon(type)}
+            ${titleHtml}
             <span class="toast-message">${message}</span>
             <button class="toast-close" aria-label="Close">
                 <svg viewBox="0 0 20 20" fill="currentColor">
@@ -336,96 +350,6 @@
     }
     socket._toastEventsInitialized = true;
 
-    socket.on('rt_user_logged_in', function (data) {
-      const userName = data.user?.name || data.name || data.username || 'Utilisateur';
-
-      showToast(`👤 ${userName} s'est connecté`, 'info', 4000);
-
-      if (getCurrentPageName() === 'admin' && window.showRealTimeNotification) {
-        window.showRealTimeNotification(
-          `<span class="user-connected">👤 ${userName} <strong>s'est connecté</strong></span>`,
-          'success'
-        );
-      }
-    });
-
-    socket.on('rt_user_logged_out', function (data) {
-      const userName = data.user?.name || data.name || data.username || 'Utilisateur';
-
-      showToast(`👤 ${userName} s'est déconnecté`, 'warning', 4000);
-
-      if (getCurrentPageName() === 'admin' && window.showRealTimeNotification) {
-        window.showRealTimeNotification(
-          `<span class="user-disconnected">👤 ${userName} <strong>s'est déconnecté</strong></span>`,
-          'warning'
-        );
-      }
-    });
-
-    socket.on('rt_module_online', function (data) {
-      showToast(`🟢 Module ${data.moduleId} connecté`, 'success', 3000);
-
-      if (getCurrentPageName() === 'admin' && window.updateModuleStatus) {
-        window.updateModuleStatus(data.moduleId, true);
-        if (data.lastSeen && window.updateModuleLastSeen) {
-          window.updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-        }
-      }
-    });
-
-    socket.on('rt_module_offline', function (data) {
-      showToast(`🔴 Module ${data.moduleId} déconnecté`, 'error', 4000);
-
-      // Mise à jour interface admin si on est sur cette page
-      if (getCurrentPageName() === 'admin' && window.updateModuleStatus) {
-        window.updateModuleStatus(data.moduleId, false);
-        if (data.lastSeen && window.updateModuleLastSeen) {
-          window.updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
-        }
-      }
-    });
-
-    // Événements pour les propriétaires de modules (évite les doublons avec rt_module_*)
-    socket.on('user:module:online', function (data) {
-      showToast(`🟢 Votre module ${data.moduleId} est connecté`, 'success', 3000);
-    });
-
-    socket.on('user:module:offline', function (data) {
-      showToast(`🔴 Votre module ${data.moduleId} est déconnecté`, 'error', 4000);
-    });
-
-    socket.on('rt_module_added', function (data) {
-      const moduleId = data.module?.module_id || 'Unknown';
-      showToast(`➕ ${window.t('modules.module_added_toast')}: ${moduleId}`, 'success', 5000);
-
-      if (getCurrentPageName() === 'admin' && window.loadModulesTable) {
-        window.loadModulesTable();
-      }
-    });
-
-    socket.on('rt_module_removed', function (data) {
-      const moduleId = data.module?.module_id || 'Unknown';
-      showToast(`🗑️ ${window.t('modules.module_removed_toast')}: ${moduleId}`, 'warning', 5000);
-
-      if (getCurrentPageName() === 'admin' && window.loadModulesTable) {
-        window.loadModulesTable();
-      }
-    });
-
-    socket.on('rt_module_updated', function (data) {
-      const moduleId = data.module?.module_id || 'Unknown';
-      showToast(`🔧 ${window.t('modules.module_updated_toast')}: ${moduleId}`, 'info', 4000);
-
-      if (getCurrentPageName() === 'admin' && window.loadModulesTable) {
-        window.loadModulesTable();
-      }
-    });
-
-    socket.on('rt_user_profile_updated', function (data) {
-      const userName = data.user?.name || data.name || data.username || 'Utilisateur';
-      showToast(`👤 Profil mis à jour: ${userName}`, 'info', 3000);
-    });
-
     socket.on('rt_telemetry_updated', function (data) {
       if (getCurrentPageName() === 'admin' && data.lastSeen && window.updateModuleLastSeen) {
         window.updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
@@ -436,6 +360,18 @@
       if (getCurrentPageName() === 'admin' && window.updateModuleLastSeen) {
         window.updateModuleLastSeen(data.moduleId, data.lastSeen, data.lastSeenFormatted);
       }
+    });
+
+    // Gestionnaire pour les nouvelles notifications toast filtrées par préférences
+    socket.on('notification:toast', function (data) {
+      let message = data.message || '';
+
+      // Traduction côté client si clé disponible
+      if (data.messageKey && window.t) {
+        message = window.t(data.messageKey, data.messageParams || {});
+      }
+
+      showToast(message, data.type, data.duration || 4000);
     });
   }
 

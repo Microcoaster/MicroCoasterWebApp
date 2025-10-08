@@ -1,23 +1,24 @@
 /**
  * ============================================================================
- * LANGUAGE MIDDLEWARE - MULTILINGUAL SUPPORT
+ * MIDDLEWARE DE LANGUE - SUPPORT MULTILINGUE
  * ============================================================================
- * Handles language detection, switching, and template integration
+ * Gère la détection de langue, le changement et l'intégration dans les templates
  *
  * @module LanguageMiddleware
- * @description Provides language detection from cookies/headers and EJS helpers
+ * @description Fournit la détection de langue depuis les cookies/headers et les helpers EJS
  * ============================================================================
  */
 
 const localeLoader = require('../locales');
 
 /**
- * Detect user's preferred language from various sources
- * @param {Request} req - Express request object
- * @returns {string} Detected language code
+ * Détecte la langue préférée de l'utilisateur depuis diverses sources
+ * @param {Request} req - Objet de requête Express
+ * @param {Object} [user] - Objet utilisateur optionnel avec préférence de langue
+ * @returns {string} Code de langue détecté
  */
-function detectLanguage(req) {
-  // 1. Check if language is explicitly set in cookie
+function detectLanguage(req, user = null) {
+  // 1. Vérifier si la langue est explicitement définie dans le cookie
   if (req.cookies && req.cookies.language) {
     const cookieLang = req.cookies.language;
 
@@ -26,16 +27,21 @@ function detectLanguage(req) {
     }
   }
 
-  // 2. Check Accept-Language header
+  // 2. Vérifier la langue préférée de l'utilisateur depuis la base de données (si utilisateur fourni)
+  if (user && user.language && localeLoader.isLanguageSupported(user.language)) {
+    return user.language;
+  }
+
+  // 3. Vérifier l'en-tête Accept-Language
   const acceptLanguage = req.get('Accept-Language');
   if (acceptLanguage) {
-    // Parse Accept-Language header (simplified)
+    // Analyser l'en-tête Accept-Language (simplifié)
     const languages = acceptLanguage
       .split(',')
       .map(lang => lang.split(';')[0].trim().toLowerCase())
-      .map(lang => lang.split('-')[0]); // Take only language part (ignore country)
+      .map(lang => lang.split('-')[0]); // Prendre seulement la partie langue (ignorer le pays)
 
-    // Find first supported language
+    // Trouver la première langue supportée
     for (const lang of languages) {
       if (localeLoader.isLanguageSupported(lang)) {
         return lang;
@@ -43,43 +49,46 @@ function detectLanguage(req) {
     }
   }
 
-  // 3. Default fallback
+  // 4. Valeur par défaut
   return localeLoader.getDefaultLanguage();
 }
 
 /**
- * Language detection and setup middleware
+ * Middleware de détection et configuration de langue
+ * @param {Request} req - Objet de requête Express
+ * @param {Response} res - Objet de réponse Express
+ * @param {Function} next - Fonction de callback pour passer au middleware suivant
  */
 function languageMiddleware(req, res, next) {
-  // Detect current language
+  // Détecter la langue actuelle
   const currentLang = detectLanguage(req);
 
-  // Store in request for use in routes
+  // Stocker dans la requête pour utilisation dans les routes
   req.language = currentLang;
 
-  // Create translation helper function
+  // Créer la fonction helper de traduction
   req.t = function (key, params = {}) {
     return localeLoader.translate(currentLang, key, params);
   };
 
-  // Make available in EJS templates
+  // Rendre disponible dans les templates EJS
   res.locals.language = currentLang;
   res.locals.t = req.t;
   res.locals.availableLanguages = localeLoader.getLanguagesInfo();
 
-  // Helper for checking current language
+  // Helper pour vérifier la langue actuelle
   res.locals.isCurrentLanguage = function (langCode) {
     return langCode === currentLang;
   };
 
-  // Add switchLanguage helper to req
+  // Ajouter le helper switchLanguage à req
   req.switchLanguage = function (lang) {
     if (!lang || !localeLoader.isLanguageSupported(lang)) {
       return false;
     }
 
     res.cookie('language', lang, {
-      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
+      maxAge: 365 * 24 * 60 * 60 * 1000, // 1 an
       httpOnly: false,
       secure: process.env.NODE_ENV === 'production',
       sameSite: 'lax',
@@ -92,12 +101,14 @@ function languageMiddleware(req, res, next) {
 }
 
 /**
- * Route handler for language switching
+ * Gestionnaire de route pour le changement de langue
+ * @param {Request} req - Objet de requête Express
+ * @param {Response} res - Objet de réponse Express
  */
 function switchLanguage(req, res) {
   const { lang } = req.body;
 
-  // Validate language
+  // Valider la langue
   if (!lang || !localeLoader.isLanguageSupported(lang)) {
     return res.status(400).json({
       success: false,
@@ -105,15 +116,15 @@ function switchLanguage(req, res) {
     });
   }
 
-  // Set cookie (expires in 1 year)
+  // Définir le cookie (expire dans 1 an)
   res.cookie('language', lang, {
-    maxAge: 365 * 24 * 60 * 60 * 1000, // 1 year
-    httpOnly: false, // Allow JS access for frontend
+    maxAge: 365 * 24 * 60 * 60 * 1000, // 1 an
+    httpOnly: false, // Permettre l'accès JS pour le frontend
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'lax',
   });
 
-  // Return success response
+  // Retourner la réponse de succès
   res.json({
     success: true,
     language: lang,
@@ -122,7 +133,9 @@ function switchLanguage(req, res) {
 }
 
 /**
- * API endpoint to get current language info
+ * Point de terminaison API pour obtenir les informations de langue actuelles
+ * @param {Request} req - Objet de requête Express
+ * @param {Response} res - Objet de réponse Express
  */
 function getLanguageInfo(req, res) {
   res.json({

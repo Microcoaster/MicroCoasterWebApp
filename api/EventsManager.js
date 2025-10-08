@@ -205,10 +205,6 @@ class EventsManager {
     }
   }
 
-  // ========================================================================
-  // STATISTIQUES
-  // ========================================================================
-
   /**
    * Récupère les statistiques de connexion
    * @returns {Object} Statistiques détaillées des connexions

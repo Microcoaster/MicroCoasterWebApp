@@ -864,6 +864,8 @@ function closeAddModal() {
   modalAdd?.setAttribute('aria-hidden', 'true');
   const form = modalAdd?.querySelector('form');
   form && form.reset();
+  // Retourner le focus au bouton d'ouverture pour éviter les problèmes d'accessibilité
+  openAddBtn?.focus();
 }
 
 openAddBtn?.addEventListener('click', openAddModal);
@@ -884,12 +886,17 @@ const delText = document.getElementById('dlgDelText');
 const delForm = document.getElementById('deleteForm');
 const delModuleIdInp = document.getElementById('del_moduleId');
 
+let lastFocusedDeleteBtn = null; // Stocker le bouton qui a ouvert le modal
+
 // Gestion du clic sur les boutons de suppression
 document.addEventListener('click', e => {
   const kill = e.target.closest('.kill');
   if (!kill) return;
   const panel = kill.closest('.panel[data-mid]');
   if (!panel) return;
+
+  // Stocker le bouton qui a ouvert le modal pour y retourner le focus
+  lastFocusedDeleteBtn = kill;
 
   const moduleId = panel.dataset.mid || '';
   const title =
@@ -907,6 +914,9 @@ document.addEventListener('click', e => {
 document.getElementById('btnCancelDel')?.addEventListener('click', () => {
   modalDel?.classList.remove('open');
   modalDel?.setAttribute('aria-hidden', 'true');
+  // Retourner le focus au bouton qui a ouvert le modal
+  lastFocusedDeleteBtn?.focus();
+  lastFocusedDeleteBtn = null;
 });
 
 // Fermeture par clic sur l'overlay
@@ -914,6 +924,9 @@ modalDel?.addEventListener('click', e => {
   if (e.target === modalDel) {
     modalDel?.classList.remove('open');
     modalDel?.setAttribute('aria-hidden', 'true');
+    // Retourner le focus au bouton qui a ouvert le modal
+    lastFocusedDeleteBtn?.focus();
+    lastFocusedDeleteBtn = null;
   }
 });
 
@@ -955,6 +968,10 @@ delForm?.addEventListener('submit', async e => {
 
       // Afficher un message de succès
       window.showToast?.(window.t('modules.module_deleted_successfully'), 'success', 2200);
+
+      // Retourner le focus au bouton d'ajout de module
+      openAddBtn?.focus();
+      lastFocusedDeleteBtn = null;
 
       // Rafraîchir les filtres
       window.applyOnlineFilter?.();

@@ -2,16 +2,7 @@
  * Routes de gestion des modules - Interface modules utilisateur
  *
  * Gère la gestion complète des modules IoT incluant l'ajout, suppression,
- * mise à jour, claim et inférence automatique des     // Émettre événement temps réel : module ajouté
-    if (req.app.locals.realTimeAPI) {
-      req.app.locals.realTimeAPI.emitModuleAdded({
-        module_id: moduleIdTrim,
-        name: nameTrim,
-        type: type,
-        userId: userId,
-        createdAt: new Date(),
-      });
-    }dules.
+ * mise à jour, claim et inférence automatique des modules.
  *
  * @module modules
  * @description Routes de gestion des modules avec claim, CRUD et inférence de types
@@ -86,8 +77,11 @@ router.get('/', requireAuth, async (req, res) => {
       currentPage: 'modules',
       modules,
       user: user, // Passer l'objet utilisateur complet avec isAdmin
-      flash: req.query.flash || null,
+      flash: req.session.flash || null,
     });
+
+    // Nettoyer le message flash de la session après l'avoir utilisé
+    delete req.session.flash;
   } catch (error) {
     Logger.app.error('Error loading modules page:', error);
     res.status(500).render('modules', {
@@ -137,28 +131,62 @@ router.get('/api', requireAuth, async (req, res) => {
  * @returns {Promise<void>}
  */
 router.post('/claim', requireAuth, async (req, res) => {
+  const userId = req.session.user_id;
+  const { module_id, module_code, name } = req.body;
   try {
-    const { module_id, module_code, name } = req.body;
-    const userId = req.session.user_id;
-
     if (!module_id || module_id.trim() === '') {
-      return res.redirect(`/modules?flash=${encodeURIComponent('Module ID is required')}`);
+      if (req.app.locals.realTimeAPI) {
+        req.app.locals.realTimeAPI.events.emitToUser(userId, 'notification:toast', {
+          type: 'error',
+          title: 'Erreur',
+          message: "Impossible d'ajouter le module",
+          timestamp: new Date(),
+        });
+      }
+      req.session.flash = req.t('modules.module_id_required');
+      return res.redirect('/modules');
     }
 
     if (!module_code || module_code.trim() === '') {
-      return res.redirect(`/modules?flash=${encodeURIComponent('Module code is required')}`);
+      // Notification d'erreur
+      if (req.app.locals.realTimeAPI) {
+        req.app.locals.realTimeAPI.events.emitToUser(userId, 'notification:toast', {
+          type: 'error',
+          title: 'Erreur',
+          message: "Impossible d'ajouter le module",
+          timestamp: new Date(),
+        });
+      }
+      req.session.flash = req.t('modules.module_code_required');
+      return res.redirect('/modules');
     }
 
     if (!/^MC-\d{4}-(AP|ST)$/i.test(module_id.trim())) {
-      return res.redirect(
-        `/modules?flash=${encodeURIComponent('Invalid Module ID format (expected MC-XXXX-AP or MC-XXXX-ST)')}`
-      );
+      // Notification d'erreur
+      if (req.app.locals.realTimeAPI) {
+        req.app.locals.realTimeAPI.events.emitToUser(userId, 'notification:toast', {
+          type: 'error',
+          title: 'Erreur',
+          message: "Impossible d'ajouter le module",
+          timestamp: new Date(),
+        });
+      }
+      req.session.flash = req.t('modules.invalid_module_id_format');
+      return res.redirect('/modules');
     }
 
     if (!/^[A-Za-z0-9]{4}-[A-Za-z0-9]{4}$/.test(module_code.trim())) {
-      return res.redirect(
-        `/modules?flash=${encodeURIComponent('Invalid module code format (expected XXXX-XXXX)')}`
-      );
+      // Notification d'erreur
+      if (req.app.locals.realTimeAPI) {
+        req.app.locals.realTimeAPI.events.emitToUser(userId, 'notification:toast', {
+          type: 'error',
+          title: 'Erreur',
+          message: "Impossible d'ajouter le module",
+          timestamp: new Date(),
+        });
+      }
+      req.session.flash = req.t('modules.invalid_module_code_format');
+      return res.redirect('/modules');
     }
 
     const moduleIdTrim = module_id.trim();
@@ -174,28 +202,70 @@ router.post('/claim', requireAuth, async (req, res) => {
     );
 
     if (existingModules.length === 0) {
-      return res.redirect(`/modules?flash=${encodeURIComponent('Unknown module ID')}`);
+      // Notification d'erreur
+      if (req.app.locals.realTimeAPI) {
+        setTimeout(() => {
+          req.app.locals.realTimeAPI.events.emitToUser(userId, 'notification:toast', {
+            type: 'error',
+            title: 'Erreur',
+            message: "Impossible d'ajouter le module",
+            timestamp: new Date(),
+          });
+        }, 2000);
+      }
+      req.session.flash = req.t('modules.unknown_module_id');
+      return res.redirect('/modules');
     }
 
     const existingModule = existingModules[0];
 
     // Vérifier le code du module (simple comparaison pour l'instant - à améliorer avec hash si nécessaire)
     if (existingModule.module_code !== moduleCodeTrim) {
-      return res.redirect(`/modules?flash=${encodeURIComponent('Wrong module code')}`);
+      // Notification d'erreur
+      if (req.app.locals.realTimeAPI) {
+        setTimeout(() => {
+          req.app.locals.realTimeAPI.events.emitToUser(userId, 'notification:toast', {
+            type: 'error',
+            title: 'Erreur',
+            message: "Impossible d'ajouter le module",
+            timestamp: new Date(),
+          });
+        }, 2000);
+      }
+      req.session.flash = req.t('modules.wrong_module_code');
+      return res.redirect('/modules');
     }
 
     // Vérifier si le module est déjà claimé
     if (existingModule.user_id !== null) {
       if (existingModule.user_id === userId) {
-        return res.redirect(
-          `/modules?flash=${encodeURIComponent('This module is already in your list')}`
-        );
+        // Notification d'erreur
+        if (req.app.locals.realTimeAPI) {
+          setTimeout(() => {
+            req.app.locals.realTimeAPI.events.emitToUser(userId, 'notification:toast', {
+              type: 'error',
+              title: 'Erreur',
+              message: "Impossible d'ajouter le module",
+              timestamp: new Date(),
+            });
+          }, 2000);
+        }
+        req.session.flash = req.t('modules.module_already_in_list');
+        return res.redirect('/modules');
       } else {
-        return res.redirect(
-          `/modules?flash=${encodeURIComponent(
-            'This module has already been claimed by another user'
-          )}`
-        );
+        // Notification d'erreur
+        if (req.app.locals.realTimeAPI) {
+          setTimeout(() => {
+            req.app.locals.realTimeAPI.events.emitToUser(userId, 'notification:toast', {
+              type: 'error',
+              title: 'Erreur',
+              message: "Impossible d'ajouter le module",
+              timestamp: new Date(),
+            });
+          }, 2000);
+        }
+        req.session.flash = req.t('modules.module_claimed_by_other');
+        return res.redirect('/modules');
       }
     }
 
@@ -218,15 +288,38 @@ router.post('/claim', requireAuth, async (req, res) => {
         userId: userId,
         updatedAt: new Date(),
       });
+
+      // Notification de succès
+      setTimeout(() => {
+        req.app.locals.realTimeAPI.events.emitToUser(userId, 'notification:toast', {
+          type: 'success',
+          title: 'Module ajouté',
+          message: 'Module ajouté avec succès',
+          timestamp: new Date(),
+        });
+      }, 2000); // Délai de 2 secondes pour laisser le temps au WebSocket de se reconnecter
     }
 
     Logger.activity.info(`✅ Module claimed: ${moduleIdTrim} (${type}) by user ${userId}`);
-    res.redirect(
-      `/modules?flash=${encodeURIComponent(req.t('modules.module_added_successfully'))}`
-    );
+    req.session.flash = req.t('modules.module_added_successfully');
+    res.redirect('/modules');
   } catch (error) {
     Logger.modules.error('Error claiming module:', error);
-    res.redirect(`/modules?flash=${encodeURIComponent('Database error occurred')}`);
+
+    // Notification d'erreur générale
+    if (req.app.locals.realTimeAPI) {
+      setTimeout(() => {
+        req.app.locals.realTimeAPI.events.emitToUser(userId, 'notification:toast', {
+          type: 'error',
+          title: 'Erreur',
+          message: "Impossible d'ajouter le module",
+          timestamp: new Date(),
+        });
+      }, 2000);
+    }
+
+    req.session.flash = req.t('modules.database_error');
+    res.redirect('/modules');
   }
 });
 
