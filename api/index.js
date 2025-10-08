@@ -11,6 +11,7 @@
 const EventsManager = require('./EventsManager');
 const ModuleEvents = require('./ModuleEvents');
 const UserEvents = require('./UserEvents');
+const NotificationManager = require('./NotificationManager');
 const Logger = require('../utils/logger');
 
 /**
@@ -31,8 +32,9 @@ class RealTimeAPI {
     this.initialized = false;
 
     this.events = new EventsManager(io);
-    this.modules = new ModuleEvents(this.events);
-    this.users = new UserEvents(this.events);
+    this.notifications = new NotificationManager(this.events, databaseManager);
+    this.modules = new ModuleEvents(this.events, this.notifications);
+    this.users = new UserEvents(this.events, this.notifications);
   }
 
   /**

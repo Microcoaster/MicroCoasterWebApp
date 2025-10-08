@@ -11,8 +11,9 @@
 const Logger = require('../utils/logger');
 
 class UserEvents {
-  constructor(eventsManager) {
+  constructor(eventsManager, notificationManager = null) {
     this.events = eventsManager;
+    this.notifications = notificationManager;
     this.Logger = Logger;
   }
 
@@ -41,6 +42,11 @@ class UserEvents {
       timestamp: new Date(),
     });
 
+    // Émettre notification toast si NotificationManager disponible
+    if (this.notifications) {
+      this.notifications.emitUserLoggedIn(userData);
+    }
+
     this.emitStatsToAdmins();
   }
 
@@ -59,6 +65,11 @@ class UserEvents {
     };
 
     this.events.emitToAdmins('rt_user_logged_out', eventData);
+
+    // Émettre notification toast si NotificationManager disponible
+    if (this.notifications) {
+      this.notifications.emitUserLoggedOut(userData);
+    }
 
     this.emitStatsToAdmins();
   }
@@ -81,6 +92,11 @@ class UserEvents {
 
     this.events.emitToUser(userData.id, 'rt_user_profile_updated', eventData);
     this.events.emitToAdmins('rt_user_profile_updated', eventData);
+
+    // Émettre notification toast si NotificationManager disponible
+    if (this.notifications) {
+      this.notifications.emitProfileUpdated(userData);
+    }
   }
 
   userPasswordChanged(userData) {
@@ -104,6 +120,11 @@ class UserEvents {
     });
 
     this.events.emitToAdmins('admin:user:password_changed', eventData);
+
+    // Émettre notification toast si NotificationManager disponible
+    if (this.notifications) {
+      this.notifications.emitPasswordChanged(userData);
+    }
   }
 
   userRegistered(userData) {
@@ -126,6 +147,11 @@ class UserEvents {
       message: 'Bienvenue dans MicroCoaster WebApp !',
       user: eventData.user,
     });
+
+    // Émettre notification toast si NotificationManager disponible
+    if (this.notifications) {
+      this.notifications.emitUserRegistered(userData);
+    }
   }
 
   // ================================================================================

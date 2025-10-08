@@ -248,11 +248,32 @@ router.get('/profile', requireAuth, async (req, res) => {
       return res.redirect('/logout');
     }
 
+    // Détecter la langue en priorisant la préférence utilisateur
+    const { detectLanguage } = require('../middleware/language');
+    const userLanguage = detectLanguage(req, user);
+
+    // Si la langue détectée est différente de celle actuelle, mettre à jour temporairement
+    if (userLanguage !== req.language) {
+      req.language = userLanguage;
+      req.t = function (key, params = {}) {
+        const localeLoader = require('../locales');
+        return localeLoader.translate(userLanguage, key, params);
+      };
+      res.locals.language = userLanguage;
+      res.locals.t = req.t;
+    }
+
+    // Récupérer le message de succès depuis la session et le supprimer
+    const success = req.session.successMessage;
+    if (success) {
+      delete req.session.successMessage;
+    }
+
     res.render('profile', {
       title: req.t('auth.profile_title'),
       user,
       error: null,
-      success: null,
+      success,
     });
   } catch (error) {
     Logger.activity.error('Profile error:', error);
@@ -265,15 +286,26 @@ router.get('/profile', requireAuth, async (req, res) => {
 
 /**
  * Route de mise à jour du profil utilisateur
- * Met à jour le nom et l'email de l'utilisateur connecté
+ * Met à jour le nom, l'email et la langue préférée de l'utilisateur connecté
  * @param {Request} req - Requête Express avec données de formulaire
  * @param {Response} res - Réponse Express avec confirmation ou erreur
  * @returns {Promise<void>}
  */
 router.post('/profile', requireAuth, async (req, res) => {
-  const { name, email } = req.body;
+  const {
+    name,
+    email,
+    language,
+    form_type,
+    notify_module_status,
+    notify_system_errors,
+    notify_admin_user_activity,
+    notify_admin_module_activity,
+  } = req.body;
   let error = null;
   let success = null;
+  let validLanguage = null;
+  let updates = {};
 
   try {
     const user = await databaseManager.users.findById(req.session.user_id);
@@ -281,17 +313,49 @@ router.post('/profile', requireAuth, async (req, res) => {
       return res.redirect('/logout');
     }
 
-    // Validation
-    if (!name || !email) {
-      error = 'Veuillez remplir tous les champs.';
-    } else if (email !== user.email && (await databaseManager.users.emailExists(email))) {
-      error = 'Un compte avec cet email existe déjà.';
+    // Déterminer le type de formulaire soumis
+    const isNotificationForm = form_type === 'notifications';
+
+    // Validation selon le type de formulaire
+    if (isNotificationForm) {
+      // Formulaire de notifications - pas de validation obligatoire
     } else {
+      // Formulaire de profil - validation des champs requis
+      if (!name || !email) {
+        error = 'Veuillez remplir tous les champs.';
+      }
+    }
+
+    if (!error) {
+      // Validation de la langue
+      const localeLoader = require('../locales');
+      validLanguage = language && localeLoader.isLanguageSupported(language) ? language : null;
+
+      // Préparer les données de mise à jour
+      updates = {};
+
+      // Ajouter les champs du formulaire de profil s'ils sont présents
+      if (typeof name !== 'undefined') updates.name = name;
+      if (typeof email !== 'undefined') updates.email = email;
+      if (validLanguage !== null) updates.language = validLanguage;
+
+      // Ajouter toujours les champs de notification (même s'ils sont false)
+      updates.notify_module_status = notify_module_status === 'on';
+      updates.notify_system_errors = notify_system_errors === 'on';
+      updates.notify_admin_user_activity = notify_admin_user_activity === 'on';
+      updates.notify_admin_module_activity = notify_admin_module_activity === 'on';
+
+      // Validation supplémentaire pour le formulaire de profil
+      if (!isNotificationForm && typeof email !== 'undefined') {
+        if (email !== user.email && (await databaseManager.users.emailExists(email))) {
+          error = 'Un compte avec cet email existe déjà.';
+        }
+      }
+    }
+
+    if (!error) {
       // Mise à jour
-      const updateSuccess = await databaseManager.users.updateProfile(req.session.user_id, {
-        name,
-        email,
-      });
+      const updateSuccess = await databaseManager.users.updateProfile(req.session.user_id, updates);
 
       if (updateSuccess) {
         // Récupérer l'utilisateur mis à jour
@@ -300,6 +364,18 @@ router.post('/profile', requireAuth, async (req, res) => {
         req.session.nickname = updatedUser.name;
         req.session.email = updatedUser.email;
 
+        // Si la langue a changé, mettre à jour le cookie et la session
+        if (validLanguage && validLanguage !== req.language) {
+          req.switchLanguage(validLanguage);
+          req.language = validLanguage;
+
+          // Stocker le message de succès en session
+          req.session.successMessage = 'Profil mis à jour avec succès.';
+
+          // Recharger la page pour appliquer la nouvelle langue
+          return res.redirect('/profile');
+        }
+
         // Émettre événement temps réel : profil utilisateur mis à jour
         if (req.app.locals.realTimeAPI) {
           req.app.locals.realTimeAPI.emitUserProfileUpdated(
@@ -307,15 +383,19 @@ router.post('/profile', requireAuth, async (req, res) => {
               id: updatedUser.id,
               name: updatedUser.name,
               email: updatedUser.email,
+              language: updatedUser.language,
               is_admin: updatedUser.is_admin,
               updatedAt: new Date(),
             },
             req.sessionID
           );
 
-          success = 'Profil mis à jour avec succès.';
+          success = isNotificationForm
+            ? req.t('notifications.updated_success')
+            : 'Profil mis à jour avec succès.';
           user.name = updatedUser.name;
           user.email = updatedUser.email;
+          user.language = updatedUser.language;
         }
       } else {
         error = 'Erreur lors de la mise à jour du profil.';
@@ -326,10 +406,10 @@ router.post('/profile', requireAuth, async (req, res) => {
     error = err.message || 'Erreur lors de la mise à jour du profil.';
   }
 
-  const user = await databaseManager.users.findById(req.session.user_id);
+  const updatedUser = await databaseManager.users.findById(req.session.user_id);
   res.render('profile', {
     title: req.t('auth.profile_title'),
-    user,
+    user: updatedUser,
     error,
     success,
   });
