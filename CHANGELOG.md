@@ -4,6 +4,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 ## [Unreleased]
 
+## [0.2.0] - 08-10-2025
+
 ### Ajouté
 
 - **Système de notifications personnalisables complet** : Interface utilisateur dans le profil pour gérer les préférences de notification avec cases à cocher organisées par catégories (utilisateur/administrateur)
@@ -12,6 +14,7 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 - **Notifications toast contextuelles** : Événements temps réel pour les connexions/déconnexions de modules, activités utilisateur, changements de profil, avec exclusion automatique des propriétaires des notifications admin
 - **Refonte complète de l'interface profil** : Mise en page moderne avec sections distinctes pour informations personnelles, changement de mot de passe et préférences de notification
 - **API de notifications intégrée** : Intégration complète du NotificationManager dans tous les gestionnaires d'événements (ModuleEvents, UserEvents) pour une gestion centralisée des notifications
+- **Système de notifications multilingues côté client** : Traduction automatique des notifications selon la langue préférée de l'utilisateur, utilisation de clés de traduction spécifiques pour chaque type de notification
 
 ### Modifié
 
@@ -19,6 +22,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 - **Amélioration de l'exclusion des notifications admin** : Utilisation de `emitToAdminsExcludingUser` pour empêcher les administrateurs de recevoir leurs propres notifications d'activité
 - **Optimisation de l'initialisation temps réel** : Initialisation anticipée de l'API temps réel pour une meilleure stabilité des WebSocket
 - **Sécurisation des formulaires de profil** : Validation stricte des champs et gestion séparée des formulaires de profil/notifications
+- **Notifications toast simplifiées** : affichage des messages uniquement avec traduction côté client
+- **Clés de traduction spécifiques pour les statuts de module** : Remplacement des clés génériques par des clés dédiées (`module_connected`/`module_disconnected`) pour une meilleure traduction multilingue
 
 ### Corrigé
 
@@ -102,6 +107,7 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 - Ce fichier CHANGELOG pour suivre toute les prochaines modifications
 
-[unreleased]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.1.0...HEAD
+[unreleased]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.0.0...v0.1.0
 [0.0.0]: https://github.com/Microcoaster/MicroCoasterWebApp/releases/tag/v0.0.0
