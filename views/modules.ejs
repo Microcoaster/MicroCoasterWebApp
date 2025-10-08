@@ -97,7 +97,7 @@
               const moduleName = module.name || module.type || moduleType;
             %>
             <div class="col-12 col-lg-6">
-              <div class="panel offline disabled" data-type="<%= moduleType.replace(/"/g, '&quot;') %>" data-mid="<%= moduleId.replace(/"/g, '&quot;') %>">
+              <div class="panel offline disabled" data-type="<%- moduleType %>" data-mid="<%- moduleId %>">
               <button class="kill" type="button" aria-label="Delete this module"></button>
               <div class="h1">
                 <%= moduleName %>
