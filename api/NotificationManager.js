@@ -285,13 +285,13 @@ class NotificationManager {
   }
 
   /**
-   * Émet une notification de module en ligne/hors ligne
+   * Émet une notification de module connecté/déconnecté
    * @param {string} moduleId - ID du module
    * @param {boolean} online - État du module
    * @param {Object} moduleInfo - Informations du module
    */
   async emitModuleStatusChanged(moduleId, online, moduleInfo) {
-    const status = online ? 'en ligne' : 'hors ligne';
+    const status = online ? 'connecté' : 'déconnecté';
     const data = {
       type: online ? 'success' : 'warning',
       title: `Module ${status}`,
@@ -305,10 +305,17 @@ class NotificationManager {
       },
     };
 
-    // Émettre aux utilisateurs qui ont activé les notifications de statut des modules
-    await this.emitNotification('module_status', 'notification:toast', data, moduleInfo.userId);
+    // 1. Toujours notifier le propriétaire de SON module (avec message spécial)
+    if (moduleInfo.userId) {
+      const ownerData = {
+        ...data,
+        title: `Votre module ${status}`,
+        message: `Votre module ${moduleId} est ${status}`,
+      };
+      this.events.emitToUser(moduleInfo.userId, 'notification:toast', ownerData);
+    }
 
-    // Émettre aux admins qui ont activé les notifications d'activité des modules
+    // 2. Notifier les autres admins qui ont activé les notifications d'activité des modules
     await this.emitToAdmins('admin_module_activity', 'notification:toast', data, moduleInfo.userId);
   }
 
