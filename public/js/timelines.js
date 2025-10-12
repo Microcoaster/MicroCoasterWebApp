@@ -168,13 +168,15 @@ class TimelineSequencer {
     this.selectedElement = null;
     this.draggedElement = null;
 
+    // Indicateur de temps pendant le drag & drop
+    this.dragTimeIndicator = null;
+    this.isDraggingModule = false; // Flag pour savoir si on drag un module
+
     // Zoom state simple
     this.zoomLevel = 1; // Facteur de zoom (1 = normal)
     this.pixelsPerSecond = 10; // Base: 10px par seconde
 
     // Viewport timeline infinie
-    this.viewportStart = 0; // Début de la fenêtre (en secondes)
-    this.viewportDuration = DEFAULT_VIEWPORT_DURATION; // Durée de la fenêtre visible
     this.viewportStart = 0; // Début de la fenêtre (en secondes)
     this.viewportDuration = DEFAULT_VIEWPORT_DURATION; // Durée de la fenêtre visible
 
@@ -186,6 +188,7 @@ class TimelineSequencer {
     this.setupDragAndDrop();
     this.setupZoom();
     this.updateViewport(); // Initialiser le viewport
+    this.switchToTab('modules'); // Initialiser avec l'onglet modules
   }
 
   // ================================================================================
@@ -194,7 +197,7 @@ class TimelineSequencer {
 
   /**
    * Configure le système de zoom et navigation dans la timeline
-   * Gère Ctrl+molette pour le zoom et Shift+molette pour la navigation
+   * Gère Ctrl+molette pour le zoom et Shift+molette pour la navigation horizontale
    * @returns {void}
    * @private
    */
@@ -213,7 +216,7 @@ class TimelineSequencer {
 
         this.updateZoom();
       } else if (e.shiftKey) {
-        // Navigation dans la timeline avec Shift+molette
+        // Navigation horizontale dans la timeline avec Shift+molette
         e.preventDefault();
 
         const direction = e.deltaY < 0 ? -1 : 1; // Molette vers le haut = reculer
@@ -224,7 +227,7 @@ class TimelineSequencer {
 
         this.updateViewport();
       }
-    });
+    }, { passive: false }); // Explicitement marquer comme non-passive car on utilise preventDefault()
   }
 
   /**
@@ -285,6 +288,7 @@ class TimelineSequencer {
     const element = elementData.element;
     const startTime = elementData.startTime;
     const duration = elementData.duration;
+    const trackIndex = elementData.trackIndex || 0;
     const endTime = startTime + duration;
     const trackWidth = this.track.offsetWidth;
 
@@ -304,12 +308,21 @@ class TimelineSequencer {
       );
 
       const left = leftPercent * trackWidth;
-      const width = widthPercent * trackWidth;
+      const width = Math.max(widthPercent * trackWidth, 50); // Minimum 50px
 
       element.style.left = `${left}px`;
-      element.style.width = `${Math.max(width, 50)}px`; // Minimum 50px
+      element.style.width = `${width}px`;
       element.style.display = 'block';
       element.style.opacity = '1';
+
+      // Position verticale basée sur la piste
+      const trackHeight = this.track.offsetHeight - 60; // Hauteur disponible (sans la règle)
+      const laneHeight = trackHeight / 8; // 8 pistes
+      const baseTop = 60 + (trackIndex * laneHeight) + 5; // +5px pour un petit padding
+      const top = baseTop;
+      
+      element.style.top = `${top}px`;
+      element.style.height = `${laneHeight - 10}px`; // -10px pour le padding
     } else {
       // Masquer l'élément s'il est hors du viewport
       element.style.display = 'none';
@@ -340,7 +353,7 @@ class TimelineSequencer {
 
   /**
    * Met à jour les marqueurs temporels de la règle selon le zoom
-   * Calcule et affiche les marqueurs de temps avec intervalles adaptatifs
+   * Affiche des traits pour chaque seconde et des labels selon le zoom
    * @returns {void}
    * @private
    */
@@ -353,19 +366,19 @@ class TimelineSequencer {
     // Recalculer pixelsPerSecond pour utiliser toute la largeur
     this.pixelsPerSecond = trackWidth / this.viewportDuration;
 
-    // Intervalle des marqueurs selon le zoom
-    let interval = 5; // Par défaut 5s
+    // Intervalle des labels selon le zoom (les traits sont toujours à chaque seconde)
+    let labelInterval = 5; // Par défaut 5s
     if (this.zoomLevel >= 3)
-      interval = 1; // Zoom élevé: 1s
+      labelInterval = 1; // Zoom élevé: 1s
     else if (this.zoomLevel >= 1.5)
-      interval = 2; // Zoom moyen: 2s
-    else if (this.zoomLevel <= 0.5) interval = 10; // Zoom faible: 10s
+      labelInterval = 2; // Zoom moyen: 2s
+    else if (this.zoomLevel <= 0.5) labelInterval = 10; // Zoom faible: 10s
 
     // Calculer le temps de début et fin visibles
-    const startTime = Math.floor(this.viewportStart / interval) * interval;
-    const endTime = this.viewportStart + this.viewportDuration;
+    const startTime = Math.floor(this.viewportStart);
+    const endTime = Math.ceil(this.viewportStart + this.viewportDuration);
 
-    for (let time = startTime; time <= endTime + interval; time += interval) {
+    for (let time = startTime; time <= endTime; time += 1) {
       const relativeTime = time - this.viewportStart;
       const position = (relativeTime / this.viewportDuration) * trackWidth;
 
@@ -374,10 +387,18 @@ class TimelineSequencer {
         const marker = document.createElement('div');
         marker.className = 'time-marker';
         marker.style.left = `${position}px`;
-        marker.innerHTML = `
-          <div class="marker-line"></div>
-          <div class="marker-label">${this.formatTime(time)}</div>
-        `;
+        
+        // Toujours afficher la ligne
+        const isMajorMarker = time % labelInterval === 0;
+        const lineClass = isMajorMarker ? 'marker-line' : 'marker-line secondary';
+        let markerHTML = `<div class="${lineClass}"></div>`;
+        
+        // Afficher le label seulement selon l'intervalle de zoom
+        if (isMajorMarker) {
+          markerHTML += `<div class="marker-label">${this.formatTime(time)}</div>`;
+        }
+        
+        marker.innerHTML = markerHTML;
         this.timeMarkers.appendChild(marker);
       }
     }
@@ -414,18 +435,35 @@ class TimelineSequencer {
     this.track.addEventListener('drop', e => this.handleDrop(e));
     this.track.addEventListener('dragleave', e => this.handleDragLeave(e));
 
+    // Écouteur global pour la fin du drag
+    document.addEventListener('dragend', e => {
+      this.isDraggingModule = false;
+      this.track.classList.remove('drag-over-module');
+      this.hideDragTimeIndicator();
+      
+      // Si le drag s'est terminé sans drop et que la timeline est vide, remettre les instructions
+      if (this.elements.length === 0) {
+        this.showInstructions();
+      }
+    });
+
     // Interactions timeline
     this.track.addEventListener('click', e => this.handleTrackClick(e));
     document.addEventListener('keydown', e => this.handleKeyDown(e));
+    document.addEventListener('keyup', e => this.handleKeyUp(e));
 
     // Boutons de contrôle
     const clearBtn = document.getElementById('clearBtn');
     const saveBtn = document.getElementById('saveBtn');
     const playBtn = document.getElementById('playBtn');
+    const modulesTab = document.getElementById('modulesTab');
+    const savedTimelinesTab = document.getElementById('savedTimelinesTab');
 
     if (clearBtn) clearBtn.addEventListener('click', () => this.clear());
     if (saveBtn) saveBtn.addEventListener('click', () => this.save());
     if (playBtn) playBtn.addEventListener('click', () => this.togglePlayback());
+    if (modulesTab) modulesTab.addEventListener('click', () => this.switchToTab('modules'));
+    if (savedTimelinesTab) savedTimelinesTab.addEventListener('click', () => this.switchToTab('saved'));
   }
 
   /**
@@ -437,6 +475,7 @@ class TimelineSequencer {
   setupDragAndDrop() {
     document.querySelectorAll('.module-item').forEach(item => {
       item.addEventListener('dragstart', e => {
+        this.isDraggingModule = true; // Marquer qu'on drag un module
         const moduleData = {
           id: item.dataset.moduleId,
           name: item.dataset.moduleName,
@@ -456,7 +495,22 @@ class TimelineSequencer {
    */
   handleDragOver(e) {
     e.preventDefault();
-    this.track.classList.add('drag-over');
+
+    // Vérifier si c'est bien un module qui est en train d'être déplacé
+    if (this.isDraggingModule) {
+      this.track.classList.add('drag-over-module');
+      // Masquer les instructions dès qu'on commence à drag un module
+      this.hideInstructions();
+      // Afficher l'indicateur de temps pendant le drag
+      const rect = this.track.getBoundingClientRect();
+      const x = e.clientX - rect.left;
+      const timePosition = Math.max(0, this.pixelToTime(x));
+      this.showDragTimeIndicator(timePosition, e.clientX, e.clientY);
+    } else {
+      // Ce n'est pas un module valide, ne rien faire
+      this.track.classList.remove('drag-over-module');
+      this.hideDragTimeIndicator();
+    }
   }
 
   /**
@@ -465,7 +519,9 @@ class TimelineSequencer {
    * @private
    */
   handleDragLeave() {
-    this.track.classList.remove('drag-over');
+    this.track.classList.remove('drag-over-module');
+    this.hideDragTimeIndicator();
+    // Ne pas réinitialiser isDraggingModule ici car on pourrait revenir
   }
 
   /**
@@ -476,17 +532,155 @@ class TimelineSequencer {
    */
   handleDrop(e) {
     e.preventDefault();
-    this.track.classList.remove('drag-over');
+    this.track.classList.remove('drag-over-module');
+    this.hideDragTimeIndicator();
+    this.isDraggingModule = false; // Réinitialiser le flag
 
     try {
       const moduleData = JSON.parse(e.dataTransfer.getData('text/plain'));
       const rect = this.track.getBoundingClientRect();
       const x = e.clientX - rect.left;
-      const y = e.clientY - rect.top - 60; // Compensation pour la règle
+      const y = e.clientY - rect.top;
 
-      this.addElementToTimeline(moduleData, x, y);
+      // Stocker le type et l'action du module pour la vérification de durée
+      this.dragModuleType = moduleData.type;
+      this.dragModuleAction = Object.keys(this.getModuleConfig(moduleData.type).actions)[0];
+
+      // Convertir la position en temps et piste
+      const timePosition = Math.max(0, this.pixelToTime(x));
+      const initialTrackIndex = this.getTrackIndexFromY(y);
+
+      // Trouver la première piste disponible à partir de la piste détectée
+      const trackIndex = this.findAvailableTrackIndex(timePosition, initialTrackIndex);
+
+      if (trackIndex === null) {
+        // Aucune piste disponible, afficher un message d'erreur
+        window.showToast?.('Impossible de placer le module ici : toutes les pistes sont occupées à cette position', 'error', 3000);
+      } else {
+        // Piste disponible trouvée, placer le module
+        this.addElementToTimeline(moduleData, x, trackIndex);
+      }
+
+      // Nettoyer les variables temporaires
+      delete this.dragModuleType;
+      delete this.dragModuleAction;
     } catch {
       // Ignorer les erreurs de drop
+    }
+  }
+
+  /**
+   * Détermine l'index de la piste à partir d'une position Y
+   * @param {number} y - Position Y en pixels relative à la timeline
+   * @returns {number} Index de la piste (0-7)
+   * @private
+   */
+  getTrackIndexFromY(y) {
+    const trackHeight = this.track.offsetHeight - 60; // Hauteur disponible (sans la règle)
+    const laneHeight = trackHeight / 8; // 8 pistes
+    const relativeY = y - 60; // Position relative sans la règle
+    
+    // Calculer l'index de la piste
+    const trackIndex = Math.floor(relativeY / laneHeight);
+    return Math.max(0, Math.min(7, trackIndex)); // Limiter entre 0 et 7
+  }
+
+  /**
+   * Trouve la première piste disponible à partir d'un index donné
+   * Recherche d'abord vers le bas (indices plus élevés), puis vers le haut si nécessaire
+   * @param {number} timePosition - Position temporelle en secondes
+   * @param {number} startTrackIndex - Index de piste de départ (0-7)
+   * @returns {number|null} Index de la première piste disponible (0-7) ou null si aucune disponible
+   * @private
+   */
+  findAvailableTrackIndex(timePosition, startTrackIndex) {
+    // Récupérer la durée par défaut du module à placer
+    const defaultDuration = this.getModuleConfig(this.dragModuleType || 'generic-module').actions[this.dragModuleAction || Object.keys(this.getModuleConfig(this.dragModuleType || 'generic-module').actions)[0]].duration.default;
+
+    // Vérifier d'abord si la piste de départ est libre sur toute la durée
+    if (this.isTrackAvailableForDuration(timePosition, defaultDuration, startTrackIndex)) {
+      return startTrackIndex;
+    }
+
+    // Chercher vers le bas (indices plus élevés) pour une piste libre
+    for (let trackIndex = startTrackIndex + 1; trackIndex <= 7; trackIndex++) {
+      if (this.isTrackAvailableForDuration(timePosition, defaultDuration, trackIndex)) {
+        return trackIndex;
+      }
+    }
+
+    // Si rien trouvé vers le bas, chercher vers le haut (indices plus petits)
+    for (let trackIndex = startTrackIndex - 1; trackIndex >= 0; trackIndex--) {
+      if (this.isTrackAvailableForDuration(timePosition, defaultDuration, trackIndex)) {
+        return trackIndex;
+      }
+    }
+
+    // Si aucune piste libre n'est trouvée dans aucune direction, retourner null
+    return null;
+  }
+
+  /**
+   * Vérifie si une piste est disponible sur toute la durée d'un module à une position temporelle donnée
+   * @param {number} timePosition - Position temporelle de début en secondes
+   * @param {number} duration - Durée du module à placer
+   * @param {number} trackIndex - Index de la piste à vérifier (0-7)
+   * @returns {boolean} True si la piste est disponible sur toute la durée
+   * @private
+   */
+  isTrackAvailableForDuration(timePosition, duration, trackIndex) {
+    // Vérifier si un élément existe déjà sur cette piste pendant toute la durée
+    return !this.elements.some(element => {
+      if (element.trackIndex !== trackIndex) return false;
+      // Chevauchement d'intervalles
+      const startA = timePosition;
+      const endA = timePosition + duration;
+      const startB = element.startTime;
+      const endB = element.startTime + element.duration;
+      return startA < endB && endA > startB;
+    });
+  }
+
+  /**
+   * Affiche l'indicateur de temps pendant le drag & drop
+   * @param {number} timePosition - Position temporelle en secondes
+   * @param {number} mouseX - Position X de la souris
+   * @param {number} mouseY - Position Y de la souris
+   * @returns {void}
+   * @private
+   */
+  showDragTimeIndicator(timePosition, mouseX, mouseY) {
+    if (!this.dragTimeIndicator) {
+      this.dragTimeIndicator = document.createElement('div');
+      this.dragTimeIndicator.className = 'drag-time-indicator';
+      this.dragTimeIndicator.style.position = 'fixed';
+      this.dragTimeIndicator.style.pointerEvents = 'none';
+      this.dragTimeIndicator.style.zIndex = '1000';
+      this.dragTimeIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+      this.dragTimeIndicator.style.color = 'white';
+      this.dragTimeIndicator.style.padding = '4px 8px';
+      this.dragTimeIndicator.style.borderRadius = '4px';
+      this.dragTimeIndicator.style.fontSize = '12px';
+      this.dragTimeIndicator.style.fontWeight = 'bold';
+      this.dragTimeIndicator.style.whiteSpace = 'nowrap';
+      document.body.appendChild(this.dragTimeIndicator);
+    }
+
+    // Mettre à jour le texte et la position
+    this.dragTimeIndicator.textContent = `Temps: ${this.formatTime(timePosition)}`;
+    this.dragTimeIndicator.style.left = `${mouseX + 15}px`;
+    this.dragTimeIndicator.style.top = `${mouseY - 30}px`;
+    this.dragTimeIndicator.style.display = 'block';
+  }
+
+  /**
+   * Masque l'indicateur de temps du drag & drop
+   * @returns {void}
+   * @private
+   */
+  hideDragTimeIndicator() {
+    if (this.dragTimeIndicator) {
+      this.dragTimeIndicator.style.display = 'none';
     }
   }
 
@@ -499,10 +693,11 @@ class TimelineSequencer {
    * Crée l'élément DOM et configure ses propriétés par défaut
    * @param {Object} moduleData - Données du module à ajouter
    * @param {number} x - Position X en pixels
+   * @param {number} trackIndex - Index de la piste (0-7)
    * @returns {void}
    * @public
    */
-  addElementToTimeline(moduleData, x) {
+  addElementToTimeline(moduleData, x, trackIndex) {
     const timePosition = Math.max(0, this.pixelToTime(x));
     const moduleConfig = this.getModuleConfig(moduleData.type);
     const defaultAction = Object.keys(moduleConfig.actions)[0];
@@ -515,8 +710,9 @@ class TimelineSequencer {
     element.dataset.actionType = defaultAction;
     element.dataset.startTime = timePosition.toFixed(2);
     element.dataset.duration = defaultDuration.toString();
+    element.dataset.trackIndex = trackIndex.toString();
 
-    this.positionElement(element, timePosition, defaultDuration);
+    this.positionElement(element, timePosition, defaultDuration, trackIndex);
 
     element.innerHTML = `
       <div class="element-header">
@@ -548,7 +744,11 @@ class TimelineSequencer {
       duration: defaultDuration,
       actionType: defaultAction,
       actionParams: {},
+      trackIndex: trackIndex,
     });
+
+    // Repositionner l'élément avec le scroll offset actuel
+    this.updateElementInViewport(this.elements[this.elements.length - 1]);
 
     this.hideInstructions();
   }
@@ -559,25 +759,32 @@ class TimelineSequencer {
    * @param {HTMLElement} element - Élément DOM à positionner
    * @param {number} startTime - Temps de début en secondes
    * @param {number} duration - Durée en secondes
+   * @param {number} trackIndex - Index de la piste (0-7)
    * @returns {void}
    * @public
    */
-  positionElement(element, startTime, duration) {
+  positionElement(element, startTime, duration, trackIndex) {
     // Stocker les données temporelles sur l'élément
     element.dataset.startTime = startTime;
     element.dataset.duration = duration;
+    element.dataset.trackIndex = trackIndex;
 
     // Trouver l'élément dans notre liste pour le mettre à jour
     const elementData = this.elements.find(e => e.element === element);
     if (elementData) {
       elementData.startTime = startTime;
       elementData.duration = duration;
+      elementData.trackIndex = trackIndex;
       this.updateElementInViewport(elementData);
     }
 
-    // Position verticale basée sur l'index
-    const elementIndex = this.elements.findIndex(e => e.element === element);
-    element.style.top = `${Math.max(80, 100 + elementIndex * 80)}px`;
+    // Position verticale basée sur la piste (sans scroll offset pour le positionnement initial)
+    const trackHeight = this.track.offsetHeight - 60; // Hauteur disponible (sans la règle)
+    const laneHeight = trackHeight / 8; // 8 pistes
+    const baseTop = 60 + (trackIndex * laneHeight) + 5; // +5px pour un petit padding
+
+    element.style.top = `${baseTop}px`;
+    element.style.height = `${laneHeight - 10}px`; // -10px pour le padding
   }
 
   updateElementPositions() {
@@ -650,14 +857,14 @@ class TimelineSequencer {
             </select>
           </div>
         </div>
-        
+
         <div class="config-section" id="actionConfigContainer">
           ${this.generateActionConfigUI(moduleType, actionType, {
             duration: parseFloat(timelineElement.element.dataset.duration),
             ...timelineElement.actionParams,
           })}
         </div>
-        
+
         <div class="config-section">
           <div style="display: flex; gap: 10px; justify-content: flex-end;">
             <button class="control-btn" id="cancelConfig">Annuler</button>
@@ -710,8 +917,8 @@ class TimelineSequencer {
     let html = `<div class="action-config-section">
       <div class="config-row">
         <label class="config-label">Durée (secondes)</label>
-        <input type="number" class="config-input duration-input" name="duration" 
-               min="${action.duration.min}" max="${action.duration.max}" step="0.1" 
+        <input type="number" class="config-input duration-input" name="duration"
+               min="${action.duration.min}" max="${action.duration.max}" step="0.1"
                value="${currentValues.duration || action.duration.default}">
       </div>`;
 
@@ -741,7 +948,7 @@ class TimelineSequencer {
     switch (config.type) {
       case 'range':
         html += `<div class="range-container">
-          <input type="range" class="config-range" name="${paramName}" 
+          <input type="range" class="config-range" name="${paramName}"
                  min="${config.min}" max="${config.max}" step="${config.step || 1}" value="${value}">
           <span class="range-value">${value}</span>
         </div>`;
@@ -811,7 +1018,8 @@ class TimelineSequencer {
     timelineElement.element.querySelector('.element-action').textContent = actionConfig.name;
 
     const startTime = parseFloat(timelineElement.element.dataset.startTime);
-    this.positionElement(timelineElement.element, startTime, duration);
+    const trackIndex = parseInt(timelineElement.element.dataset.trackIndex) || 0;
+    this.positionElement(timelineElement.element, startTime, duration, trackIndex);
 
     modal.remove();
   }
@@ -830,24 +1038,29 @@ class TimelineSequencer {
 
     const rect = element.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
+    const offsetY = e.clientY - rect.top;
 
     const handleMouseMove = e => {
       if (!this.draggedElement) return;
 
       const trackRect = this.track.getBoundingClientRect();
       const x = e.clientX - trackRect.left - offsetX;
+      const y = e.clientY - trackRect.top - offsetY;
 
       const timePosition = Math.max(0, this.pixelToTime(x));
+      const trackIndex = this.getTrackIndexFromY(y + 60); // +60 pour compenser la règle
 
       // Mise à jour position
       const duration = parseFloat(this.draggedElement.dataset.duration);
-      this.positionElement(this.draggedElement, timePosition, duration);
+      this.positionElement(this.draggedElement, timePosition, duration, trackIndex);
       this.draggedElement.dataset.startTime = timePosition.toFixed(2);
+      this.draggedElement.dataset.trackIndex = trackIndex.toString();
 
       // Mise à jour données
       const elementData = this.elements.find(e => e.element === this.draggedElement);
       if (elementData) {
         elementData.startTime = timePosition;
+        elementData.trackIndex = trackIndex;
       }
     };
 
@@ -885,6 +1098,16 @@ class TimelineSequencer {
     if (e.key === 'Delete' && this.selectedElement) {
       this.deleteElement(this.selectedElement);
     }
+  }
+
+  /**
+   * Gère le relâchement des touches
+   * @param {KeyboardEvent} e - Événement clavier
+   * @returns {void}
+   * @public
+   */
+  handleKeyUp(e) {
+    // Pas de logique spécifique pour le relâchement des touches
   }
 
   /**
@@ -1126,7 +1349,7 @@ class TimelineSequencer {
     a.href = url;
     a.download = 'timeline-sequence.json';
     a.click();
-    URL.revokeObjectURL(url);
+    URL.createObjectURL(url);
   }
 
   /**
@@ -1150,46 +1373,118 @@ class TimelineSequencer {
   }
 
   /**
-   * Charge une séquence dans la timeline
-   * Vide la timeline actuelle et recrée les éléments depuis les données
-   * @param {Object} sequence - Données de séquence à charger
+   * Bascule vers un onglet spécifique dans la sidebar
+   * @param {string} tabName - Nom de l'onglet ('modules' ou 'saved')
    * @returns {void}
    * @public
    */
-  loadSequence(sequence) {
-    // Vider la timeline actuelle
-    this.elements.forEach(el => el.element.remove());
-    this.elements = [];
+  switchToTab(tabName) {
+    const modulesTab = document.getElementById('modulesTab');
+    const savedTimelinesTab = document.getElementById('savedTimelinesTab');
+    const modulesPanel = document.getElementById('modulesPanel');
+    const savedTimelinesPanel = document.getElementById('savedTimelinesPanel');
 
-    // Charger les nouveaux éléments
-    Object.keys(sequence.modules).forEach(moduleId => {
-      const moduleActions = sequence.modules[moduleId];
-
-      moduleActions.forEach(actionData => {
-        // Retrouver le module et l'action correspondante
-        const moduleConfig = MODULE_CONFIGS.find(config =>
-          config.actions.some(action => action.id === actionData.action)
-        );
-
-        if (moduleConfig) {
-          const actionConfig = moduleConfig.actions.find(action => action.id === actionData.action);
-
-          if (actionConfig) {
-            this.createElement({
-              moduleId: moduleId,
-              action: actionData.action,
-              actionName: actionConfig.name,
-              parameters: actionData.parameters,
-              startTime: actionData.startTime,
-              duration: actionData.duration,
-              delay: 0,
-            });
-          }
-        }
-      });
+    // Retirer la classe active de tous les onglets
+    document.querySelectorAll('.sidebar-tab').forEach(tab => {
+      tab.classList.remove('active');
     });
 
-    this.hideInstructions();
+    // Masquer tous les panels
+    document.querySelectorAll('.modules-panel, .saved-timelines-panel').forEach(panel => {
+      panel.classList.remove('active');
+    });
+
+    // Activer l'onglet et le panel sélectionnés
+    if (tabName === 'modules') {
+      modulesTab.classList.add('active');
+      modulesPanel.classList.add('active');
+    } else if (tabName === 'saved') {
+      savedTimelinesTab.classList.add('active');
+      savedTimelinesPanel.classList.add('active');
+      this.loadSavedTimelines(); // Charger les timelines sauvegardées
+    }
+  }
+
+  /**
+   * Charge et affiche les timelines sauvegardées
+   * @returns {void}
+   * @private
+   */
+  loadSavedTimelines() {
+    const list = document.querySelector('.saved-timelines-list');
+    if (!list) return;
+
+    // Simulation de chargement des timelines sauvegardées
+    // En réalité, cela viendrait d'une API ou du localStorage
+    const savedTimelines = [
+      { id: 1, name: 'Séquence de départ', created: '2024-01-15', duration: '45s' },
+      { id: 2, name: 'Show lumineux', created: '2024-01-20', duration: '120s' },
+    ];
+
+    list.innerHTML = savedTimelines.map(timeline => `
+      <div class="saved-timeline-item" data-timeline-id="${timeline.id}">
+        <div class="saved-timeline-name">${timeline.name}</div>
+        <div class="saved-timeline-meta">Créé: ${timeline.created} | Durée: ${timeline.duration}</div>
+      </div>
+    `).join('');
+
+    // Ajouter les événements de clic
+    list.querySelectorAll('.saved-timeline-item').forEach(item => {
+      item.addEventListener('click', () => {
+        const timelineId = item.dataset.timelineId;
+        this.loadTimeline(timelineId);
+      });
+    });
+  }
+
+  /**
+   * Charge une timeline sauvegardée
+   * @param {string} timelineId - ID de la timeline à charger
+   * @returns {void}
+   * @private
+   */
+  loadTimeline(timelineId) {
+    // Simulation de chargement d'une timeline
+    console.log('Chargement de la timeline:', timelineId);
+    // Ici on chargerait réellement la timeline depuis l'API
+  }
+
+  /**
+   * Vide complètement la timeline
+   * @returns {void}
+   * @public
+   */
+  clear() {
+    this.elements.forEach(element => {
+      element.element.remove();
+    });
+    this.elements = [];
+    this.selectedElement = null;
+    this.showInstructions();
+  }
+
+  /**
+   * Sauvegarde la timeline actuelle
+   * @returns {void}
+   * @public
+   */
+  save() {
+    // Simulation de sauvegarde
+    console.log('Sauvegarde de la timeline');
+    window.showToast?.('Timeline sauvegardée', 'success', 3000);
+  }
+
+  /**
+   * Bascule la lecture de la timeline
+   * @returns {void}
+   * @public
+   */
+  togglePlayback() {
+    if (this.isPlaying) {
+      this.stopSequence();
+    } else {
+      this.playSequence();
+    }
   }
 }
 

@@ -13,80 +13,140 @@
 <body>
   <%- include('partials/navbar', { currentPage: 'timelines', user: user }) %>
 
-  <div class="timeline-app main-content">
-    <div class="modules-panel">
-      <h3>
-        <i class="bi bi-cpu"></i>
-        Mes Modules
-      </h3>
-      
-      <div class="modules-list">
-        <% modules.forEach(module => { %>
-          <div class="module-item" 
-               draggable="true"
-               data-module-id="<%= module.module_id.replace(/"/g, '&quot;') %>"
-               data-module-name="<%= (module.name || '').replace(/"/g, '&quot;') %>"
-               data-module-type="<%= module.type || '' %>"
-               data-is-online="<%= module.isOnline %>">
-            
-            <div class="module-header">
-              <div class="module-main-line">
-                <div class="module-name"><%= module.name || module.module_id %></div>
-                <span class="state <%= module.isOnline ? 'online' : 'offline' %>">
-                  <%= module.isOnline ? t('common.online') : t('common.offline') %>
-                </span>
-              </div>
-              <div class="module-secondary-line">
-                <div class="module-type"><%= module.type %></div>
-                <div class="module-id"><%= module.module_id %></div>
+  <div class="container-fluid main-content">
+    <main class="content">
+      <section class="card panels">
+        <div class="container-fluid">
+          <div class="row">
+            <div class="col-12">
+              <header class="page-header">
+                <h1 class="page-title"><%= t('timelines.timeline_sequencer') %></h1>
+                <div class="page-actions">
+                  <div class="timeline-viewport-info">
+                    <span class="viewport-indicator" id="viewportIndicator">0s - 30s</span>
+                    <small class="viewport-help">Shift+molette: naviguer | Ctrl+molette: zoom</small>
+                  </div>
+                  <button id="clearBtn" class="btn btn-ghost">
+                    <i class="bi bi-trash"></i> <%= t('timelines.clear') %>
+                  </button>
+                  <button id="saveBtn" class="btn">
+                    <i class="bi bi-save"></i> <%= t('common.save') %>
+                  </button>
+                  <button id="playBtn" class="btn">
+                    <i class="bi bi-play-fill" id="playIcon"></i>
+                    <span id="playText"><%= t('timelines.play_timeline') %></span>
+                  </button>
+                </div>
+              </header>
+            </div>
+          </div>
+
+          <div class="row">
+            <div class="col-12">
+              <div class="timeline-app">
+                <div class="sidebar-panel">
+                  <div class="sidebar-tabs">
+                    <button id="modulesTab" class="sidebar-tab active">
+                      <i class="bi bi-cpu"></i>
+                      <%= t('timelines.modules') %>
+                    </button>
+                    <button id="savedTimelinesTab" class="sidebar-tab">
+                      <i class="bi bi-clock-history"></i>
+                      <%= t('timelines.saved') %>
+                    </button>
+                  </div>
+                  
+                  <div class="sidebar-content">
+                    <div class="modules-panel active" id="modulesPanel">
+                      <div class="modules-list">
+                        <% modules.forEach(module => { %>
+                          <div class="module-item" 
+                               draggable="true"
+                               data-module-id="<%= module.module_id.replace(/"/g, '&quot;') %>"
+                               data-module-name="<%= (module.name || '').replace(/"/g, '&quot;') %>"
+                               data-module-type="<%= module.type || '' %>"
+                               data-is-online="<%= module.isOnline %>">
+                            
+                            <div class="module-header">
+                              <div class="module-main-line">
+                                <div class="module-name"><%= module.name || module.module_id %></div>
+                                <span class="state <%= module.isOnline ? 'online' : 'offline' %>">
+                                  <%= module.isOnline ? t('common.online') : t('common.offline') %>
+                                </span>
+                              </div>
+                              <div class="module-secondary-line">
+                                <div class="module-type"><%= module.type %></div>
+                                <div class="module-id"><%= module.module_id %></div>
+                              </div>
+                            </div>
+                          </div>
+                        <% }) %>
+                      </div>
+                    </div>
+
+                    <div class="saved-timelines-panel" id="savedTimelinesPanel">
+                      <div class="saved-timelines-list">
+                        <!-- Les timelines sauvegardées seront chargées dynamiquement -->
+                        <div class="empty-state">
+                          <div>
+                            <h3><%= t('timelines.no_saved_timelines') %></h3>
+                            <p><%= t('timelines.save_first_timeline') %></p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="timeline-container">
+                  <div class="timeline-workspace">
+                    <div class="timeline-track" id="timelineTrack">
+                      <!-- Pistes de timeline -->
+                      <div class="timeline-tracks">
+                        <div class="timeline-track-lane" data-track-index="0">
+                          <div class="track-label">Piste 1</div>
+                        </div>
+                        <div class="timeline-track-lane" data-track-index="1">
+                          <div class="track-label">Piste 2</div>
+                        </div>
+                        <div class="timeline-track-lane" data-track-index="2">
+                          <div class="track-label">Piste 3</div>
+                        </div>
+                        <div class="timeline-track-lane" data-track-index="3">
+                          <div class="track-label">Piste 4</div>
+                        </div>
+                        <div class="timeline-track-lane" data-track-index="4">
+                          <div class="track-label">Piste 5</div>
+                        </div>
+                        <div class="timeline-track-lane" data-track-index="5">
+                          <div class="track-label">Piste 6</div>
+                        </div>
+                        <div class="timeline-track-lane" data-track-index="6">
+                          <div class="track-label">Piste 7</div>
+                        </div>
+                        <div class="timeline-track-lane" data-track-index="7">
+                          <div class="track-label">Piste 8</div>
+                        </div>
+                      </div>
+                      
+                      <div class="time-markers" id="timeMarkers">
+                      </div>
+                      
+                      <div class="playback-indicator" id="playbackIndicator"></div>
+                      <div class="timeline-instructions" id="instructions">
+                        <h4><%= t('timelines.create_sequence') %></h4>
+                        <p><%= t('timelines.drag_modules_here') %></p>
+                        <p><%= t('timelines.click_module_configure') %></p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
-        <% }) %>
-      </div>
-    </div>
-
-    <div class="timeline-container">
-      <div class="timeline-header">
-        <div class="timeline-title">
-          <i class="bi bi-play-circle"></i>
-          <%= t('timelines.timeline_sequencer') %>
         </div>
-        
-        <div class="timeline-controls">
-          <div class="timeline-viewport-info">
-            <span class="viewport-indicator" id="viewportIndicator">0s - 30s</span>
-            <small class="viewport-help">Shift+molette: naviguer | Ctrl+molette: zoom</small>
-          </div>
-          <button class="control-btn" id="clearBtn">
-            <i class="bi bi-trash"></i> <%= t('timelines.clear') %>
-          </button>
-          <button class="control-btn" id="saveBtn">
-            <i class="bi bi-save"></i> <%= t('common.save') %>
-          </button>
-          <button class="play-btn" id="playBtn">
-            <i class="bi bi-play-fill" id="playIcon"></i>
-            <span id="playText"><%= t('timelines.play_timeline') %></span>
-          </button>
-        </div>
-      </div>
-
-
-
-      <div class="timeline-workspace">
-        <div class="timeline-track" id="timelineTrack">
-          <div class="time-markers" id="timeMarkers">
-          </div>
-          
-          <div class="playback-indicator" id="playbackIndicator"></div>
-          <div class="timeline-instructions" id="instructions">
-            <h4><%= t('timelines.create_sequence') %></h4>
-            <p><%= t('timelines.drag_modules_here') %></p>
-            <p><%= t('timelines.click_module_configure') %></p>
-          </div>
-        </div>
-      </div>
-    </div>
+      </section>
+    </main>
   </div>
 
   <div class="config-modal" id="configModal">
