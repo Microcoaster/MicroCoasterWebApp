@@ -2,8 +2,8 @@
   /*
   * MicroCoaster - Module Audio Player ESP32
   *
-  * Module de lecture audio WAV avec gestionnaire WiFi automatique et communication WebSocket
-  * Support upload de fichiers, contrôles de lecture et stockage sur carte microSD
+  * Module de lecture audio MP3 avec gestionnaire WiFi automatique et communication WebSocket
+  * Support contrôles de lecture et stockage sur carte microSD
   *
   * Auteurs: CyberSpaceRS, Yamakajump
   * Version: 0.0.0
@@ -101,9 +101,10 @@ void sendAudioVolumeUpdate();
   bool initSDCard();
   bool initAudio();
   void scanAudioFiles();
+  void analyzeMp3File(const String& filename);
   void analyzeWavFile(const String& filename);
   void sendAudioFileList();
-  bool playAudioFile(const String& filename, unsigned long delay = 0);
+  bool playAudioFile(const String& filename, unsigned long delay_ms = 0);
   void pauseAudio();
   void stopAudio();
   void setVolume(int volume);
@@ -286,10 +287,17 @@ void sendAudioVolumeUpdate();
     if (sdCardMounted && playDelay > 0 && millis() >= playDelay) {
       // Démarrer la lecture après le délai
       String filepath = "/" + currentAudioFile;
-      if (audio.connecttoFS(SD_MMC, filepath.c_str())) {
+      Serial.println("[AUDIO] 🔄 Tentative de connexion à l'audio après délai...");
+      if (audio.connecttoFS(SD, filepath.c_str())) {
         Serial.println("[AUDIO] ✅ Lecture démarrée après délai");
+        Serial.println("[AUDIO] ▶️ Démarrage de la lecture...");
         isPlaying = true;
         updateStatusLED();
+        sendAudioStatusUpdate();
+
+        // Attendre un peu et vérifier l'état
+        ::delay(100);
+        Serial.printf("[AUDIO] 📊 État après délai - isPlaying: %s\n", isPlaying ? "true" : "false");
       } else {
         Serial.println("[AUDIO] ❌ Échec démarrage lecture après délai");
         currentAudioFile = "";
@@ -299,6 +307,15 @@ void sendAudioVolumeUpdate();
     
     // Mise à jour continue du système audio
     audio.loop();
+
+    // Debug audio - vérifier l'état périodiquement
+    static unsigned long lastAudioDebug = 0;
+    if (millis() - lastAudioDebug > 2000) {  // Toutes les 2 secondes
+      lastAudioDebug = millis();
+      if (isPlaying) {
+        Serial.println("[AUDIO] 🔊 Audio en cours - vérification...");
+      }
+    }
     
     // Mise à jour du client WebSocket (obligatoire pour traiter les messages)
     webSocket.loop();
@@ -482,12 +499,12 @@ void sendAudioVolumeUpdate();
       } else {
         String filename = doc["data"]["params"]["filename"];
         Serial.println("[AUDIO] 📁 Filename reçu: '" + filename + "'");
-        unsigned long delay = doc["data"]["params"]["delay"].is<unsigned long>() ? doc["data"]["params"]["delay"].as<unsigned long>() : 0;
+        unsigned long delay_ms = doc["data"]["params"]["delay"].is<unsigned long>() ? doc["data"]["params"]["delay"].as<unsigned long>() : 0;
         if (filename.length() == 0) {
           Serial.println("[AUDIO] ❌ Filename vide");
           status = "error";
           message = "Nom de fichier vide";
-        } else if (playAudioFile(filename, delay)) {
+        } else if (playAudioFile(filename, delay_ms)) {
           message = "Lecture démarrée: " + filename;
         } else {
           status = "error";
@@ -643,31 +660,36 @@ void sendAudioVolumeUpdate();
     }
 
     File file = root.openNextFile();
-    int wavCount = 0;
+    int audioCount = 0;
 
     while (file) {
       if (!file.isDirectory()) {
         String filename = file.name();
-        if (filename.endsWith(".wav") || filename.endsWith(".WAV")) {
-          Serial.println("[AUDIO] 📁 Fichier WAV trouvé: " + filename);
+        if (filename.endsWith(".mp3") || filename.endsWith(".MP3") ||
+            filename.endsWith(".wav") || filename.endsWith(".WAV")) {
+          Serial.println("[AUDIO] 📁 Fichier audio trouvé: " + filename);
 
-          // Analyser les propriétés du fichier WAV
-          analyzeWavFile(filename);
+          // Analyser les propriétés du fichier selon le type
+          if (filename.endsWith(".mp3") || filename.endsWith(".MP3")) {
+            analyzeMp3File(filename);
+          } else if (filename.endsWith(".wav") || filename.endsWith(".WAV")) {
+            analyzeWavFile(filename);
+          }
 
-          wavCount++;
+          audioCount++;
         }
       }
       file = root.openNextFile();
     }
 
-    Serial.printf("[AUDIO] ✅ Scan terminé - %d fichiers WAV trouvés\n", wavCount);
+    Serial.printf("[AUDIO] ✅ Scan terminé - %d fichiers audio trouvés\n", audioCount);
 
     // Conseils pour la qualité audio
-    if (wavCount > 0) {
+    if (audioCount > 0) {
       Serial.println("[AUDIO] 💡 Conseils qualité audio:");
-      Serial.println("   ├─ Utilisez des fichiers WAV 16-bit PCM");
-      Serial.println("   ├─ Fréquence d'échantillonnage recommandée: 44.1kHz ou 48kHz");
-      Serial.println("   ├─ Évitez les fichiers compressés (MP3, AAC)");
+      Serial.println("   ├─ MP3: Utilisez des MP3 encodés en haute qualité (320kbps)");
+      Serial.println("   ├─ WAV: 16-bit PCM, 44.1kHz ou 48kHz recommandés");
+      Serial.println("   ├─ Privilégiez les fichiers stéréo");
       Serial.println("   └─ Vérifiez l'alimentation stable pour éviter le bruit");
     }
   }
@@ -716,6 +738,44 @@ void sendAudioVolumeUpdate();
     wavFile.close();
   }
 
+  void analyzeMp3File(const String& filename) {
+    File mp3File = SD.open("/" + filename, FILE_READ);
+    if (!mp3File) {
+      Serial.println("[AUDIO] ⚠️ Impossible d'analyser: " + filename);
+      return;
+    }
+
+    // Lire l'en-tête MP3 (premiers 10 octets pour vérifier le format)
+    uint8_t header[10];
+    if (mp3File.read(header, 10) != 10) {
+      Serial.println("[AUDIO] ⚠️ En-tête MP3 invalide: " + filename);
+      mp3File.close();
+      return;
+    }
+
+    // Vérifier si c'est un fichier MP3 valide (commence par ID3 ou frame sync)
+    bool isValidMp3 = false;
+    if (header[0] == 'I' && header[1] == 'D' && header[2] == '3') {
+      // Fichier avec tag ID3
+      isValidMp3 = true;
+      Serial.println("[AUDIO] 📊 " + filename + ": MP3 avec tag ID3 détecté");
+    } else if ((header[0] & 0xFF) == 0xFF && (header[1] & 0xE0) == 0xE0) {
+      // Frame sync MP3 direct
+      isValidMp3 = true;
+      Serial.println("[AUDIO] 📊 " + filename + ": MP3 sans tag ID3 détecté");
+    }
+
+    if (!isValidMp3) {
+      Serial.println("[AUDIO] ⚠️ Format MP3 non reconnu: " + filename);
+    }
+
+    // Obtenir la taille du fichier
+    uint32_t fileSize = mp3File.size();
+    Serial.printf("[AUDIO] 📊 Taille: %d bytes\n", fileSize);
+
+    mp3File.close();
+  }
+
   void sendAudioFileList() {
     if (!isAuthenticated || !sdCardMounted) {
       Serial.println("[AUDIO] ⚠️ Envoi liste annulé - non authentifié ou SD non montée");
@@ -737,7 +797,8 @@ void sendAudioVolumeUpdate();
       while (file) {
         if (!file.isDirectory()) {
           String filename = file.name();
-          if (filename.endsWith(".wav") || filename.endsWith(".WAV")) {
+          if (filename.endsWith(".mp3") || filename.endsWith(".MP3") ||
+              filename.endsWith(".wav") || filename.endsWith(".WAV")) {
             files.add(filename);
           }
         }
@@ -752,37 +813,45 @@ void sendAudioVolumeUpdate();
     Serial.printf("[AUDIO] 📤 Liste envoyée - %d fichiers\n", files.size());
   }
 
-  bool playAudioFile(const String& filename, unsigned long delay) {
+  bool playAudioFile(const String& filename, unsigned long delay_ms) {
     if (!sdCardMounted) {
       Serial.println("[AUDIO] ❌ Lecture annulée - SD non montée");
       return false;
     }
-    
+
     // Arrêter la lecture en cours si nécessaire
     if (isPlaying) {
       stopAudio();
     }
-    
+
     String filepath = "/" + filename;
     Serial.println("[AUDIO] 🎵 Démarrage lecture: " + filepath);
-    
-    if (delay > 0) {
-      Serial.printf("[AUDIO] ⏱️ Délai avant lecture: %lu ms\n", delay);
-      playDelay = millis() + delay;
+
+    if (delay_ms > 0) {
+      Serial.printf("[AUDIO] ⏱️ Délai avant lecture: %lu ms\n", delay_ms);
+      playDelay = millis() + delay_ms;
       currentAudioFile = filename;
       return true;
     }
-    
+
     // Démarrer la lecture immédiatement
+    Serial.println("[AUDIO] 🔄 Tentative de connexion à l'audio...");
     if (audio.connecttoFS(SD, filepath.c_str())) {
-      Serial.println("[AUDIO] ✅ Lecture démarrée");
+      Serial.println("[AUDIO] ✅ Connexion audio réussie");
+      Serial.println("[AUDIO] ▶️ Démarrage de la lecture...");
       isPlaying = true;
       isPaused = false;
       currentAudioFile = filename;
       sendAudioStatusUpdate();
+
+      // Attendre un peu et vérifier l'état
+      ::delay(100);
+      Serial.printf("[AUDIO] 📊 État après connexion - isPlaying: %s\n", isPlaying ? "true" : "false");
+
       return true;
     } else {
-      Serial.println("[AUDIO] ❌ Échec démarrage lecture");
+      Serial.println("[AUDIO] ❌ Échec connexion audio");
+      Serial.println("[AUDIO] 🔍 Vérifiez que le fichier existe et est au bon format");
       return false;
     }
   }
