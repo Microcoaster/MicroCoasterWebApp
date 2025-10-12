@@ -144,6 +144,18 @@ class ESP32WebSocketServer {
         await this.handleCommandResponse(ws, message);
         break;
 
+      case 'audio_list_response':
+        await this.handleAudioListResponse(ws, message);
+        break;
+
+      case 'audio_status_update':
+        await this.handleAudioStatusUpdate(ws, message);
+        break;
+
+      case 'audio_volume_update':
+        await this.handleAudioVolumeUpdate(ws, message);
+        break;
+
       case 'pong':
         if (ws.pingTimeout) {
           clearTimeout(ws.pingTimeout);
@@ -324,6 +336,90 @@ class ESP32WebSocketServer {
     }
 
     Logger.esp.info(`✅ Command response from ${ws.moduleId}: ${command} -> ${status}`);
+  }
+
+  /**
+   * Gère les réponses de liste audio des modules ESP32
+   * Diffuse la liste des fichiers audio disponibles aux clients web
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @param {Object} message - Réponse de liste audio
+   * @param {Array<string>} message.files - Liste des fichiers audio
+   * @returns {Promise<void>}
+   * @private
+   */
+  async handleAudioListResponse(ws, message) {
+    if (!ws.moduleId) return;
+
+    const { files } = message;
+
+    // Transmettre la liste audio aux clients web
+    if (this.realTimeAPI?.events) {
+      this.realTimeAPI.events.broadcast('audio_list_response', {
+        moduleId: ws.moduleId,
+        files: files || [],
+        timestamp: new Date(),
+      });
+    }
+
+    Logger.esp.info(`🎵 Audio list response from ${ws.moduleId}: ${files?.length || 0} files`);
+  }
+
+  /**
+   * Gère les mises à jour de statut audio des modules ESP32
+   * Diffuse les changements d'état de lecture aux clients web
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @param {Object} message - Mise à jour de statut audio
+   * @param {boolean} message.playing - État de lecture
+   * @param {boolean} message.paused - État de pause
+   * @param {boolean} message.stopped - État d'arrêt
+   * @param {string} message.current_file - Fichier en cours
+   * @returns {Promise<void>}
+   * @private
+   */
+  async handleAudioStatusUpdate(ws, message) {
+    if (!ws.moduleId) return;
+
+    const { playing, paused, stopped, current_file } = message;
+
+    // Transmettre la mise à jour de statut aux clients web
+    if (this.realTimeAPI?.events) {
+      this.realTimeAPI.events.broadcast('audio_status_update', {
+        moduleId: ws.moduleId,
+        playing: playing || false,
+        paused: paused || false,
+        stopped: stopped || false,
+        current_file: current_file || '',
+        timestamp: new Date(),
+      });
+    }
+
+    Logger.esp.debug(`🎵 Audio status update from ${ws.moduleId}: ${playing ? 'playing' : paused ? 'paused' : 'stopped'} - ${current_file || 'no file'}`);
+  }
+
+  /**
+   * Gère les mises à jour de volume audio des modules ESP32
+   * Diffuse les changements de volume aux clients web
+   * @param {WebSocket} ws - Socket WebSocket ESP32
+   * @param {Object} message - Mise à jour de volume audio
+   * @param {number} message.volume - Niveau de volume (0-100)
+   * @returns {Promise<void>}
+   * @private
+   */
+  async handleAudioVolumeUpdate(ws, message) {
+    if (!ws.moduleId) return;
+
+    const { volume } = message;
+
+    // Transmettre la mise à jour de volume aux clients web
+    if (this.realTimeAPI?.events) {
+      this.realTimeAPI.events.broadcast('audio_volume_update', {
+        moduleId: ws.moduleId,
+        volume: volume || 0,
+        timestamp: new Date(),
+      });
+    }
+
+    Logger.esp.debug(`🔊 Audio volume update from ${ws.moduleId}: ${volume}%`);
   }
 
   /**

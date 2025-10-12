@@ -128,19 +128,54 @@
                 <div class="tile">
                     <div class="label"><%= t('modules.playlist') %></div>
                     <div class="face">
-                    <div class="playlist" data-role="au_list"></div>
+                    <div class="playlist" data-role="au_list">
+                        <div class="playlist-empty"><%= t('modules.no_audio_files') %></div>
+                    </div>
                     </div>
                 </div>
 
                 <div class="tile">
-                    <div class="label"><%= t('modules.play') %></div>
+                    <div class="label"><%= t('modules.controls') %></div>
                     <div class="face">
-                    <img class="playlamp clickable" data-role="au_play"
-                        src="/assets/img/button_green_off.png" alt="Play">
+                        <div class="audio-controls">
+                            <button class="audio-btn" data-role="au_play" title="<%= t('modules.play') %>">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M8 5v14l11-7z"/>
+                                </svg>
+                            </button>
+                            <button class="audio-btn" data-role="au_pause" title="<%= t('modules.pause') %>">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                                </svg>
+                            </button>
+                            <button class="audio-btn" data-role="au_stop" title="<%= t('modules.stop') %>">
+                                <svg viewBox="0 0 24 24" fill="currentColor">
+                                    <path d="M6 6h12v12H6z"/>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
-                <audio preload="metadata" data-role="au_tag"></audio>
+                <div class="tile">
+                    <div class="label"><%= t('modules.volume') %></div>
+                    <div class="face">
+                        <div class="volume-control">
+                            <input type="range" min="0" max="100" value="50" data-role="au_volume" class="volume-slider">
+                            <span class="volume-value" data-role="au_volume_display">50%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tile">
+                    <div class="label"><%= t('modules.status') %></div>
+                    <div class="face">
+                        <div class="audio-status" data-role="au_status">
+                            <span class="status-text"><%= t('modules.stopped') %></span>
+                            <div class="status-indicator stopped"></div>
+                        </div>
+                    </div>
+                </div>
 
                 <% } else { %>
                   <div class="tile">
