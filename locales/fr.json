@@ -228,6 +228,7 @@
     "title": "Préférences de notification",
     "user_notifications": "Notifications utilisateur",
     "admin_notifications": "Notifications administrateur",
+    "module_status": "Statut des modules",
     "module_status_notification": "Notifications de statut des modules",
     "module_status_desc": "Recevoir des notifications quand mes modules se connectent ou se déconnectent",
     "system_errors": "Erreurs système",
