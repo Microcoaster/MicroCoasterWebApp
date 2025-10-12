@@ -141,6 +141,8 @@
     "unknown_module": "Module inconnu",
     "decrease": "Diminuer",
     "increase": "Augmenter",
+    "offline_status": "Hors ligne",
+    "online_status": "En ligne",
     "module_type_tooltip": "Type de module",
     "module_deleted_successfully": "Module supprimé avec succès",
     "module_added_successfully": "Module ajouté avec succès",
