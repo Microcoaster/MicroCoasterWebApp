@@ -4,6 +4,25 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Module Audio Player ESP32 complet** : Nouveau firmware pour module audio avec support MP3/WAV, gestionnaire WiFi intelligent, communication WebSocket native et stockage sur carte SD
+- **Support MP3 étendu** : Ajout du support complet des fichiers MP3 (en plus du WAV existant) avec analyse des métadonnées ID3 et frame sync
+- **Interface utilisateur audio interactive** : Contrôles complets de lecture (play/pause/stop), liste de pistes, contrôle du volume, et affichage du statut en temps réel
+- **Communication WebSocket audio native** : Protocole de communication dédié pour les commandes audio (lecture, pause, arrêt, volume) avec gestion des réponses et télémétrie
+- **Gestionnaire de fichiers audio intelligent** : Scan automatique des fichiers MP3/WAV sur carte SD avec analyse des propriétés (fréquence, bitrate, canaux) et conseils qualité
+- **Configuration I2S optimisée** : Configuration avancée pour MAX98357 avec mapping de volume 0-100 vers 0-63 pour meilleure résolution
+- **Télémétrie audio temps réel** : Suivi continu de l'état de lecture, volume, fichier courant et statut de la carte SD
+- **Clés de traduction manquantes** : Ajout des clés `module_status` et `online_status` dans les fichiers de localisation français et anglais
+
+### Modifié
+
+- **Correction des traductions de statut de module** : Le statut "Hors ligne" s'affiche désormais correctement en français pour tous les états de connexion du module
+
+### Note importante sur le module audio
+
+⚠️ **Le module audio prend en charge toutes les commandes de lecture (play/pause/stop/volume) et la communication WebSocket fonctionne parfaitement**, mais **le son ne sort pas du module**. Cela indique un problème matériel au niveau de la configuration I2S ou du circuit audio (amplificateur MAX98357). Le firmware traite correctement les fichiers audio et les commandes, mais l'audio n'est pas audible en sortie. Investigation matérielle requise pour résoudre ce problème.
+
 ## [0.2.0] - 08-10-2025
 
 ### Ajouté
