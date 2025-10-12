@@ -122,7 +122,6 @@ function makeAudioController(panel) {
 
   let tracks = [];
   let currentTrack = null;
-  let isPlaying = false;
   let volume = 50;
   // uploadInProgress supprimé - fichiers directement sur SD
 
@@ -143,17 +142,14 @@ function makeAudioController(panel) {
       case 'playing':
         statusLabel = trackName ? `Playing: ${trackName}` : 'Playing';
         indicatorClass = 'playing';
-        isPlaying = true;
         break;
       case 'paused':
         statusLabel = trackName ? `Paused: ${trackName}` : 'Paused';
         indicatorClass = 'paused';
-        isPlaying = false;
         break;
       case 'stopped':
         statusLabel = 'Stopped';
         indicatorClass = 'stopped';
-        isPlaying = false;
         currentTrack = null;
         break;
       case 'loading':
@@ -183,7 +179,7 @@ function makeAudioController(panel) {
     }
 
     list.innerHTML = '';
-    tracks.forEach((track, index) => {
+    tracks.forEach(track => {
       const trackElement = document.createElement('div');
       trackElement.className = `track clickable${currentTrack === track.file ? ' active' : ''}`;
       trackElement.innerHTML = `<span>${track.title || track.file}</span><small>${track.file}</small>`;
@@ -212,7 +208,7 @@ function makeAudioController(panel) {
    * @returns {void}
    * @private
    */
-  const playTrack = (trackFile) => {
+  const playTrack = trackFile => {
     currentTrack = trackFile;
     renderPlaylist();
     updateStatus('loading', trackFile);
@@ -248,7 +244,7 @@ function makeAudioController(panel) {
   // Contrôle du volume
   if (volumeSlider) {
     let volumeTimeout;
-    volumeSlider.addEventListener('input', (e) => {
+    volumeSlider.addEventListener('input', e => {
       volume = parseInt(e.target.value);
       updateVolumeDisplay();
       // Debounce: attendre 100ms avant d'envoyer la commande
@@ -292,7 +288,7 @@ function makeAudioController(panel) {
     if (payload.audio_list) {
       tracks = payload.audio_list.map(file => ({
         file: file,
-        title: file.replace('.wav', '').replace(/_/g, ' ')
+        title: file.replace('.wav', '').replace(/_/g, ' '),
       }));
       renderPlaylist();
     }

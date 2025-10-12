@@ -393,7 +393,9 @@ class ESP32WebSocketServer {
       });
     }
 
-    Logger.esp.debug(`🎵 Audio status update from ${ws.moduleId}: ${playing ? 'playing' : paused ? 'paused' : 'stopped'} - ${current_file || 'no file'}`);
+    Logger.esp.debug(
+      `🎵 Audio status update from ${ws.moduleId}: ${playing ? 'playing' : paused ? 'paused' : 'stopped'} - ${current_file || 'no file'}`
+    );
   }
 
   /**
