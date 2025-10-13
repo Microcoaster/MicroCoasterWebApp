@@ -125,6 +125,22 @@ class ESP32WebSocketServer {
   async handleESPMessage(ws, message) {
     const { type } = message;
 
+    // 🔒 SÉCURITÉ: Vérifier l'identité du module pour tous les messages sauf 'module_identify'
+    if (type !== 'module_identify') {
+      if (!ws.moduleId || !ws.moduleAuth) {
+        Logger.esp.warn(`🚨 Unauthenticated message attempt: ${type}`);
+        ws.close(1008, 'Not authenticated');
+        return;
+      }
+
+      // Vérifier que le moduleId dans le message correspond à l'identité authentifiée
+      if (message.moduleId && message.moduleId !== ws.moduleId) {
+        Logger.esp.warn(`🚨 SECURITY: ESP ${ws.moduleId} trying to spoof ${message.moduleId} in ${type} message`);
+        ws.close(1008, 'Module ID mismatch - security violation');
+        return;
+      }
+    }
+
     Logger.esp.debug(`[RX ESP32] ${ws.moduleId || 'unidentified'} -> ${type}`);
 
     switch (type) {
