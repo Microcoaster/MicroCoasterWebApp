@@ -212,7 +212,15 @@
     "execution_duration": "Execution duration (seconds)",
     "delay_before_next": "Delay before next (seconds)",
     "timeline_sequencer": "Timeline Sequencer",
-    "clear": "Clear"
+    "timeline_name": "Timeline Name",
+    "timeline_name_placeholder": "My New Timeline",
+    "timeline_name_help": "Choose a descriptive name for your timeline",
+    "clear": "Clear",
+    "modules": "Modules",
+    "saved": "Timelines",
+    "create_timeline": "Create Timeline",
+    "no_saved_timelines": "No timelines created",
+    "save_first_timeline": "Create your first timeline to start editing"
   },
   "reconnection": {
     "reconnecting": "🔄 Reconnecting...",

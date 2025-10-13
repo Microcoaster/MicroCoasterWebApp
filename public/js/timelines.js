@@ -180,6 +180,12 @@ class TimelineSequencer {
     this.viewportStart = 0; // Début de la fenêtre (en secondes)
     this.viewportDuration = DEFAULT_VIEWPORT_DURATION; // Durée de la fenêtre visible
 
+    // WebSocket manager
+    this.websocketManager = {
+      isConnected: false,
+      send: (message) => this.sendWebSocketMessage(message)
+    };
+
     this.init();
   }
 
@@ -189,6 +195,97 @@ class TimelineSequencer {
     this.setupZoom();
     this.updateViewport(); // Initialiser le viewport
     this.switchToTab('modules'); // Initialiser avec l'onglet modules
+    this.initializeWebSocket();
+  }
+
+  // ================================================================================
+  // WEBSOCKET MANAGEMENT
+  // ================================================================================
+
+  /**
+   * Initialise la connexion WebSocket avec le serveur
+   * Utilise la connexion Socket.IO globale pour communiquer avec les modules
+   * @returns {void}
+   * @private
+   */
+  initializeWebSocket() {
+    // Attendre que WebSocket soit prêt
+    if (window.socket && window.socket.connected) {
+      this.onWebSocketReady();
+    } else {
+      // Écouter l'événement de disponibilité WebSocket
+      window.addEventListener('websocket-ready', () => {
+        this.onWebSocketReady();
+      });
+
+      // Timeout de sécurité
+      setTimeout(() => {
+        if (!this.websocketManager.isConnected) {
+          console.warn('WebSocket connection timeout for timeline');
+        }
+      }, 10000);
+    }
+  }
+
+  /**
+   * Callback appelé quand WebSocket est prêt
+   * Configure les écouteurs d'événements WebSocket
+   * @returns {void}
+   * @private
+   */
+  onWebSocketReady() {
+    if (!window.socket) return;
+
+    this.websocketManager.isConnected = true;
+    console.log('Timeline WebSocket manager initialized');
+
+    // Écouter les réponses de commandes
+    window.socket.on('command_sent', (data) => {
+      console.log('Command sent successfully:', data);
+      // Afficher un feedback visuel positif si c'est une commande timeline
+      if (data.moduleId) {
+        window.showToast?.(`Commande envoyée à ${data.moduleId}`, 'success', 2000);
+      }
+    });
+
+    window.socket.on('command_error', (data) => {
+      console.error('Command failed:', data);
+      const moduleName = data.moduleId || 'Module inconnu';
+      const errorMsg = data.error || 'Erreur inconnue';
+      window.showToast?.(`Erreur ${moduleName}: ${errorMsg}`, 'error', 3000);
+    });
+
+    // Écouter les erreurs générales
+    window.socket.on('error', (data) => {
+      console.error('WebSocket error:', data);
+      window.showToast?.('Erreur de communication', 'error', 3000);
+    });
+  }
+
+  /**
+   * Envoie un message via WebSocket au serveur
+   * Adapte le format pour correspondre à l'API du serveur
+   * @param {Object} message - Message à envoyer
+   * @returns {void}
+   * @private
+   */
+  sendWebSocketMessage(message) {
+    if (!window.socket || !this.websocketManager.isConnected) {
+      console.error('WebSocket not connected');
+      window.showToast?.('Connexion WebSocket perdue', 'error', 3000);
+      return;
+    }
+
+    // Adapter le format du message pour l'API serveur
+    const serverMessage = {
+      moduleId: message.moduleId,
+      command: message.command,
+      ...message.parameters,
+      duration: message.duration
+    };
+
+    console.log('Sending WebSocket message:', serverMessage);
+    window.socket.emit('send_module_command', serverMessage);
   }
 
   // ================================================================================
@@ -458,12 +555,17 @@ class TimelineSequencer {
     const playBtn = document.getElementById('playBtn');
     const modulesTab = document.getElementById('modulesTab');
     const savedTimelinesTab = document.getElementById('savedTimelinesTab');
+    const createTimelineBtn = document.getElementById('createTimelineBtn');
+
+    // Initialiser les propriétés des boutons
+    this.playButton = playBtn;
 
     if (clearBtn) clearBtn.addEventListener('click', () => this.clear());
     if (saveBtn) saveBtn.addEventListener('click', () => this.save());
     if (playBtn) playBtn.addEventListener('click', () => this.togglePlayback());
     if (modulesTab) modulesTab.addEventListener('click', () => this.switchToTab('modules'));
     if (savedTimelinesTab) savedTimelinesTab.addEventListener('click', () => this.switchToTab('saved'));
+    if (createTimelineBtn) createTimelineBtn.addEventListener('click', () => this.createNewTimeline());
   }
 
   /**
@@ -1168,26 +1270,25 @@ class TimelineSequencer {
    */
   playSequence() {
     if (!this.websocketManager.isConnected) {
-      window.showToast?.(locales.errorNotConnected, 'error', 3000);
+      window.showToast?.('Connexion WebSocket perdue', 'error', 3000);
       return;
     }
 
     if (this.elements.length === 0) {
-      window.showToast?.(locales.timeline.noElements, 'warning', 3000);
+      window.showToast?.('Aucun élément dans la timeline', 'warning', 3000);
       return;
     }
 
     this.isPlaying = true;
     this.playButton.disabled = true;
-    this.stopButton.disabled = false;
-    this.playButton.textContent = locales.timeline.playing;
+    this.playButton.textContent = window.timelineTranslations.playing;
 
     this.startTime = Date.now();
     this.animationFrame = requestAnimationFrame(() => this.updatePlaybackPosition());
 
     const sortedElements = this.elements
-      .filter(el => el.moduleId && el.action && el.startTime !== null)
-      .sort((a, b) => a.startTime + a.delay - (b.startTime + b.delay));
+      .filter(el => el.moduleData && el.moduleData.id && el.actionType && el.startTime !== null)
+      .sort((a, b) => a.startTime - b.startTime);
 
     this.scheduleActions(sortedElements);
   }
@@ -1202,7 +1303,7 @@ class TimelineSequencer {
   scheduleActions(elements) {
     this.timeouts = [];
     elements.forEach(el => {
-      const delay = (el.startTime + el.delay) * 1000;
+      const delay = el.startTime * 1000;
       const timeout = setTimeout(() => {
         this.executeAction(el);
       }, delay);
@@ -1210,8 +1311,7 @@ class TimelineSequencer {
     });
 
     if (elements.length > 0) {
-      const totalDuration =
-        Math.max(...elements.map(e => e.startTime + e.delay + e.duration)) * 1000;
+      const totalDuration = Math.max(...elements.map(e => e.startTime + e.duration)) * 1000;
       this.stopTimeout = setTimeout(() => {
         this.stopSequence();
       }, totalDuration);
@@ -1226,14 +1326,27 @@ class TimelineSequencer {
    * @private
    */
   executeAction(element) {
+    // Validation des données
+    if (!element.moduleData || !element.moduleData.id) {
+      console.error('Module ID manquant pour l\'élément:', element);
+      window.showToast?.('Erreur: Module ID manquant', 'error', 3000);
+      return;
+    }
+
+    if (!element.actionType) {
+      console.error('Type d\'action manquant pour l\'élément:', element);
+      window.showToast?.('Erreur: Action manquante', 'error', 3000);
+      return;
+    }
+
     const message = {
-      type: 'moduleAction',
-      moduleId: element.moduleId,
-      action: element.action,
-      parameters: element.parameters || {},
+      moduleId: element.moduleData.id,
+      command: element.actionType,
+      parameters: element.actionParams || {},
       duration: element.duration,
     };
 
+    console.log('Executing action:', message);
     this.websocketManager.send(message);
   }
 
@@ -1279,8 +1392,7 @@ class TimelineSequencer {
   stopSequence() {
     this.isPlaying = false;
     this.playButton.disabled = false;
-    this.stopButton.disabled = true;
-    this.playButton.textContent = locales.timeline.play;
+    this.playButton.textContent = window.timelineTranslations.playTimeline;
 
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
@@ -1300,39 +1412,30 @@ class TimelineSequencer {
   }
 
   /**
-   * Génère la séquence complète pour export ou lecture
-   * Compile tous les éléments en structure organisée par modules
-   * @returns {Object} Objet séquence avec modules et durée totale
+   * Génère la séquence complète pour export ou sauvegarde
+   * Compile tous les éléments en structure organisée
+   * @returns {Object} Objet séquence avec éléments et durée totale
    * @public
    */
   generateSequence() {
-    const sequence = {
-      modules: {},
-      totalDuration: 0,
-    };
+    const elements = this.elements.map(element => ({
+      moduleData: element.moduleData,
+      startTime: element.startTime,
+      duration: element.duration,
+      actionType: element.actionType,
+      actionParams: element.actionParams || {},
+      trackIndex: element.trackIndex || 0
+    }));
 
-    this.elements.forEach(element => {
-      const moduleId = element.moduleId;
-      if (!moduleId) return;
-
-      if (!sequence.modules[moduleId]) {
-        sequence.modules[moduleId] = [];
-      }
-
-      sequence.modules[moduleId].push({
-        startTime: element.startTime + element.delay,
-        action: element.action,
-        parameters: element.parameters || {},
-        duration: element.duration,
-      });
-    });
-
-    sequence.totalDuration = Math.max(
-      ...this.elements.map(e => e.startTime + e.delay + e.duration),
+    const totalDuration = Math.max(
+      ...this.elements.map(e => e.startTime + e.duration),
       0
     );
 
-    return sequence;
+    return {
+      elements: elements,
+      totalDuration: totalDuration
+    };
   }
 
   /**
@@ -1414,19 +1517,74 @@ class TimelineSequencer {
     const list = document.querySelector('.saved-timelines-list');
     if (!list) return;
 
-    // Simulation de chargement des timelines sauvegardées
-    // En réalité, cela viendrait d'une API ou du localStorage
-    const savedTimelines = [
-      { id: 1, name: 'Séquence de départ', created: '2024-01-15', duration: '45s' },
-      { id: 2, name: 'Show lumineux', created: '2024-01-20', duration: '120s' },
-    ];
+    // Afficher un indicateur de chargement
+    list.innerHTML = '<div class="loading">Chargement des timelines...</div>';
 
-    list.innerHTML = savedTimelines.map(timeline => `
-      <div class="saved-timeline-item" data-timeline-id="${timeline.id}">
-        <div class="saved-timeline-name">${timeline.name}</div>
-        <div class="saved-timeline-meta">Créé: ${timeline.created} | Durée: ${timeline.duration}</div>
-      </div>
-    `).join('');
+    // Charger les vraies données depuis l'API
+    fetch('/timelines/api', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        this.displayTimelines(data.timelines);
+      } else {
+        console.error('Erreur lors du chargement des timelines:', data.error);
+        this.showEmptyState();
+      }
+    })
+    .catch(error => {
+      console.error('Erreur réseau:', error);
+      this.showEmptyState();
+    });
+  }
+
+  /**
+   * Affiche la liste des timelines avec validation des modules
+   * @param {Array} timelines - Liste des timelines depuis l'API
+   * @returns {void}
+   * @private
+   */
+  displayTimelines(timelines) {
+    const list = document.querySelector('.saved-timelines-list');
+    if (!list) return;
+
+    if (!timelines || timelines.length === 0) {
+      this.showEmptyState();
+      return;
+    }
+
+    // Récupérer la liste des modules disponibles pour validation
+    const availableModules = this.getAvailableModules();
+
+    list.innerHTML = timelines.map(timeline => {
+      const validation = this.validateTimeline(timeline, availableModules);
+      const hasMissingModules = validation.missingModules.length > 0;
+
+      return `
+        <div class="saved-timeline-item ${hasMissingModules ? 'has-missing-modules' : ''}"
+             data-timeline-id="${timeline.id}">
+          <div class="saved-timeline-header">
+            <div class="saved-timeline-name">${timeline.name}</div>
+            ${hasMissingModules ? '<div class="missing-modules-indicator" title="Certains modules ne sont plus disponibles">⚠️</div>' : ''}
+          </div>
+          <div class="saved-timeline-meta">
+            Créé: ${this.formatDate(timeline.created_at)} |
+            Modifié: ${this.formatDate(timeline.updated_at)} |
+            Durée: ${this.calculateTimelineDuration(timeline)}s
+            ${hasMissingModules ? ` | ${validation.missingModules.length} module(s) manquant(s)` : ''}
+          </div>
+          ${hasMissingModules ? `
+            <div class="missing-modules-list">
+              Modules manquants: ${validation.missingModules.join(', ')}
+            </div>
+          ` : ''}
+        </div>
+      `;
+    }).join('');
 
     // Ajouter les événements de clic
     list.querySelectorAll('.saved-timeline-item').forEach(item => {
@@ -1438,15 +1596,232 @@ class TimelineSequencer {
   }
 
   /**
+   * Valide une timeline et retourne les modules manquants
+   * @param {Object} timeline - Timeline à valider
+   * @param {Array} availableModules - Modules disponibles
+   * @returns {Object} Résultat de validation
+   * @private
+   */
+  validateTimeline(timeline, availableModules) {
+    const missingModules = [];
+    const availableModuleIds = new Set(availableModules.map(m => m.id));
+
+    if (timeline.data && timeline.data.elements) {
+      timeline.data.elements.forEach(element => {
+        if (element.moduleData && element.moduleData.id && !availableModuleIds.has(element.moduleData.id)) {
+          missingModules.push(element.moduleData.id);
+        }
+      });
+    }
+
+    return {
+      isValid: missingModules.length === 0,
+      missingModules: [...new Set(missingModules)] // Éliminer les doublons
+    };
+  }
+
+  /**
+   * Récupère la liste des modules disponibles depuis l'interface
+   * @returns {Array} Liste des modules disponibles
+   * @private
+   */
+  getAvailableModules() {
+    const modules = [];
+    document.querySelectorAll('.module-item').forEach(item => {
+      modules.push({
+        id: item.dataset.moduleId,
+        name: item.dataset.moduleName,
+        type: item.dataset.moduleType
+      });
+    });
+    return modules;
+  }
+
+  /**
+   * Calcule la durée totale d'une timeline
+   * @param {Object} timeline - Timeline dont calculer la durée
+   * @returns {number} Durée en secondes
+   * @private
+   */
+  calculateTimelineDuration(timeline) {
+    if (!timeline.data || !timeline.data.elements) return 0;
+
+    let maxEndTime = 0;
+    timeline.data.elements.forEach(element => {
+      const endTime = element.startTime + element.duration;
+      if (endTime > maxEndTime) {
+        maxEndTime = endTime;
+      }
+    });
+
+    return Math.round(maxEndTime);
+  }
+
+  /**
+   * Formate une date pour l'affichage
+   * @param {string} dateString - Date au format ISO
+   * @returns {string} Date formatée
+   * @private
+   */
+  formatDate(dateString) {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('fr-FR', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
+    });
+  }
+
+  /**
+   * Affiche l'état vide (aucune timeline)
+   * @returns {void}
+   * @private
+   */
+  showEmptyState() {
+    const list = document.querySelector('.saved-timelines-list');
+    if (!list) return;
+
+    const translations = window.timelineTranslations || {
+      noSavedTimelines: 'Aucune timeline sauvegardée',
+      saveFirstTimeline: 'Sauvegardez votre première timeline pour la retrouver ici'
+    };
+
+    list.innerHTML = `
+      <div class="empty-state">
+        <div>
+          <h3>${translations.noSavedTimelines}</h3>
+          <p>${translations.saveFirstTimeline}</p>
+        </div>
+      </div>
+    `;
+  }
+
+  /**
    * Charge une timeline sauvegardée
    * @param {string} timelineId - ID de la timeline à charger
    * @returns {void}
    * @private
    */
   loadTimeline(timelineId) {
-    // Simulation de chargement d'une timeline
-    console.log('Chargement de la timeline:', timelineId);
-    // Ici on chargerait réellement la timeline depuis l'API
+
+    fetch(`/timelines/api/${timelineId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Timeline non trouvée');
+      }
+      return response.json();
+    })
+    .then(data => {
+      if (data.success && data.timeline) {
+        this.loadTimelineData(data.timeline);
+        window.showToast?.('Timeline chargée avec succès', 'success', 2000);
+      } else {
+        throw new Error(data.error || 'Erreur lors du chargement');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement de la timeline:', error);
+      window.showToast?.('Erreur lors du chargement de la timeline', 'error', 3000);
+    });
+  }
+
+  /**
+   * Charge les données d'une timeline dans l'interface
+   * @param {Object} timeline - Données de la timeline
+   * @returns {void}
+   * @private
+   */
+  loadTimelineData(timeline) {
+    if (!timeline.data || !timeline.data.elements) {
+      window.showToast?.('Timeline vide ou corrompue', 'warning', 3000);
+      return;
+    }
+
+    // Vider la timeline actuelle
+    this.clear();
+
+    // Charger les éléments
+    timeline.data.elements.forEach(elementData => {
+      if (elementData.moduleData) {
+        // Trouver la position X basée sur le temps
+        const x = this.timeToPixel(elementData.startTime);
+
+        // Ajouter l'élément à la timeline
+        this.addElementToTimeline(elementData.moduleData, x, elementData.trackIndex || 0);
+
+        // Récupérer le dernier élément ajouté et mettre à jour ses propriétés
+        const createdElement = this.elements[this.elements.length - 1];
+        createdElement.actionType = elementData.actionType;
+        createdElement.actionParams = elementData.actionParams || {};
+        createdElement.element.dataset.actionType = elementData.actionType;
+        createdElement.element.dataset.duration = elementData.duration.toString();
+
+        // Mettre à jour l'affichage de l'action
+        const moduleConfig = this.getModuleConfig(elementData.moduleData.type);
+        const actionConfig = moduleConfig.actions[elementData.actionType];
+        if (actionConfig) {
+          createdElement.element.querySelector('.element-action').textContent = actionConfig.name;
+        }
+
+        // Repositionner l'élément avec les bonnes données
+        this.positionElement(
+          createdElement.element,
+          elementData.startTime,
+          elementData.duration,
+          elementData.trackIndex || 0
+        );
+      }
+    });
+
+    // Mettre à jour le viewport
+    this.updateViewport();
+  }
+
+  /**
+   * Convertit un temps en pixels (inverse de pixelToTime)
+   * @param {number} time - Temps en secondes
+   * @returns {number} Position en pixels
+   * @private
+   */
+  timeToPixel(time) {
+    const trackWidth = this.track.offsetWidth;
+    const relativeTime = time - this.viewportStart;
+    return (relativeTime / this.viewportDuration) * trackWidth;
+  }
+
+  /**
+   * Crée une nouvelle timeline
+   * @returns {void}
+   * @public
+   */
+  createNewTimeline() {
+    // Ouvrir la modale de création
+    const modal = document.getElementById('createTimelineModal');
+    if (!modal) {
+      console.error('Modale de création de timeline non trouvée');
+      window.showToast?.('Erreur: modale non trouvée', 'error', 3000);
+      return;
+    }
+
+    // Réinitialiser le formulaire
+    const form = modal.querySelector('#createTimelineForm');
+    if (form) {
+      form.reset();
+    }
+
+    // Afficher la modale
+    modal.classList.add('show');
+
+    // Focus sur le champ nom
+    const nameInput = modal.querySelector('#timelineName');
+    if (nameInput) {
+      setTimeout(() => nameInput.focus(), 100);
+    }
   }
 
   /**
@@ -1469,9 +1844,47 @@ class TimelineSequencer {
    * @public
    */
   save() {
-    // Simulation de sauvegarde
-    console.log('Sauvegarde de la timeline');
-    window.showToast?.('Timeline sauvegardée', 'success', 3000);
+    if (this.elements.length === 0) {
+      window.showToast?.('Aucun élément dans la timeline à sauvegarder', 'warning', 3000);
+      return;
+    }
+
+    // Demander le nom de la timeline
+    const timelineName = prompt('Nom de la timeline:', `Timeline ${new Date().toLocaleDateString()}`);
+
+    if (!timelineName || timelineName.trim() === '') {
+      window.showToast?.('Sauvegarde annulée', 'info', 2000);
+      return;
+    }
+
+    // Préparer les données
+    const timelineData = {
+      name: timelineName.trim(),
+      data: this.generateSequence()
+    };
+
+    // Envoyer à l'API
+    fetch('/timelines/api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(timelineData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        window.showToast?.('Timeline sauvegardée avec succès', 'success', 3000);
+        // Recharger la liste des timelines sauvegardées
+        this.loadSavedTimelines();
+      } else {
+        throw new Error(data.error || 'Erreur lors de la sauvegarde');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de la sauvegarde:', error);
+      window.showToast?.('Erreur lors de la sauvegarde', 'error', 3000);
+    });
   }
 
   /**
@@ -1486,9 +1899,136 @@ class TimelineSequencer {
       this.playSequence();
     }
   }
+
+  /**
+   * Gère la soumission du formulaire de création de timeline
+   * @param {Event} event - Événement de soumission du formulaire
+   * @returns {void}
+   * @private
+   */
+  handleCreateTimelineSubmit(event) {
+    event.preventDefault();
+
+    const form = event.target;
+    const formData = new FormData(form);
+    const timelineName = formData.get('timelineName')?.trim();
+
+    if (!timelineName) {
+      window.showToast?.('Veuillez saisir un nom pour la timeline', 'warning', 3000);
+      return;
+    }
+
+    // Fermer la modale
+    this.closeCreateTimelineModal();
+
+    // Vider la timeline actuelle
+    this.clear();
+
+    // Créer et sauvegarder une timeline vide avec le nom fourni
+    this.createAndSaveEmptyTimeline(timelineName);
+  }
+
+  /**
+   * Crée et sauvegarde une timeline vide
+   * @param {string} timelineName - Nom de la nouvelle timeline
+   * @returns {void}
+   * @private
+   */
+  createAndSaveEmptyTimeline(timelineName) {
+    // Préparer les données pour une timeline vide
+    const timelineData = {
+      name: timelineName,
+      data: {
+        elements: [],
+        totalDuration: 0
+      }
+    };
+
+    // Envoyer à l'API pour créer la timeline
+    fetch('/timelines/api', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(timelineData)
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Basculer vers l'onglet modules pour permettre l'édition
+        this.switchToTab('modules');
+
+        // Recharger la liste des timelines sauvegardées pour afficher la nouvelle
+        this.loadSavedTimelines();
+
+        // Afficher un message de succès
+        window.showToast?.(`Timeline "${timelineName}" créée avec succès.`, 'success', 4000);
+      } else {
+        throw new Error(data.error || 'Erreur lors de la création');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de la création de la timeline:', error);
+      window.showToast?.('Erreur lors de la création de la timeline', 'error', 3000);
+    });
+  }
+
+  /**
+   * Ferme la modale de création de timeline
+   * @returns {void}
+   * @private
+   */
+  closeCreateTimelineModal() {
+    const modal = document.getElementById('createTimelineModal');
+    if (modal) {
+      modal.classList.remove('show');
+    }
+  }
 }
 
 // Initialiser la timeline quand le DOM est prêt
 document.addEventListener('DOMContentLoaded', function () {
   window.timeline = new TimelineSequencer();
+
+  // Gestionnaire pour le bouton de création de timeline
+  const createTimelineBtn = document.getElementById('createTimelineBtn');
+  if (createTimelineBtn) {
+    createTimelineBtn.addEventListener('click', function() {
+      window.timeline.createNewTimeline();
+    });
+  }
+
+  // Ajouter les gestionnaires d'événements pour la modale de création
+  const createTimelineModal = document.getElementById('createTimelineModal');
+  const createTimelineForm = document.getElementById('createTimelineForm');
+
+  if (createTimelineModal && createTimelineForm) {
+    // Gestionnaire pour la soumission du formulaire
+    createTimelineForm.addEventListener('submit', function(event) {
+      window.timeline.handleCreateTimelineSubmit(event);
+    });
+
+    // Gestionnaire pour fermer la modale en cliquant sur le bouton X
+    const closeBtn = createTimelineModal.querySelector('.close-btn');
+    if (closeBtn) {
+      closeBtn.addEventListener('click', function() {
+        window.timeline.closeCreateTimelineModal();
+      });
+    }
+
+    // Gestionnaire pour fermer la modale en cliquant en dehors
+    createTimelineModal.addEventListener('click', function(event) {
+      if (event.target === createTimelineModal) {
+        window.timeline.closeCreateTimelineModal();
+      }
+    });
+
+    // Gestionnaire pour le bouton Annuler
+    const cancelBtn = createTimelineModal.querySelector('#cancelCreateTimelineBtn');
+    if (cancelBtn) {
+      cancelBtn.addEventListener('click', function() {
+        window.timeline.closeCreateTimelineModal();
+      });
+    }
+  }
 });

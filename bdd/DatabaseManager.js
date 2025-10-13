@@ -15,6 +15,7 @@ const Logger = require('../utils/logger');
 
 const UserDAO = require('./UserDAO');
 const ModuleDAO = require('./ModuleDAO');
+const TimelineDAO = require('./TimelineDAO');
 
 /**
  * Gestionnaire principal de la base de données
@@ -30,6 +31,7 @@ class DatabaseManager {
     this.pool = null;
     this.userDAO = null;
     this.moduleDAO = null;
+    this.timelineDAO = null;
     this.isInitialized = false;
   }
 
@@ -66,6 +68,7 @@ class DatabaseManager {
       // Initialiser les DAO
       this.userDAO = new UserDAO(this.pool);
       this.moduleDAO = new ModuleDAO(this.pool);
+      this.timelineDAO = new TimelineDAO(this.pool);
 
       this.isInitialized = true;
       Logger.app.info('✅ Database Manager initialized successfully');
@@ -249,6 +252,13 @@ class DatabaseManager {
       throw new Error('Database Manager not initialized');
     }
     return this.moduleDAO;
+  }
+
+  get timelines() {
+    if (!this.timelineDAO) {
+      throw new Error('Database Manager not initialized');
+    }
+    return this.timelineDAO;
   }
 
   /**

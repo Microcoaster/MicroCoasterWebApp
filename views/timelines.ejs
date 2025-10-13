@@ -26,12 +26,6 @@
                     <span class="viewport-indicator" id="viewportIndicator">0s - 30s</span>
                     <small class="viewport-help">Shift+molette: naviguer | Ctrl+molette: zoom</small>
                   </div>
-                  <button id="clearBtn" class="btn btn-ghost">
-                    <i class="bi bi-trash"></i> <%= t('timelines.clear') %>
-                  </button>
-                  <button id="saveBtn" class="btn">
-                    <i class="bi bi-save"></i> <%= t('common.save') %>
-                  </button>
                   <button id="playBtn" class="btn">
                     <i class="bi bi-play-fill" id="playIcon"></i>
                     <span id="playText"><%= t('timelines.play_timeline') %></span>
@@ -85,6 +79,10 @@
                     </div>
 
                     <div class="saved-timelines-panel" id="savedTimelinesPanel">
+                      <button class="create-timeline-btn" id="createTimelineBtn">
+                        <i class="bi bi-plus-circle"></i>
+                        <%= t('timelines.create_timeline') %>
+                      </button>
                       <div class="saved-timelines-list">
                         <!-- Les timelines sauvegardées seront chargées dynamiquement -->
                         <div class="empty-state">
@@ -183,10 +181,44 @@
     </div>
   </div>
 
+  <div class="create-timeline-modal" id="createTimelineModal">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title"><%= t('timelines.create_timeline') %></h3>
+        <button class="close-btn" id="closeCreateTimelineBtn">&times;</button>
+      </div>
+
+      <form id="createTimelineForm">
+        <div class="form-group">
+          <label class="form-label" for="timelineName"><%= t('timelines.timeline_name') %></label>
+          <input type="text" class="form-input" id="timelineName" name="timelineName"
+                 placeholder="<%= t('timelines.timeline_name_placeholder') || 'Ma nouvelle chronologie' %>"
+                 maxlength="100" autocomplete="off" required>
+          <small class="form-help"><%= t('timelines.timeline_name_help') || 'Choisissez un nom descriptif pour votre chronologie' %></small>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" class="btn btn-secondary" id="cancelCreateTimelineBtn"><%= t('common.cancel') %></button>
+          <button type="submit" class="btn btn-primary" id="createTimelineSubmitBtn"><%= t('timelines.create_timeline') %></button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/toast.js"></script>
   <script src="/js/global.js"></script>
   <script src="/js/language.js"></script>
   <script src="/js/timelines.js"></script>
+  <script>
+    // Traductions pour le JavaScript
+    window.timelineTranslations = {
+      noSavedTimelines: "<%= t('timelines.no_saved_timelines') %>",
+      saveFirstTimeline: "<%= t('timelines.save_first_timeline') %>",
+      playTimeline: "<%= t('timelines.play_timeline') %>",
+      stopTimeline: "<%= t('timelines.stop_timeline') %>",
+      playing: "Lecture en cours..."
+    };
+  </script>
 </body>
 </html>

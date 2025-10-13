@@ -2,6 +2,7 @@
 -- Exécution: En mode développement, ce script est exécuté automatiquement au démarrage
 
 -- Supprimer les tables existantes en mode développement (ordre important pour les FK)
+DROP TABLE IF EXISTS timelines;
 DROP TABLE IF EXISTS modules;
 DROP TABLE IF EXISTS users;
 
@@ -47,4 +48,18 @@ CREATE TABLE modules (
   INDEX idx_type (type),
   INDEX idx_status (status),
   INDEX idx_last_seen (last_seen)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Table des timelines (séquences)
+CREATE TABLE timelines (
+  id INT AUTO_INCREMENT PRIMARY KEY,
+  user_id INT NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  data JSON NOT NULL, -- Structure complète de la timeline (éléments, configuration, etc.)
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  INDEX idx_user_id (user_id),
+  INDEX idx_created_at (created_at)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
