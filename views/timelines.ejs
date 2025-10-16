@@ -147,41 +147,29 @@
     </main>
   </div>
 
-  <div class="config-modal" id="configModal">
+  <div class="create-timeline-modal" id="createTimelineModal">
     <div class="modal-content">
       <div class="modal-header">
-        <h3 class="modal-title" id="modalTitle"><%= t('timelines.module_configuration') %></h3>
-        <button class="close-btn" id="closeConfigBtn">&times;</button>
+        <h3 class="modal-title"><%= t('timelines.create_timeline') %></h3>
+        <button class="close-btn" id="closeCreateTimelineBtn">&times;</button>
       </div>
-      
-      <form id="configForm">
+
+      <form id="createTimelineForm">
         <div class="form-group">
-          <label class="form-label" for="moduleName"><%= t('timelines.module_name') %></label>
-          <input type="text" class="form-input" id="moduleName" name="moduleName" readonly autocomplete="off">
+          <label class="form-label" for="timelineName"><%= t('timelines.timeline_name') %></label>
+          <input type="text" class="form-input" id="timelineName" name="timelineName"
+                 placeholder="<%= t('timelines.timeline_name_placeholder') || 'Ma nouvelle chronologie' %>"
+                 maxlength="100" autocomplete="off" required>
+          <small class="form-help"><%= t('timelines.timeline_name_help') || 'Choisissez un nom descriptif pour votre chronologie' %></small>
         </div>
-        
-        <div class="form-group">
-          <label class="form-label" for="moduleDuration"><%= t('timelines.execution_duration') %></label>
-          <input type="number" class="form-input" id="moduleDuration" name="moduleDuration" value="2" min="0.1" step="0.1" autocomplete="off">
-        </div>
-        
-        <div class="form-group">
-          <label class="form-label" for="moduleDelay"><%= t('timelines.delay_before_next') %></label>
-          <input type="number" class="form-input" id="moduleDelay" name="moduleDelay" value="1" min="0" step="0.1" autocomplete="off">
-        </div>
-        
-        <div class="form-group" id="moduleSpecificConfig">
-        </div>
-        
+
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="cancelConfigBtn"><%= t('common.cancel') %></button>
-          <button type="button" class="btn btn-primary" id="saveConfigBtn"><%= t('common.save') %></button>
+          <button type="button" class="btn btn-secondary" id="cancelCreateTimelineBtn"><%= t('common.cancel') %></button>
+          <button type="submit" class="btn btn-primary" id="createTimelineSubmitBtn"><%= t('timelines.create_timeline') %></button>
         </div>
       </form>
     </div>
   </div>
-
-  <div class="create-timeline-modal" id="createTimelineModal">
     <div class="modal-content">
       <div class="modal-header">
         <h3 class="modal-title"><%= t('timelines.create_timeline') %></h3>
@@ -217,7 +205,12 @@
       saveFirstTimeline: "<%= t('timelines.save_first_timeline') %>",
       playTimeline: "<%= t('timelines.play_timeline') %>",
       stopTimeline: "<%= t('timelines.stop_timeline') %>",
-      playing: "Lecture en cours..."
+      playing: "Lecture en cours...",
+      select_timeline_first: "<%= t('timelines.select_timeline_first') %>",
+      create_or_select_timeline: "<%= t('timelines.create_or_select_timeline') %>",
+      create_sequence: "<%= t('timelines.create_sequence') %>",
+      drag_modules_here: "<%= t('timelines.drag_modules_here') %>",
+      click_module_configure: "<%= t('timelines.click_module_configure') %>"
     };
   </script>
 </body>

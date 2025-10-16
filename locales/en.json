@@ -207,6 +207,8 @@
     "create_sequence": "🎬 Create your sequence",
     "drag_modules_here": "Drag your modules here to create a timeline",
     "click_module_configure": "Click on a module to configure it",
+    "select_timeline_first": "📋 Select a timeline first",
+    "create_or_select_timeline": "Create or select a timeline to start adding modules",
     "module_configuration": "Module Configuration",
     "module_name": "Module name",
     "execution_duration": "Execution duration (seconds)",

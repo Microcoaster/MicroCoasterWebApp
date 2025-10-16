@@ -168,6 +168,9 @@ class TimelineSequencer {
     this.selectedElement = null;
     this.draggedElement = null;
 
+    // Timeline sélectionnée
+    this.currentTimeline = null; // {id, name, data}
+
     // Indicateur de temps pendant le drag & drop
     this.dragTimeIndicator = null;
     this.isDraggingModule = false; // Flag pour savoir si on drag un module
@@ -196,6 +199,138 @@ class TimelineSequencer {
     this.updateViewport(); // Initialiser le viewport
     this.switchToTab('modules'); // Initialiser avec l'onglet modules
     this.initializeWebSocket();
+    this.updateInstructions(); // Mettre à jour les instructions selon l'état
+    this.loadLastTimeline(); // Charger la dernière timeline utilisée
+  }
+
+  // ================================================================================
+  // GESTION DE LA TIMELINE SÉLECTIONNÉE
+  // ================================================================================
+
+  /**
+   * Met à jour les messages d'instruction selon l'état de la timeline sélectionnée
+   * @returns {void}
+   * @private
+   */
+  updateInstructions() {
+    if (!this.instructions) return;
+
+    if (this.currentTimeline) {
+      // Timeline sélectionnée - messages normaux
+      this.instructions.innerHTML = `
+        <h4>${window.timelineTranslations?.create_sequence || '🎬 Créez votre séquence'}</h4>
+        <p>${window.timelineTranslations?.drag_modules_here || 'Glissez vos modules ici pour créer une chronologie'}</p>
+        <p>${window.timelineTranslations?.click_module_configure || 'Cliquez sur un module pour le configurer'}</p>
+      `;
+    } else {
+      // Aucune timeline sélectionnée - messages d'avertissement
+      this.instructions.innerHTML = `
+        <h4>${window.timelineTranslations?.select_timeline_first || '📋 Sélectionnez d\'abord une chronologie'}</h4>
+        <p>${window.timelineTranslations?.create_or_select_timeline || 'Créez ou sélectionnez une chronologie pour commencer à ajouter des modules'}</p>
+      `;
+    }
+  }
+
+  /**
+   * Définit la timeline actuellement sélectionnée
+   * @param {Object} timeline - Données de la timeline (id, name, data)
+   * @returns {void}
+   * @public
+   */
+  setCurrentTimeline(timeline) {
+    this.currentTimeline = timeline;
+    this.updateInstructions();
+
+    // Sauvegarder dans localStorage pour persister entre les sessions
+    if (timeline && timeline.id) {
+      localStorage.setItem('lastTimelineId', timeline.id.toString());
+    } else {
+      localStorage.removeItem('lastTimelineId');
+    }
+  }
+
+  /**
+   * Charge la dernière timeline utilisée depuis localStorage
+   * @returns {void}
+   * @private
+   */
+  loadLastTimeline() {
+    const lastTimelineId = localStorage.getItem('lastTimelineId');
+    if (!lastTimelineId) {
+      // Aucune timeline précédente, vérifier s'il y a des timelines disponibles
+      this.checkForAvailableTimelines();
+      return;
+    }
+
+    // Charger la timeline depuis l'API
+    fetch(`/timelines/api/${lastTimelineId}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.timeline) {
+        this.setCurrentTimeline(data.timeline);
+        this.loadTimelineData(data.timeline);
+        this.switchToTab('modules'); // Basculer vers l'onglet modules
+        console.log('Dernière timeline chargée:', data.timeline.name);
+      } else {
+        // Timeline non trouvée, supprimer de localStorage et vérifier les timelines disponibles
+        localStorage.removeItem('lastTimelineId');
+        console.log('Dernière timeline non trouvée, supprimée du cache');
+        this.checkForAvailableTimelines();
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors du chargement de la dernière timeline:', error);
+      localStorage.removeItem('lastTimelineId');
+      this.checkForAvailableTimelines();
+    });
+  }
+
+  /**
+   * Vérifie s'il y a des timelines disponibles et en charge une si possible
+   * Sinon, ouvre la modale de création
+   * @returns {void}
+   * @private
+   */
+  checkForAvailableTimelines() {
+    // Charger toutes les timelines de l'utilisateur
+    fetch('/timelines/api', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success && data.timelines && data.timelines.length > 0) {
+        // Il y a des timelines, charger la plus récente
+        const mostRecentTimeline = data.timelines.reduce((latest, current) => {
+          return new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest;
+        });
+
+        this.setCurrentTimeline(mostRecentTimeline);
+        this.loadTimelineData(mostRecentTimeline);
+        this.switchToTab('modules');
+        console.log('Timeline la plus récente chargée:', mostRecentTimeline.name);
+      } else {
+        // Aucune timeline disponible, ouvrir la modale de création
+        console.log('Aucune timeline disponible, ouverture de la modale de création');
+        setTimeout(() => {
+          this.createNewTimeline();
+        }, 500); // Petit délai pour laisser la page se charger
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de la vérification des timelines disponibles:', error);
+      // En cas d'erreur, ouvrir quand même la modale de création
+      setTimeout(() => {
+        this.createNewTimeline();
+      }, 500);
+    });
   }
 
   // ================================================================================
@@ -600,17 +735,25 @@ class TimelineSequencer {
 
     // Vérifier si c'est bien un module qui est en train d'être déplacé
     if (this.isDraggingModule) {
-      this.track.classList.add('drag-over-module');
-      // Masquer les instructions dès qu'on commence à drag un module
-      this.hideInstructions();
-      // Afficher l'indicateur de temps pendant le drag
-      const rect = this.track.getBoundingClientRect();
-      const x = e.clientX - rect.left;
-      const timePosition = Math.max(0, this.pixelToTime(x));
-      this.showDragTimeIndicator(timePosition, e.clientX, e.clientY);
+      // Vérifier si une timeline est sélectionnée
+      if (this.currentTimeline) {
+        this.track.classList.add('drag-over-module');
+        // Masquer les instructions dès qu'on commence à drag un module
+        this.hideInstructions();
+        // Afficher l'indicateur de temps pendant le drag
+        const rect = this.track.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const timePosition = Math.max(0, this.pixelToTime(x));
+        this.showDragTimeIndicator(timePosition, e.clientX, e.clientY);
+      } else {
+        // Aucune timeline sélectionnée - montrer un feedback d'interdiction
+        this.track.classList.add('drag-disabled');
+        window.showToast?.('Sélectionnez d\'abord une chronologie', 'warning', 2000);
+      }
     } else {
       // Ce n'est pas un module valide, ne rien faire
       this.track.classList.remove('drag-over-module');
+      this.track.classList.remove('drag-disabled');
       this.hideDragTimeIndicator();
     }
   }
@@ -622,6 +765,7 @@ class TimelineSequencer {
    */
   handleDragLeave() {
     this.track.classList.remove('drag-over-module');
+    this.track.classList.remove('drag-disabled');
     this.hideDragTimeIndicator();
     // Ne pas réinitialiser isDraggingModule ici car on pourrait revenir
   }
@@ -635,8 +779,15 @@ class TimelineSequencer {
   handleDrop(e) {
     e.preventDefault();
     this.track.classList.remove('drag-over-module');
+    this.track.classList.remove('drag-disabled');
     this.hideDragTimeIndicator();
     this.isDraggingModule = false; // Réinitialiser le flag
+
+    // Vérifier qu'une timeline est sélectionnée
+    if (!this.currentTimeline) {
+      window.showToast?.('Veuillez d\'abord sélectionner ou créer une chronologie', 'error', 3000);
+      return;
+    }
 
     try {
       const moduleData = JSON.parse(e.dataTransfer.getData('text/plain'));
@@ -1269,6 +1420,11 @@ class TimelineSequencer {
    * @public
    */
   playSequence() {
+    if (!this.currentTimeline) {
+      window.showToast?.('Aucune timeline sélectionnée', 'error', 3000);
+      return;
+    }
+
     if (!this.websocketManager.isConnected) {
       window.showToast?.('Connexion WebSocket perdue', 'error', 3000);
       return;
@@ -1718,7 +1874,9 @@ class TimelineSequencer {
     })
     .then(data => {
       if (data.success && data.timeline) {
+        this.setCurrentTimeline(data.timeline); // Définir comme timeline courante
         this.loadTimelineData(data.timeline);
+        this.switchToTab('modules'); // Basculer automatiquement vers modules
         window.showToast?.('Timeline chargée avec succès', 'success', 2000);
       } else {
         throw new Error(data.error || 'Erreur lors du chargement');
@@ -1835,7 +1993,11 @@ class TimelineSequencer {
     });
     this.elements = [];
     this.selectedElement = null;
-    this.showInstructions();
+
+    // Ne remettre les instructions que si une timeline est sélectionnée
+    if (this.currentTimeline) {
+      this.showInstructions();
+    }
   }
 
   /**
@@ -1844,28 +2006,25 @@ class TimelineSequencer {
    * @public
    */
   save() {
+    if (!this.currentTimeline) {
+      window.showToast?.('Aucune timeline sélectionnée', 'error', 3000);
+      return;
+    }
+
     if (this.elements.length === 0) {
       window.showToast?.('Aucun élément dans la timeline à sauvegarder', 'warning', 3000);
       return;
     }
 
-    // Demander le nom de la timeline
-    const timelineName = prompt('Nom de la timeline:', `Timeline ${new Date().toLocaleDateString()}`);
-
-    if (!timelineName || timelineName.trim() === '') {
-      window.showToast?.('Sauvegarde annulée', 'info', 2000);
-      return;
-    }
-
     // Préparer les données
     const timelineData = {
-      name: timelineName.trim(),
+      name: this.currentTimeline.name, // Utiliser le nom existant
       data: this.generateSequence()
     };
 
-    // Envoyer à l'API
-    fetch('/timelines/api', {
-      method: 'POST',
+    // Envoyer à l'API pour mettre à jour la timeline
+    fetch(`/timelines/api/${this.currentTimeline.id}`, {
+      method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
       },
@@ -1874,6 +2033,10 @@ class TimelineSequencer {
     .then(response => response.json())
     .then(data => {
       if (data.success) {
+        // Mettre à jour la timeline courante avec les nouvelles données
+        this.currentTimeline.data = timelineData.data;
+        this.currentTimeline.updated_at = new Date().toISOString();
+
         window.showToast?.('Timeline sauvegardée avec succès', 'success', 3000);
         // Recharger la liste des timelines sauvegardées
         this.loadSavedTimelines();
@@ -1955,6 +2118,17 @@ class TimelineSequencer {
     .then(response => response.json())
     .then(data => {
       if (data.success) {
+        // Créer l'objet timeline pour la définir comme courante
+        const newTimeline = {
+          id: data.timelineId,
+          name: timelineName,
+          data: timelineData.data,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
+
+        this.setCurrentTimeline(newTimeline); // Définir comme timeline courante
+
         // Basculer vers l'onglet modules pour permettre l'édition
         this.switchToTab('modules');
 

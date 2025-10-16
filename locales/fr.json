@@ -207,6 +207,8 @@
     "create_sequence": "🎬 Créez votre séquence",
     "drag_modules_here": "Glissez vos modules ici pour créer une chronologie",
     "click_module_configure": "Cliquez sur un module pour le configurer",
+    "select_timeline_first": "📋 Sélectionnez d'abord une chronologie",
+    "create_or_select_timeline": "Créez ou sélectionnez une chronologie pour commencer à ajouter des modules",
     "module_configuration": "Configuration Module",
     "module_name": "Nom du module",
     "execution_duration": "Durée d'exécution (secondes)",

@@ -707,6 +707,12 @@
   background: rgba(32, 194, 106, 0.1);
 }
 
+.timeline-track.drag-disabled {
+  border-color: #ff6b6b;
+  background: rgba(255, 107, 107, 0.1);
+  cursor: not-allowed;
+}
+
 /* Instructions */
 .timeline-instructions {
   position: absolute;
