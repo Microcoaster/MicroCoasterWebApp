@@ -22,6 +22,7 @@
               <header class="page-header">
                 <h1 class="page-title"><%= t('timelines.timeline_sequencer') %></h1>
                 <div class="page-actions">
+                  <div id="autoSaveIndicator" class="auto-save-indicator" style="display: none;"></div>
                   <div class="timeline-viewport-info">
                     <span class="viewport-indicator" id="viewportIndicator">0s - 30s</span>
                     <small class="viewport-help">Shift+molette: naviguer | Ctrl+molette: zoom</small>
@@ -147,46 +148,24 @@
     </main>
   </div>
 
-  <div class="create-timeline-modal" id="createTimelineModal">
-    <div class="modal-content">
+  <div class="modal create-timeline-modal" id="createTimelineModal">
+    <div class="modal-card">
       <div class="modal-header">
         <h3 class="modal-title"><%= t('timelines.create_timeline') %></h3>
         <button class="close-btn" id="closeCreateTimelineBtn">&times;</button>
       </div>
 
       <form id="createTimelineForm">
-        <div class="form-group">
+        <div class="form-row">
           <label class="form-label" for="timelineName"><%= t('timelines.timeline_name') %></label>
-          <input type="text" class="form-input" id="timelineName" name="timelineName"
+          <input type="text" class="input" id="timelineName" name="timelineName"
                  placeholder="<%= t('timelines.timeline_name_placeholder') || 'Ma nouvelle chronologie' %>"
                  maxlength="100" autocomplete="off" required>
           <small class="form-help"><%= t('timelines.timeline_name_help') || 'Choisissez un nom descriptif pour votre chronologie' %></small>
         </div>
 
         <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="cancelCreateTimelineBtn"><%= t('common.cancel') %></button>
-          <button type="submit" class="btn btn-primary" id="createTimelineSubmitBtn"><%= t('timelines.create_timeline') %></button>
-        </div>
-      </form>
-    </div>
-  </div>
-    <div class="modal-content">
-      <div class="modal-header">
-        <h3 class="modal-title"><%= t('timelines.create_timeline') %></h3>
-        <button class="close-btn" id="closeCreateTimelineBtn">&times;</button>
-      </div>
-
-      <form id="createTimelineForm">
-        <div class="form-group">
-          <label class="form-label" for="timelineName"><%= t('timelines.timeline_name') %></label>
-          <input type="text" class="form-input" id="timelineName" name="timelineName"
-                 placeholder="<%= t('timelines.timeline_name_placeholder') || 'Ma nouvelle chronologie' %>"
-                 maxlength="100" autocomplete="off" required>
-          <small class="form-help"><%= t('timelines.timeline_name_help') || 'Choisissez un nom descriptif pour votre chronologie' %></small>
-        </div>
-
-        <div class="modal-actions">
-          <button type="button" class="btn btn-secondary" id="cancelCreateTimelineBtn"><%= t('common.cancel') %></button>
+          <button type="button" class="btn btn-ghost" id="cancelCreateTimelineBtn"><%= t('common.cancel') %></button>
           <button type="submit" class="btn btn-primary" id="createTimelineSubmitBtn"><%= t('timelines.create_timeline') %></button>
         </div>
       </form>
@@ -199,10 +178,15 @@
   <script src="/js/language.js"></script>
   <script src="/js/timelines.js"></script>
   <script>
+    // Modules disponibles pour la logique côté client
+    window.availableModules = <%- JSON.stringify(modules) %>;
+
     // Traductions pour le JavaScript
     window.timelineTranslations = {
       noSavedTimelines: "<%= t('timelines.no_saved_timelines') %>",
       saveFirstTimeline: "<%= t('timelines.save_first_timeline') %>",
+      noModulesYet: "<%= t('modules.no_modules_yet') %>",
+      addFirstModule: "<%= t('modules.add_first_module') %>",
       playTimeline: "<%= t('timelines.play_timeline') %>",
       stopTimeline: "<%= t('timelines.stop_timeline') %>",
       playing: "Lecture en cours...",
@@ -210,7 +194,11 @@
       create_or_select_timeline: "<%= t('timelines.create_or_select_timeline') %>",
       create_sequence: "<%= t('timelines.create_sequence') %>",
       drag_modules_here: "<%= t('timelines.drag_modules_here') %>",
-      click_module_configure: "<%= t('timelines.click_module_configure') %>"
+      click_module_configure: "<%= t('timelines.click_module_configure') %>",
+      autoSavePending: "<%= t('timelines.autoSavePending') %>",
+      autoSaveSaving: "<%= t('timelines.autoSaveSaving') %>",
+      autoSaveSaved: "<%= t('timelines.autoSaveSaved') %>",
+      autoSaveError: "<%= t('timelines.autoSaveError') %>"
     };
   </script>
 </body>

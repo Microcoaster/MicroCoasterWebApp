@@ -81,6 +81,7 @@ router.get('/', requireAuth, async (req, res) => {
       currentPage: 'timelines',
       user: user,
       modules: formattedModules,
+      modulesJson: JSON.stringify(formattedModules), // Pour accès côté client
     });
   } catch (error) {
     Logger.app.error('Erreur lors du chargement des timelines:', error);

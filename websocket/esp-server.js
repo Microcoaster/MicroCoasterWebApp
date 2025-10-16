@@ -573,9 +573,9 @@ class ESP32WebSocketServer {
           Logger.esp.warn(`💔 Custom ping timeout for ${ws.moduleId}`);
           this.handleESPDisconnection(ws, 1006, 'Custom ping timeout');
           ws.close();
-        }, 10000);
+        }, 2000);
       }
-    }, 60000);
+    }, 6000);
   }
 
   /**

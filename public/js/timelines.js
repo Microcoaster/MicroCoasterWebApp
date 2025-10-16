@@ -9,125 +9,42 @@
  */
 
 const MODULE_CONFIGS = {
-  'estop-button': {
-    name: 'Emergency Stop',
-    icon: '🛑',
-    color: '#ff4757',
+  'Audio Player': {
+    name: 'Lecteur Audio',
+    icon: '🎵',
+    color: '#ff6b6b',
     actions: {
-      activate: {
-        name: 'Activer E-Stop',
-        duration: { min: 0.1, max: 5, default: 1 },
-        params: { force_stop: { type: 'boolean', default: true, label: 'Arrêt immédiat' } },
-      },
-      deactivate: {
-        name: 'Désactiver E-Stop',
-        duration: { min: 0.1, max: 2, default: 0.5 },
-        params: {},
+      play_audio: {
+        name: 'Jouer audio',
+        duration: { min: 1, max: 300, default: 10 },
+        params: {
+          start_time: {
+            type: 'range',
+            min: 0,
+            max: 300,
+            default: 0,
+            step: 0.1,
+            label: 'Time code de départ (secondes)',
+          },
+        },
       },
     },
   },
-  'switch-track': {
+  'Switch Track': {
     name: 'Aiguillage',
     icon: '↔️',
     color: '#3742fa',
     actions: {
       switch_left: {
         name: 'Basculer à gauche',
-        duration: { min: 0.5, max: 3, default: 1.5 },
-        params: { speed: { type: 'range', min: 1, max: 100, default: 50, label: 'Vitesse' } },
+        duration: { min: 2, max: 2, default: 2 }, // Temps fixe de 2 secondes
+        params: {},
       },
       switch_right: {
         name: 'Basculer à droite',
-        duration: { min: 0.5, max: 3, default: 1.5 },
-        params: { speed: { type: 'range', min: 1, max: 100, default: 50, label: 'Vitesse' } },
+        duration: { min: 2, max: 2, default: 2 }, // Temps fixe de 2 secondes
+        params: {},
       },
-    },
-  },
-  'speed-control': {
-    name: 'Contrôle Vitesse',
-    icon: '⚡',
-    color: '#ffa502',
-    actions: {
-      set_speed: {
-        name: 'Définir vitesse',
-        duration: { min: 0.1, max: 10, default: 2 },
-        params: {
-          target_speed: {
-            type: 'range',
-            min: 0,
-            max: 100,
-            default: 50,
-            label: 'Vitesse cible (%)',
-          },
-        },
-      },
-      gradual_change: {
-        name: 'Changement graduel',
-        duration: { min: 1, max: 20, default: 5 },
-        params: {
-          from_speed: {
-            type: 'range',
-            min: 0,
-            max: 100,
-            default: 30,
-            label: 'Vitesse initiale (%)',
-          },
-          to_speed: { type: 'range', min: 0, max: 100, default: 70, label: 'Vitesse finale (%)' },
-        },
-      },
-    },
-  },
-  'led-control': {
-    name: 'LED Control',
-    icon: '💡',
-    color: '#2ed573',
-    actions: {
-      turn_on: {
-        name: 'Allumer',
-        duration: { min: 0.1, max: 60, default: 5 },
-        params: {
-          brightness: { type: 'range', min: 10, max: 100, default: 100, label: 'Luminosité (%)' },
-          color: { type: 'color', default: '#ffffff', label: 'Couleur LED' },
-        },
-      },
-      turn_off: { name: 'Éteindre', duration: { min: 0.1, max: 2, default: 0.2 }, params: {} },
-      blink: {
-        name: 'Clignoter',
-        duration: { min: 1, max: 30, default: 5 },
-        params: {
-          on_time: {
-            type: 'range',
-            min: 0.1,
-            max: 2,
-            default: 0.5,
-            label: 'Durée allumée (s)',
-            step: 0.1,
-          },
-          off_time: {
-            type: 'range',
-            min: 0.1,
-            max: 2,
-            default: 0.5,
-            label: 'Durée éteinte (s)',
-            step: 0.1,
-          },
-        },
-      },
-    },
-  },
-  'generic-module': {
-    name: 'Module Générique',
-    icon: '⚙️',
-    color: '#747d8c',
-    actions: {
-      activate: {
-        name: 'Activer',
-        duration: { min: 0.1, max: 30, default: 2 },
-        params: {
-          power: { type: 'range', min: 0, max: 100, default: 100, label: 'Puissance (%)' },
-        },
-      },
-      deactivate: { name: 'Désactiver', duration: { min: 0.1, max: 5, default: 1 }, params: {} },
     },
   },
 };
@@ -136,13 +53,13 @@ const MODULE_CONFIGS = {
  * Configuration du système de zoom timeline
  * Paramètres de zoom et navigation avec molette
  */
-const MIN_ZOOM = 0.2; // Zoom minimum (plus large)
+const MIN_ZOOM = 0.25; // Zoom minimum (plus large)
 const MAX_ZOOM = 5; // Zoom maximum (plus détaillé)
 const ZOOM_STEP = 0.1; // Incrément du zoom
 
 // Configuration du viewport timeline
-const DEFAULT_VIEWPORT_DURATION = 30; // Durée par défaut de la fenêtre (30s)
-const SCROLL_STEP = 2; // Pas de déplacement en secondes avec Shift+molette
+const DEFAULT_VIEWPORT_DURATION = 15; // Durée par défaut de la fenêtre (15s)
+const SCROLL_STEP = 1; // Pas de déplacement en secondes avec Shift+molette
 
 /**
  * Classe principale du séquenceur de chronologies
@@ -174,6 +91,7 @@ class TimelineSequencer {
     // Indicateur de temps pendant le drag & drop
     this.dragTimeIndicator = null;
     this.isDraggingModule = false; // Flag pour savoir si on drag un module
+    this.dragToastShown = false; // Flag pour éviter le spam de toast pendant le drag
 
     // Zoom state simple
     this.zoomLevel = 1; // Facteur de zoom (1 = normal)
@@ -188,6 +106,11 @@ class TimelineSequencer {
       isConnected: false,
       send: (message) => this.sendWebSocketMessage(message)
     };
+
+    // Auto-save state
+    this.autoSaveTimeout = null;
+    this.isAutoSaving = false;
+    this.autoSaveIndicator = null;
 
     this.init();
   }
@@ -246,6 +169,139 @@ class TimelineSequencer {
       localStorage.setItem('lastTimelineId', timeline.id.toString());
     } else {
       localStorage.removeItem('lastTimelineId');
+    }
+  }
+
+  /**
+   * Déclenche la sauvegarde automatique avec debounce
+   * Attend 2 secondes après la dernière modification avant de sauvegarder
+   * @returns {void}
+   * @private
+   */
+  triggerAutoSave() {
+    if (!this.currentTimeline) return;
+
+    // Annuler le timeout précédent
+    if (this.autoSaveTimeout) {
+      clearTimeout(this.autoSaveTimeout);
+    }
+
+    // Montrer l'indicateur de sauvegarde en cours
+    this.showAutoSaveIndicator('pending');
+
+    // Programmer la sauvegarde dans 2 secondes
+    this.autoSaveTimeout = setTimeout(() => {
+      this.performAutoSave();
+    }, 2000);
+  }
+
+  /**
+   * Effectue la sauvegarde automatique réelle
+   * @returns {void}
+   * @private
+   */
+  async performAutoSave() {
+    if (!this.currentTimeline || this.isAutoSaving) return;
+
+    this.isAutoSaving = true;
+    this.showAutoSaveIndicator('saving');
+
+    try {
+      // Préparer les données
+      const timelineData = {
+        name: this.currentTimeline.name,
+        data: this.generateSequence()
+      };
+
+      // Envoyer à l'API pour mettre à jour la timeline
+      const response = await fetch(`/timelines/api/${this.currentTimeline.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(timelineData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        // Mettre à jour la timeline courante avec les nouvelles données
+        this.currentTimeline.data = timelineData.data;
+        this.currentTimeline.updated_at = new Date().toISOString();
+
+        this.showAutoSaveIndicator('saved');
+
+        // Masquer l'indicateur après 2 secondes
+        setTimeout(() => {
+          this.hideAutoSaveIndicator();
+        }, 2000);
+
+        console.log('Auto-sauvegarde réussie');
+      } else {
+        throw new Error(data.error || 'Erreur lors de l\'auto-sauvegarde');
+      }
+    } catch (error) {
+      console.error('Erreur lors de l\'auto-sauvegarde:', error);
+      this.showAutoSaveIndicator('error');
+
+      // Masquer l'indicateur d'erreur après 3 secondes
+      setTimeout(() => {
+        this.hideAutoSaveIndicator();
+      }, 3000);
+    } finally {
+      this.isAutoSaving = false;
+      this.autoSaveTimeout = null;
+    }
+  }
+
+  /**
+   * Affiche l'indicateur de sauvegarde automatique
+   * @param {string} state - État de la sauvegarde ('pending', 'saving', 'saved', 'error')
+   * @returns {void}
+   * @private
+   */
+  showAutoSaveIndicator(state) {
+    if (!this.autoSaveIndicator) {
+      this.autoSaveIndicator = document.getElementById('autoSaveIndicator');
+      if (!this.autoSaveIndicator) return;
+    }
+
+    const translations = window.timelineTranslations || {};
+
+    switch (state) {
+      case 'pending':
+        this.autoSaveIndicator.textContent = translations.autoSavePending || 'Sauvegarde en attente...';
+        this.autoSaveIndicator.style.backgroundColor = '#ffa502';
+        this.autoSaveIndicator.style.color = 'white';
+        break;
+      case 'saving':
+        this.autoSaveIndicator.textContent = translations.autoSaveSaving || 'Sauvegarde en cours...';
+        this.autoSaveIndicator.style.backgroundColor = '#3742fa';
+        this.autoSaveIndicator.style.color = 'white';
+        break;
+      case 'saved':
+        this.autoSaveIndicator.textContent = translations.autoSaveSaved || '✓ Sauvegardé';
+        this.autoSaveIndicator.style.backgroundColor = '#2ed573';
+        this.autoSaveIndicator.style.color = 'white';
+        break;
+      case 'error':
+        this.autoSaveIndicator.textContent = translations.autoSaveError || '⚠ Erreur de sauvegarde';
+        this.autoSaveIndicator.style.backgroundColor = '#ff4757';
+        this.autoSaveIndicator.style.color = 'white';
+        break;
+    }
+
+    this.autoSaveIndicator.style.display = 'inline-block';
+  }
+
+  /**
+   * Masque l'indicateur de sauvegarde automatique
+   * @returns {void}
+   * @private
+   */
+  hideAutoSaveIndicator() {
+    if (this.autoSaveIndicator) {
+      this.autoSaveIndicator.style.display = 'none';
     }
   }
 
@@ -390,11 +446,95 @@ class TimelineSequencer {
       window.showToast?.(`Erreur ${moduleName}: ${errorMsg}`, 'error', 3000);
     });
 
+    // Écouter les événements de présence des modules (comme dans modules.js)
+    window.socket.on('user:module:online', (data) => {
+      this.setModulePresence(data.moduleId, true);
+    });
+
+    window.socket.on('user:module:offline', (data) => {
+      this.setModulePresence(data.moduleId, false);
+    });
+
+    // Synchronisation initiale des statuts
+    window.socket.on('module_states_sync', (data) => {
+      if (data.states) {
+        Object.entries(data.states).forEach(([moduleId, state]) => {
+          this.setModulePresence(moduleId, state.online || false);
+        });
+      }
+    });
+
+    // Demander la synchronisation initiale des statuts des modules
+    if (window.socket.connected) {
+      window.socket.emit('request_module_states');
+    } else {
+      window.socket.on('connect', () => {
+        window.socket.emit('request_module_states');
+      });
+    }
+
     // Écouter les erreurs générales
     window.socket.on('error', (data) => {
       console.error('WebSocket error:', data);
       window.showToast?.('Erreur de communication', 'error', 3000);
     });
+  }
+
+  /**
+   * Met à jour l'état de présence d'un module dans la sidebar
+   * Synchronise l'affichage avec l'état réel du module (comme dans modules.js)
+   * @param {string} moduleId - Identifiant unique du module
+   * @param {boolean} online - Statut de connexion (true=en ligne, false=hors ligne)
+   * @returns {void}
+   * @private
+   */
+  setModulePresence(moduleId, online) {
+    // Update sidebar module items and module panels (keep parity with modules.js behavior)
+    const selectors = [
+      `.module-item[data-module-id="${moduleId}"]`,
+      `.panel[data-mid="${moduleId}"]`
+    ];
+
+    selectors.forEach(sel => {
+      document.querySelectorAll(sel).forEach(element => {
+        // Mettre à jour les classes CSS
+        element.classList.toggle('online', online);
+        element.classList.toggle('offline', !online);
+
+        // Mettre à jour l'attribut data
+        element.dataset.isOnline = online.toString();
+
+        // Mettre à jour le badge de statut si présent
+        const stateBadge = element.querySelector('.state');
+        if (stateBadge) {
+          stateBadge.textContent = online ? (window.t ? window.t('common.online') : 'En ligne') : (window.t ? window.t('common.offline') : 'Hors ligne');
+          stateBadge.classList.toggle('online', online);
+          stateBadge.classList.toggle('offline', !online);
+        }
+
+        // Dispatch a presence event so any controllers can react
+        element.dispatchEvent(new CustomEvent(online ? 'mc:online' : 'mc:offline'));
+      });
+    });
+
+    // Also update any timeline action cards that reference this module
+    document.querySelectorAll(`.timeline-action[data-module-id="${moduleId}"]`).forEach(el => {
+      el.classList.toggle('online', online);
+      el.classList.toggle('offline', !online);
+      el.dataset.isOnline = online.toString();
+
+      // Update status-dot classes and tooltip for accessibility
+      const dot = el.querySelector('.status-dot');
+      if (dot) {
+        dot.classList.toggle('online', online);
+        dot.classList.toggle('offline', !online);
+        dot.setAttribute('title', online ? (window.t ? window.t('common.online') : 'En ligne') : (window.t ? window.t('common.offline') : 'Hors ligne'));
+        dot.setAttribute('aria-hidden', 'true');
+      }
+    });
+
+    // Re-apply any online filters if present (mirrors modules.js behavior)
+    window.applyOnlineFilter?.();
   }
 
   /**
@@ -572,15 +712,72 @@ class TimelineSequencer {
 
   /**
    * Convertit une position en pixels en temps absolu dans la timeline
+   * Applique un snapping intelligent vers les valeurs temporelles les plus proches
    * @param {number} pixelPosition - Position en pixels à convertir
-   * @returns {number} Temps correspondant en secondes
+   * @returns {number} Temps correspondant en secondes avec snapping
    * @public
    */
   pixelToTime(pixelPosition) {
     // Convertir la position en pixels en temps absolu dans la timeline
     const trackWidth = this.track.offsetWidth;
     const relativePosition = pixelPosition / trackWidth; // Position en pourcentage
-    return this.viewportStart + relativePosition * this.viewportDuration;
+    const absoluteTime = this.viewportStart + relativePosition * this.viewportDuration;
+
+    // Appliquer le snapping vers les valeurs les plus proches
+    return this.snapToNearestRoundTime(absoluteTime);
+  }
+
+  /**
+   * Applique un snapping intelligent vers les valeurs temporelles les plus proches
+   * Priorité : chiffres ronds (1s, 2s...) > demi-secondes (0.5s, 1.5s...) > centièmes libres
+   * @param {number} time - Temps en secondes à ajuster
+   * @returns {number} Temps ajusté avec snapping ou précision native
+   * @private
+   */
+  snapToNearestRoundTime(time) {
+    // Distance maximale pour le snapping (en pixels)
+    const maxSnapDistance = 15; // pixels pour les chiffres ronds (distance modérée)
+    const maxSnapDistanceHalves = 6; // pixels pour les demi-secondes (distance plus petite)
+    const trackWidth = this.track.offsetWidth;
+    const viewportDuration = this.viewportDuration || DEFAULT_VIEWPORT_DURATION;
+    const pixelsPerSecond = trackWidth / viewportDuration;
+
+    // Calculer les seuils en secondes
+    const snapThresholdRound = maxSnapDistance / pixelsPerSecond;
+    const snapThresholdHalves = maxSnapDistanceHalves / pixelsPerSecond;
+
+    // Générer les cibles de snapping par ordre de priorité
+    const snapTargets = [];
+
+    // Priorité 1: Chiffres ronds (1s, 2s, 3s, etc.) - snapping fort
+    for (let i = 0; i <= Math.ceil(time + 5); i++) {
+      snapTargets.push({ time: i, priority: 1, threshold: snapThresholdRound });
+    }
+
+    // Priorité 2: Demi-secondes (0.5s, 1.5s, 2.5s, etc.) - snapping plus faible
+    for (let i = 0; i <= Math.ceil(time + 5); i++) {
+      snapTargets.push({ time: i + 0.5, priority: 2, threshold: snapThresholdHalves });
+    }
+
+    // Pas de snapping pour les centièmes de seconde (0.01s, 0.02s, etc.)
+
+    // Trouver la cible la plus proche dans le seuil
+    let bestSnap = null;
+    let bestDistance = Infinity;
+
+    for (const target of snapTargets) {
+      const distance = Math.abs(time - target.time);
+      if (distance < target.threshold && distance < bestDistance) {
+        bestDistance = distance;
+        bestSnap = target;
+      } else if (distance === bestDistance && target.priority < bestSnap.priority) {
+        // Même distance, mais priorité plus haute
+        bestSnap = target;
+      }
+    }
+
+    // Retourner le temps arrondi si un snapping a été trouvé, sinon le temps original
+    return bestSnap ? Math.round(bestSnap.time * 100) / 100 : time;
   }
 
   /**
@@ -637,18 +834,24 @@ class TimelineSequencer {
   }
 
   /**
-   * Formate une durée en secondes en chaîne lisible
-   * @param {number} seconds - Durée en secondes à formater
-   * @returns {string} Durée formatée (ex: '5s', '2min30s')
+   * Formate un temps en secondes pour l'affichage
+   * Affiche sans décimales pour les nombres entiers, avec 2 décimales sinon
+   * @param {number} seconds - Temps en secondes
+   * @returns {string} Durée formatée (ex: '5s', '1.50s', '2min30s')
    * @private
    */
   formatTime(seconds) {
     if (seconds < 60) {
-      return seconds < 10 ? `${seconds.toFixed(1)}s` : `${Math.round(seconds)}s`;
+      return seconds % 1 === 0 ? `${seconds}s` : `${seconds.toFixed(2)}s`;
     }
     const minutes = Math.floor(seconds / 60);
-    const remainingSeconds = Math.round(seconds % 60);
-    return remainingSeconds === 0 ? `${minutes}min` : `${minutes}min${remainingSeconds}s`;
+    const remainingSeconds = seconds % 60;
+    if (remainingSeconds % 1 === 0) {
+      const remainingInt = Math.round(remainingSeconds);
+      return remainingInt === 0 ? `${minutes}min` : `${minutes}min${remainingInt}s`;
+    } else {
+      return `${minutes}min${remainingSeconds.toFixed(2)}s`;
+    }
   }
 
   // ================================================================================
@@ -672,6 +875,7 @@ class TimelineSequencer {
       this.isDraggingModule = false;
       this.track.classList.remove('drag-over-module');
       this.hideDragTimeIndicator();
+      this.dragToastShown = false; // Réinitialiser le flag du toast
       
       // Si le drag s'est terminé sans drop et que la timeline est vide, remettre les instructions
       if (this.elements.length === 0) {
@@ -748,7 +952,11 @@ class TimelineSequencer {
       } else {
         // Aucune timeline sélectionnée - montrer un feedback d'interdiction
         this.track.classList.add('drag-disabled');
-        window.showToast?.('Sélectionnez d\'abord une chronologie', 'warning', 2000);
+        // Afficher le toast seulement une fois pendant le drag
+        if (!this.dragToastShown) {
+          window.showToast?.('Sélectionnez d\'abord une chronologie', 'warning', 2000);
+          this.dragToastShown = true;
+        }
       }
     } else {
       // Ce n'est pas un module valide, ne rien faire
@@ -767,6 +975,7 @@ class TimelineSequencer {
     this.track.classList.remove('drag-over-module');
     this.track.classList.remove('drag-disabled');
     this.hideDragTimeIndicator();
+    this.dragToastShown = false; // Réinitialiser le flag du toast
     // Ne pas réinitialiser isDraggingModule ici car on pourrait revenir
   }
 
@@ -947,10 +1156,11 @@ class TimelineSequencer {
    * @param {Object} moduleData - Données du module à ajouter
    * @param {number} x - Position X en pixels
    * @param {number} trackIndex - Index de la piste (0-7)
+   * @param {boolean} [triggerAutoSave=true] - Si true, déclenche l'auto-sauvegarde après ajout
    * @returns {void}
    * @public
    */
-  addElementToTimeline(moduleData, x, trackIndex) {
+  addElementToTimeline(moduleData, x, trackIndex, triggerAutoSave = true) {
     const timePosition = Math.max(0, this.pixelToTime(x));
     const moduleConfig = this.getModuleConfig(moduleData.type);
     const defaultAction = Object.keys(moduleConfig.actions)[0];
@@ -971,9 +1181,13 @@ class TimelineSequencer {
       <div class="element-header">
         <div class="element-icon">${moduleConfig.icon}</div>
         <div class="element-name">${moduleData.name}</div>
-        <div class="element-duration">${defaultDuration}s</div>
       </div>
       <div class="element-action">${moduleConfig.actions[defaultAction].name}</div>
+      <div class="element-footer">
+        <div class="element-module-id">${moduleData.id}</div>
+        <div class="element-duration">${this.formatTime(defaultDuration)}</div>
+      </div>
+      <div class="status-dot" aria-hidden="true"></div>
     `;
 
     // Events
@@ -990,6 +1204,26 @@ class TimelineSequencer {
     });
 
     this.track.appendChild(element);
+    // set initial online/offline class on the action card
+    if (moduleData.isOnline) {
+      element.classList.add('online');
+      element.classList.remove('offline');
+    } else {
+      element.classList.add('offline');
+      element.classList.remove('online');
+    }
+
+    // Also set initial classes on the status-dot
+    const dot = element.querySelector('.status-dot');
+    if (dot) {
+      if (moduleData.isOnline) {
+        dot.classList.add('online');
+        dot.classList.remove('offline');
+      } else {
+        dot.classList.add('offline');
+        dot.classList.remove('online');
+      }
+    }
     this.elements.push({
       element: element,
       moduleData: moduleData,
@@ -1004,6 +1238,11 @@ class TimelineSequencer {
     this.updateElementInViewport(this.elements[this.elements.length - 1]);
 
     this.hideInstructions();
+
+    // Déclencher l'auto-sauvegarde seulement si demandé
+    if (triggerAutoSave) {
+      this.triggerAutoSave();
+    }
   }
 
   /**
@@ -1051,7 +1290,18 @@ class TimelineSequencer {
    * @private
    */
   getModuleConfig(moduleType) {
-    return MODULE_CONFIGS[moduleType] || MODULE_CONFIGS['generic-module'];
+    return MODULE_CONFIGS[moduleType] || {
+      name: 'Module inconnu',
+      icon: '❓',
+      color: '#666666',
+      actions: {
+        unknown: {
+          name: 'Action inconnue',
+          duration: { min: 1, max: 10, default: 1 },
+          params: {},
+        },
+      },
+    };
   }
 
   /**
@@ -1267,7 +1517,7 @@ class TimelineSequencer {
     const moduleConfig = this.getModuleConfig(timelineElement.element.dataset.moduleType);
     const actionConfig = moduleConfig.actions[actionType];
 
-    timelineElement.element.querySelector('.element-duration').textContent = `${duration}s`;
+    timelineElement.element.querySelector('.element-duration').textContent = this.formatTime(duration);
     timelineElement.element.querySelector('.element-action').textContent = actionConfig.name;
 
     const startTime = parseFloat(timelineElement.element.dataset.startTime);
@@ -1275,6 +1525,9 @@ class TimelineSequencer {
     this.positionElement(timelineElement.element, startTime, duration, trackIndex);
 
     modal.remove();
+
+    // Déclencher l'auto-sauvegarde
+    this.triggerAutoSave();
   }
 
   /**
@@ -1321,6 +1574,9 @@ class TimelineSequencer {
       this.draggedElement = null;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
+
+      // Déclencher l'auto-sauvegarde après le déplacement
+      this.triggerAutoSave();
     };
 
     document.addEventListener('mousemove', handleMouseMove);
@@ -1378,6 +1634,9 @@ class TimelineSequencer {
     if (this.elements.length === 0) {
       this.showInstructions();
     }
+
+    // Déclencher l'auto-sauvegarde
+    this.triggerAutoSave();
   }
 
   /**
@@ -1569,14 +1828,15 @@ class TimelineSequencer {
 
   /**
    * Génère la séquence complète pour export ou sauvegarde
-   * Compile tous les éléments en structure organisée
+   * Compile tous les éléments en structure organisée avec optimisation du stockage
    * @returns {Object} Objet séquence avec éléments et durée totale
    * @public
    */
   generateSequence() {
     const elements = this.elements.map(element => ({
-      moduleData: element.moduleData,
-      startTime: element.startTime,
+      moduleId: element.moduleData.id, // Stocker seulement l'ID pour optimisation
+      moduleType: element.moduleData.type, // Type du module (important pour la restauration)
+      startTime: Math.round(element.startTime * 100) / 100, // Arrondir à 2 décimales
       duration: element.duration,
       actionType: element.actionType,
       actionParams: element.actionParams || {},
@@ -1657,6 +1917,7 @@ class TimelineSequencer {
     if (tabName === 'modules') {
       modulesTab.classList.add('active');
       modulesPanel.classList.add('active');
+      this.checkModulesEmptyState(); // Vérifier l'état vide des modules
     } else if (tabName === 'saved') {
       savedTimelinesTab.classList.add('active');
       savedTimelinesPanel.classList.add('active');
@@ -1728,9 +1989,7 @@ class TimelineSequencer {
             ${hasMissingModules ? '<div class="missing-modules-indicator" title="Certains modules ne sont plus disponibles">⚠️</div>' : ''}
           </div>
           <div class="saved-timeline-meta">
-            Créé: ${this.formatDate(timeline.created_at)} |
-            Modifié: ${this.formatDate(timeline.updated_at)} |
-            Durée: ${this.calculateTimelineDuration(timeline)}s
+            <span class="timeline-duration">${this.formatTime(this.calculateTimelineDuration(timeline))}</span>
             ${hasMissingModules ? ` | ${validation.missingModules.length} module(s) manquant(s)` : ''}
           </div>
           ${hasMissingModules ? `
@@ -1764,8 +2023,10 @@ class TimelineSequencer {
 
     if (timeline.data && timeline.data.elements) {
       timeline.data.elements.forEach(element => {
-        if (element.moduleData && element.moduleData.id && !availableModuleIds.has(element.moduleData.id)) {
-          missingModules.push(element.moduleData.id);
+        // Vérifier si moduleId existe (nouveau format) ou moduleData.id (ancien format)
+        const moduleId = element.moduleId || (element.moduleData && element.moduleData.id);
+        if (moduleId && !availableModuleIds.has(moduleId)) {
+          missingModules.push(moduleId);
         }
       });
     }
@@ -1853,6 +2114,40 @@ class TimelineSequencer {
   }
 
   /**
+   * Vérifie et affiche l'état vide des modules si nécessaire
+   * @returns {void}
+   * @private
+   */
+  checkModulesEmptyState() {
+    const modulesList = document.querySelector('.modules-list');
+    if (!modulesList) return;
+
+    const moduleItems = modulesList.querySelectorAll('.module-item');
+    const existingEmptyState = modulesList.querySelector('.empty-state');
+
+    // Si aucun module et pas d'état vide existant, afficher l'état vide
+    if (moduleItems.length === 0 && !existingEmptyState) {
+      const translations = window.timelineTranslations || {
+        noModulesYet: 'Aucun module ajouté',
+        addFirstModule: 'Ajoutez votre premier module pour commencer.'
+      };
+
+      modulesList.innerHTML = `
+        <div class="empty-state">
+          <div>
+            <h3>${translations.noModulesYet}</h3>
+            <p>${translations.addFirstModule}</p>
+          </div>
+        </div>
+      `;
+    }
+    // Si des modules existent et qu'il y a un état vide, le supprimer
+    else if (moduleItems.length > 0 && existingEmptyState) {
+      existingEmptyState.remove();
+    }
+  }
+
+  /**
    * Charge une timeline sauvegardée
    * @param {string} timelineId - ID de la timeline à charger
    * @returns {void}
@@ -1889,6 +2184,40 @@ class TimelineSequencer {
   }
 
   /**
+   * Récupère les informations dynamiques d'un module par son ID
+   * @param {string} moduleId - ID du module à rechercher
+   * @returns {Object|null} Informations du module ou null si non trouvé
+   * @private
+   */
+  getModuleInfo(moduleId) {
+    // Chercher dans les éléments de module disponibles dans l'interface
+    const moduleElement = document.querySelector(`.module-item[data-module-id="${moduleId}"]`);
+    if (moduleElement) {
+      return {
+        id: moduleElement.dataset.moduleId,
+        name: moduleElement.dataset.moduleName,
+        type: moduleElement.dataset.moduleType,
+        isOnline: moduleElement.dataset.isOnline === 'true'
+      };
+    }
+
+    // Si non trouvé dans l'interface, chercher dans les modules chargés depuis l'API
+    if (window.availableModules) {
+      const module = window.availableModules.find(m => m.module_id === moduleId);
+      if (module) {
+        return {
+          id: module.module_id,
+          name: module.name || module.module_id,
+          type: module.type || 'Unknown',
+          isOnline: false // Par défaut offline si chargé depuis l'API
+        };
+      }
+    }
+
+    return null;
+  }
+
+  /**
    * Charge les données d'une timeline dans l'interface
    * @param {Object} timeline - Données de la timeline
    * @returns {void}
@@ -1905,12 +2234,18 @@ class TimelineSequencer {
 
     // Charger les éléments
     timeline.data.elements.forEach(elementData => {
-      if (elementData.moduleData) {
+      // Récupérer les informations dynamiques du module
+      const moduleInfo = this.getModuleInfo(elementData.moduleId);
+
+      if (moduleInfo) {
+        // Module trouvé, utiliser les informations dynamiques
+        const moduleData = moduleInfo;
+
         // Trouver la position X basée sur le temps
         const x = this.timeToPixel(elementData.startTime);
 
-        // Ajouter l'élément à la timeline
-        this.addElementToTimeline(elementData.moduleData, x, elementData.trackIndex || 0);
+        // Ajouter l'élément à la timeline sans déclencher l'auto-sauvegarde
+        this.addElementToTimeline(moduleData, x, elementData.trackIndex || 0, false);
 
         // Récupérer le dernier élément ajouté et mettre à jour ses propriétés
         const createdElement = this.elements[this.elements.length - 1];
@@ -1920,10 +2255,11 @@ class TimelineSequencer {
         createdElement.element.dataset.duration = elementData.duration.toString();
 
         // Mettre à jour l'affichage de l'action
-        const moduleConfig = this.getModuleConfig(elementData.moduleData.type);
+        const moduleConfig = this.getModuleConfig(moduleData.type);
         const actionConfig = moduleConfig.actions[elementData.actionType];
         if (actionConfig) {
           createdElement.element.querySelector('.element-action').textContent = actionConfig.name;
+          createdElement.element.querySelector('.element-duration').textContent = this.formatTime(elementData.duration);
         }
 
         // Repositionner l'élément avec les bonnes données
@@ -1933,8 +2269,24 @@ class TimelineSequencer {
           elementData.duration,
           elementData.trackIndex || 0
         );
+      } else {
+        // Module non trouvé - afficher un avertissement
+        console.warn(`Module ${elementData.moduleId} non trouvé lors du chargement de la timeline`);
+        window.showToast?.(`Module ${elementData.moduleId} non disponible`, 'warning', 3000);
       }
     });
+
+    // Ajuster le viewport selon le contenu de la timeline
+    if (timeline.data.elements && timeline.data.elements.length > 0) {
+      // Timeline avec des éléments : calculer le temps maximum + 2s
+      const maxTime = Math.max(...timeline.data.elements.map(el => el.startTime + el.duration));
+      this.viewportDuration = maxTime + 2; // Temps max + 2 secondes
+      this.viewportStart = 0; // Toujours commencer à 0
+    } else {
+      // Timeline vide : utiliser la durée par défaut (15s)
+      this.viewportDuration = DEFAULT_VIEWPORT_DURATION;
+      this.viewportStart = 0;
+    }
 
     // Mettre à jour le viewport
     this.updateViewport();
@@ -1973,7 +2325,7 @@ class TimelineSequencer {
     }
 
     // Afficher la modale
-    modal.classList.add('show');
+    modal.classList.add('open');
 
     // Focus sur le champ nom
     const nameInput = modal.querySelector('#timelineName');
@@ -2155,7 +2507,7 @@ class TimelineSequencer {
   closeCreateTimelineModal() {
     const modal = document.getElementById('createTimelineModal');
     if (modal) {
-      modal.classList.remove('show');
+      modal.classList.remove('open');
     }
   }
 }
