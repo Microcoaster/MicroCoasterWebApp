@@ -18,13 +18,10 @@ const MODULE_CONFIGS = {
         name: 'Jouer audio',
         duration: { min: 1, max: 300, default: 10 },
         params: {
-          start_time: {
-            type: 'range',
-            min: 0,
-            max: 300,
-            default: 0,
-            step: 0.1,
-            label: 'Time code de départ (secondes)',
+          filename: {
+            type: 'audio_file_select',
+            label: 'Fichier audio',
+            default: '',
           },
         },
       },
@@ -93,6 +90,13 @@ class TimelineSequencer {
     this.isDraggingModule = false; // Flag pour savoir si on drag un module
     this.dragToastShown = false; // Flag pour éviter le spam de toast pendant le drag
 
+    // Indicateur de temps pendant le redimensionnement
+    this.resizeTimeIndicator = null;
+    this.resizingElement = null;
+    this.resizeHandle = null;
+    this.resizeType = null;
+    this.wasResizing = false;
+
     // Zoom state simple
     this.zoomLevel = 1; // Facteur de zoom (1 = normal)
     this.pixelsPerSecond = 10; // Base: 10px par seconde
@@ -111,6 +115,9 @@ class TimelineSequencer {
     this.autoSaveTimeout = null;
     this.isAutoSaving = false;
     this.autoSaveIndicator = null;
+
+    // Audio file list cache to prevent spam requests
+    this.audioFileCache = {}; // { moduleId: { files: [], timestamp: Date.now() } }
 
     this.init();
   }
@@ -430,15 +437,6 @@ class TimelineSequencer {
     this.websocketManager.isConnected = true;
     console.log('Timeline WebSocket manager initialized');
 
-    // Écouter les réponses de commandes
-    window.socket.on('command_sent', (data) => {
-      console.log('Command sent successfully:', data);
-      // Afficher un feedback visuel positif si c'est une commande timeline
-      if (data.moduleId) {
-        window.showToast?.(`Commande envoyée à ${data.moduleId}`, 'success', 2000);
-      }
-    });
-
     window.socket.on('command_error', (data) => {
       console.error('Command failed:', data);
       const moduleName = data.moduleId || 'Module inconnu';
@@ -477,6 +475,13 @@ class TimelineSequencer {
     window.socket.on('error', (data) => {
       console.error('WebSocket error:', data);
       window.showToast?.('Erreur de communication', 'error', 3000);
+    });
+
+    // Écouter les réponses de liste de fichiers audio
+    window.socket.on('audio_list_response', (data) => {
+      if (data.files && data.moduleId) {
+        this.populateAudioFileSelect(data.moduleId, data.files);
+      }
     });
   }
 
@@ -561,6 +566,47 @@ class TimelineSequencer {
 
     console.log('Sending WebSocket message:', serverMessage);
     window.socket.emit('send_module_command', serverMessage);
+  }
+
+  /**
+   * Remplit la liste des fichiers audio dans un select de configuration
+   * Met à jour le select avec les fichiers reçus via WebSocket
+   * @param {string} moduleId - ID du module Audio Player
+   * @param {Array<string>} files - Liste des noms de fichiers audio
+   * @returns {void}
+   * @private
+   */
+  populateAudioFileSelect(moduleId, files) {
+    // Mettre à jour le cache avec les nouvelles données
+    this.audioFileCache[moduleId] = {
+      files: files,
+      timestamp: Date.now()
+    };
+
+    // Trouver tous les selects audio pour ce module
+    const audioSelects = document.querySelectorAll(`.audio-file-select[data-module-id="${moduleId}"]`);
+    
+    audioSelects.forEach(select => {
+      // Sauvegarder la valeur actuellement sélectionnée
+      const currentValue = select.value || select.dataset.currentValue || '';
+      
+      // Vider les options existantes
+      select.innerHTML = '<option value="">Sélectionnez un fichier audio</option>';
+      
+      // Ajouter les fichiers comme options
+      files.forEach(file => {
+        const option = document.createElement('option');
+        option.value = file;
+        option.textContent = file;
+        select.appendChild(option);
+      });
+      
+      // Restaurer la valeur précédemment sélectionnée si elle existe dans la nouvelle liste
+      if (currentValue && files.includes(currentValue)) {
+        select.value = currentValue;
+      }
+      // Si la valeur actuelle n'existe pas dans la liste, ne rien sélectionner (valeur vide)
+    });
   }
 
   // ================================================================================
@@ -776,8 +822,8 @@ class TimelineSequencer {
       }
     }
 
-    // Retourner le temps arrondi si un snapping a été trouvé, sinon le temps original
-    return bestSnap ? Math.round(bestSnap.time * 100) / 100 : time;
+    // Retourner le temps arrondi si un snapping a été trouvé, sinon le temps original arrondi à 2 décimales
+    return bestSnap ? Math.round(bestSnap.time * 100) / 100 : Math.round(time * 100) / 100;
   }
 
   /**
@@ -1019,8 +1065,20 @@ class TimelineSequencer {
         // Aucune piste disponible, afficher un message d'erreur
         window.showToast?.('Impossible de placer le module ici : toutes les pistes sont occupées à cette position', 'error', 3000);
       } else {
-        // Piste disponible trouvée, placer le module
-        this.addElementToTimeline(moduleData, x, trackIndex);
+        // Vérifier les conflits temporels pour le même module avant de placer
+        const defaultDuration = this.getModuleConfig(moduleData.type).actions[this.dragModuleAction].duration.default;
+        const hasConflict = this.hasModuleTimeConflict(moduleData.id, timePosition, defaultDuration);
+
+        if (hasConflict) {
+          // Conflit détecté - annuler le placement et afficher un toast d'avertissement
+          window.showToast?.('Impossible de placer ce module : conflit temporel avec une action existante du même module', 'error', 3000);
+
+          // Remettre l'élément dans la sidebar (pas de placement sur la timeline)
+          // L'élément reste dans la sidebar, pas de nettoyage nécessaire
+        } else {
+          // Pas de conflit - placer le module normalement
+          this.addElementToTimeline(moduleData, x, trackIndex);
+        }
       }
 
       // Nettoyer les variables temporaires
@@ -1083,17 +1141,121 @@ class TimelineSequencer {
   }
 
   /**
+   * Trouve la meilleure piste disponible pour le déplacement d'un élément
+   * Privilégie les pistes adjacentes au module existant en cas de collision
+   * @param {number} timePosition - Position temporelle souhaitée
+   * @param {number} preferredTrackIndex - Index de piste préféré (calculé depuis la souris)
+   * @param {HTMLElement} draggedElement - Élément en cours de déplacement
+   * @returns {Object|null} Objet {trackIndex, timePosition} ou null si aucune piste disponible
+   * @private
+   */
+  findBestTrackForDrag(timePosition, preferredTrackIndex, draggedElement) {
+    const duration = parseFloat(draggedElement.dataset.duration);
+    const draggedElementData = this.elements.find(e => e.element === draggedElement);
+
+    // Distance maximale pour considérer qu'on est "proche" de la bordure d'un module (en pixels)
+    const maxSnapDistance = 20; // pixels
+    const trackWidth = this.track.offsetWidth;
+    const pixelsPerSecond = trackWidth / this.viewportDuration;
+    const snapThresholdSeconds = maxSnapDistance / pixelsPerSecond;
+
+    // Chercher si on est proche de la bordure d'un module existant sur la piste préférée
+    let bestSnapPosition = timePosition; // Position par défaut
+    let bestSnapDistance = snapThresholdSeconds;
+
+    for (const element of this.elements) {
+      if (element === draggedElementData) continue;
+      if (element.trackIndex !== preferredTrackIndex) continue;
+
+      const elementStart = element.startTime;
+      const elementEnd = element.startTime + element.duration;
+
+      // Vérifier proximité avec la bordure gauche (fin du module existant)
+      const leftDistance = Math.abs(timePosition - elementEnd);
+      if (leftDistance < bestSnapDistance) {
+        bestSnapPosition = elementEnd;
+        bestSnapDistance = leftDistance;
+      }
+
+      // Vérifier proximité avec la bordure droite (début du module existant)
+      const rightDistance = Math.abs((timePosition + duration) - elementStart);
+      if (rightDistance < bestSnapDistance) {
+        bestSnapPosition = elementStart - duration;
+        bestSnapDistance = rightDistance;
+      }
+    }
+
+    // Utiliser la position d'accrochage si elle est disponible
+    const finalTimePosition = bestSnapDistance < snapThresholdSeconds ? bestSnapPosition : timePosition;
+
+    // Vérifier si la position finale est disponible sur la piste préférée
+    if (this.isTrackAvailableForDuration(finalTimePosition, duration, preferredTrackIndex, draggedElementData)) {
+      return { trackIndex: preferredTrackIndex, timePosition: finalTimePosition };
+    }
+
+    // Logique de collision normale si pas d'accrochage trouvé ou position occupée
+    // Chercher un module existant qui cause la collision sur la piste préférée
+    const conflictingElement = this.elements.find(element => {
+      if (element === draggedElementData || element.trackIndex !== preferredTrackIndex) return false;
+      const startA = finalTimePosition;
+      const endA = finalTimePosition + duration;
+      const startB = element.startTime;
+      const endB = element.startTime + element.duration;
+      return startA < endB && endA > startB;
+    });
+
+    if (conflictingElement) {
+      // Il y a un conflit avec un module existant
+      // Essayer les pistes adjacentes (gauche et droite du module existant)
+      const conflictingTrack = conflictingElement.trackIndex;
+
+      // Essayer d'abord la piste au-dessus (index plus petit)
+      if (conflictingTrack > 0 && this.isTrackAvailableForDuration(finalTimePosition, duration, conflictingTrack - 1, draggedElementData)) {
+        return { trackIndex: conflictingTrack - 1, timePosition: finalTimePosition };
+      }
+
+      // Puis la piste en-dessous (index plus grand)
+      if (conflictingTrack < 7 && this.isTrackAvailableForDuration(finalTimePosition, duration, conflictingTrack + 1, draggedElementData)) {
+        return { trackIndex: conflictingTrack + 1, timePosition: finalTimePosition };
+      }
+    }
+
+    // Si pas de conflit spécifique trouvé ou que les pistes adjacentes ne marchent pas,
+    // chercher une piste disponible dans l'ordre de proximité
+    const availableTracks = [];
+    for (let trackIndex = 0; trackIndex <= 7; trackIndex++) {
+      if (this.isTrackAvailableForDuration(finalTimePosition, duration, trackIndex, draggedElementData)) {
+        availableTracks.push(trackIndex);
+      }
+    }
+
+    if (availableTracks.length === 0) {
+      return null; // Aucune piste disponible
+    }
+
+    // Retourner la piste disponible la plus proche de la piste préférée
+    const bestTrackIndex = availableTracks.reduce((closest, current) => {
+      const currentDistance = Math.abs(current - preferredTrackIndex);
+      const closestDistance = Math.abs(closest - preferredTrackIndex);
+      return currentDistance < closestDistance ? current : closest;
+    });
+
+    return { trackIndex: bestTrackIndex, timePosition: finalTimePosition };
+  }
+
+  /**
    * Vérifie si une piste est disponible sur toute la durée d'un module à une position temporelle donnée
    * @param {number} timePosition - Position temporelle de début en secondes
    * @param {number} duration - Durée du module à placer
    * @param {number} trackIndex - Index de la piste à vérifier (0-7)
+   * @param {Object} [excludeElement=null] - Élément à exclure de la vérification (utile pour le drag)
    * @returns {boolean} True si la piste est disponible sur toute la durée
    * @private
    */
-  isTrackAvailableForDuration(timePosition, duration, trackIndex) {
+  isTrackAvailableForDuration(timePosition, duration, trackIndex, excludeElement = null) {
     // Vérifier si un élément existe déjà sur cette piste pendant toute la durée
     return !this.elements.some(element => {
-      if (element.trackIndex !== trackIndex) return false;
+      if (element === excludeElement || element.trackIndex !== trackIndex) return false;
       // Chevauchement d'intervalles
       const startA = timePosition;
       const endA = timePosition + duration;
@@ -1101,6 +1263,131 @@ class TimelineSequencer {
       const endB = element.startTime + element.duration;
       return startA < endB && endA > startB;
     });
+  }
+
+  /**
+   * Vérifie s'il y a un conflit temporel pour le même module physique
+   * Un module ne peut pas avoir deux actions qui se chevauchent dans le temps
+   * @param {string} moduleId - ID du module à vérifier
+   * @param {number} timePosition - Position temporelle proposée pour la nouvelle action
+   * @param {number} duration - Durée de la nouvelle action
+   * @param {Object} [excludeElement=null] - Élément à exclure de la vérification (utile pour le drag)
+   * @returns {boolean} True s'il y a un conflit temporel avec le même module
+   * @private
+   */
+  hasModuleTimeConflict(moduleId, timePosition, duration, excludeElement = null) {
+    // Vérifier si un élément du même module existe déjà dans cette plage temporelle
+    return this.elements.some(element => {
+      if (element === excludeElement || element.moduleData.id !== moduleId) return false;
+
+      // Chevauchement d'intervalles temporels (même module)
+      const startA = timePosition;
+      const endA = timePosition + duration;
+      const startB = element.startTime;
+      const endB = element.startTime + element.duration;
+
+      return startA < endB && endA > startB;
+    });
+  }
+
+  /**
+   * Trouve la prochaine position temporelle disponible pour un module
+   * Suggère automatiquement le prochain créneau libre après la dernière action du module
+   * @param {string} moduleId - ID du module
+   * @param {number} preferredDuration - Durée souhaitée pour la nouvelle action
+   * @param {Object} [excludeElement=null] - Élément à exclure de la vérification de conflit
+   * @returns {number|null} Position temporelle suggérée ou null si aucune position trouvée
+   * @private
+   */
+  findNextAvailableTimeForModule(moduleId, preferredDuration, excludeElement = null) {
+    // Récupérer toutes les actions du module, triées par temps de début
+    // Exclure l'élément en cours de déplacement pour éviter les faux positifs
+    const moduleActions = this.elements
+      .filter(element => element.moduleData.id === moduleId && element !== excludeElement)
+      .sort((a, b) => a.startTime - b.startTime);
+
+    if (moduleActions.length === 0) {
+      // Aucun action pour ce module (ou seulement l'élément exclu), suggérer le début (0s)
+      return 0;
+    }
+
+    // Trouver la première plage libre après chaque action
+    for (let i = 0; i < moduleActions.length; i++) {
+      const currentAction = moduleActions[i];
+      const currentEndTime = currentAction.startTime + currentAction.duration;
+
+      // Vérifier si on peut placer après cette action
+      if (!this.hasModuleTimeConflict(moduleId, currentEndTime, preferredDuration, excludeElement)) {
+        return currentEndTime;
+      }
+    }
+
+    // Si aucune plage trouvée entre les actions existantes, placer après la dernière
+    const lastAction = moduleActions[moduleActions.length - 1];
+    const afterLastAction = lastAction.startTime + lastAction.duration;
+
+    // Vérifier que cette position est disponible
+    if (!this.hasModuleTimeConflict(moduleId, afterLastAction, preferredDuration, excludeElement)) {
+      return afterLastAction;
+    }
+
+    // Si toujours conflit, essayer quelques secondes plus tard (jusqu'à 10s)
+    for (let offset = 1; offset <= 10; offset++) {
+      const testTime = afterLastAction + offset;
+      if (!this.hasModuleTimeConflict(moduleId, testTime, preferredDuration, excludeElement)) {
+        return testTime;
+      }
+    }
+
+    return null; // Aucune position disponible trouvée
+  }
+
+  /**
+   * Affiche les zones de suggestion de placement pour un module
+   * Montre visuellement les positions disponibles pour éviter les conflits
+   * @param {string} moduleId - ID du module pour lequel afficher les suggestions
+   * @param {number} duration - Durée de l'action à placer
+   * @param {Object} [excludeElement=null] - Élément à exclure des vérifications de conflit
+   * @returns {void}
+   * @private
+   */
+  showPlacementSuggestions(moduleId, duration, excludeElement = null) {
+    // Supprimer les suggestions précédentes
+    this.hidePlacementSuggestions();
+
+    // Trouver les positions suggérées
+    const suggestedTime = this.findNextAvailableTimeForModule(moduleId, duration, excludeElement);
+
+    if (suggestedTime !== null) {
+      // Créer une zone de suggestion visuelle
+      const zone = document.createElement('div');
+      zone.className = 'placement-zone suggestion';
+
+      // Calculer la position et largeur de la zone
+      const pixelStart = this.timeToPixel(suggestedTime);
+      const pixelEnd = this.timeToPixel(suggestedTime + duration);
+
+      zone.style.left = `${pixelStart}px`;
+      zone.style.width = `${pixelEnd - pixelStart}px`;
+
+      // Ajouter au track
+      this.track.appendChild(zone);
+
+      // Stocker la référence pour pouvoir la supprimer plus tard
+      this.currentPlacementZone = zone;
+    }
+  }
+
+  /**
+   * Masque les zones de suggestion de placement
+   * @returns {void}
+   * @private
+   */
+  hidePlacementSuggestions() {
+    if (this.currentPlacementZone) {
+      this.currentPlacementZone.remove();
+      this.currentPlacementZone = null;
+    }
   }
 
   /**
@@ -1167,7 +1454,7 @@ class TimelineSequencer {
     const defaultDuration = moduleConfig.actions[defaultAction].duration.default;
 
     const element = document.createElement('div');
-    element.className = `timeline-action ${moduleData.type}`;
+    element.className = `timeline-action ${moduleData.type} visible`;
     element.dataset.moduleId = moduleData.id;
     element.dataset.moduleType = moduleData.type;
     element.dataset.actionType = defaultAction;
@@ -1188,19 +1475,43 @@ class TimelineSequencer {
         <div class="element-duration">${this.formatTime(defaultDuration)}</div>
       </div>
       <div class="status-dot" aria-hidden="true"></div>
+      <div class="resize-handle resize-left" data-resize="left"></div>
+      <div class="resize-handle resize-right" data-resize="right"></div>
     `;
 
     // Events
     element.addEventListener('click', e => {
       e.stopPropagation();
+      
+      // Ne pas ouvrir la modale si c'était un drag ou un resize récent
+      if (this.wasDragging || this.wasResizing) {
+        this.wasDragging = false;
+        this.wasResizing = false;
+        return;
+      }
+      
       this.selectElement(element);
       this.openConfig(element);
     });
 
     element.addEventListener('mousedown', e => {
-      if (e.target === element || e.target.parentElement === element) {
-        this.startDrag(element, e);
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Vérifier si on clique sur une poignée de redimensionnement
+      const resizeHandle = e.target.closest('.resize-handle');
+      if (resizeHandle) {
+        this.startResize(element, resizeHandle, e);
+        return;
       }
+      
+      // Marquer le début du drag potentiel
+      this.dragStartTime = Date.now();
+      this.dragStartX = e.clientX;
+      this.dragStartY = e.clientY;
+      this.wasDragging = false;
+      
+      this.startDrag(element, e);
     });
 
     this.track.appendChild(element);
@@ -1245,16 +1556,6 @@ class TimelineSequencer {
     }
   }
 
-  /**
-   * Positionne un élément dans la timeline selon ses paramètres temporels
-   * Met à jour les données et la position visuelle de l'élément
-   * @param {HTMLElement} element - Élément DOM à positionner
-   * @param {number} startTime - Temps de début en secondes
-   * @param {number} duration - Durée en secondes
-   * @param {number} trackIndex - Index de la piste (0-7)
-   * @returns {void}
-   * @public
-   */
   positionElement(element, startTime, duration, trackIndex) {
     // Stocker les données temporelles sur l'élément
     element.dataset.startTime = startTime;
@@ -1363,9 +1664,10 @@ class TimelineSequencer {
 
         <div class="config-section" id="actionConfigContainer">
           ${this.generateActionConfigUI(moduleType, actionType, {
+            startTime: parseFloat(timelineElement.element.dataset.startTime),
             duration: parseFloat(timelineElement.element.dataset.duration),
             ...timelineElement.actionParams,
-          })}
+          }, timelineElement.element.dataset.moduleId)}
         </div>
 
         <div class="config-section">
@@ -1387,8 +1689,9 @@ class TimelineSequencer {
     modal.querySelector('#actionTypeSelect').addEventListener('change', e => {
       const container = modal.querySelector('#actionConfigContainer');
       container.innerHTML = this.generateActionConfigUI(moduleType, e.target.value, {
+        startTime: parseFloat(timelineElement.element.dataset.startTime),
         duration: parseFloat(timelineElement.element.dataset.duration),
-      });
+      }, timelineElement.element.dataset.moduleId);
     });
     modal.addEventListener('click', e => {
       if (e.target === modal) modal.remove();
@@ -1401,6 +1704,20 @@ class TimelineSequencer {
         if (valueSpan) valueSpan.textContent = e.target.value;
       }
     });
+
+    // Validation des décimales pour les inputs numériques
+    modal.addEventListener('input', e => {
+      if (e.target.type === 'number' && e.target.classList.contains('config-input')) {
+        const value = parseFloat(e.target.value);
+        if (!isNaN(value)) {
+          // Arrondir à 2 décimales maximum
+          const roundedValue = Math.round(value * 100) / 100;
+          if (roundedValue !== value) {
+            e.target.value = roundedValue;
+          }
+        }
+      }
+    });
   }
 
   /**
@@ -1409,25 +1726,39 @@ class TimelineSequencer {
    * @param {string} moduleType - Type du module
    * @param {string} actionType - Type d'action à configurer
    * @param {Object} [currentValues={}] - Valeurs actuelles des paramètres
+   * @param {string} [moduleId=null] - ID du module pour les paramètres dépendants du module
    * @returns {string} HTML de l'interface de configuration
    * @private
    */
-  generateActionConfigUI(moduleType, actionType, currentValues = {}) {
+  generateActionConfigUI(moduleType, actionType, currentValues = {}, moduleId = null) {
     const config = this.getModuleConfig(moduleType);
     if (!config || !config.actions[actionType]) return '';
 
     const action = config.actions[actionType];
-    let html = `<div class="action-config-section">
-      <div class="config-row">
+    let html = `<div class="action-config-section">`;
+
+    // Temps de début (toujours modifiable)
+    const currentStartTime = currentValues.startTime !== undefined ? currentValues.startTime : 0;
+    html += `<div class="config-row">
+      <label class="config-label">Temps de début (secondes)</label>
+      <input type="number" class="config-input start-time-input" name="startTime"
+             min="0" max="3600" step="0.01"
+             value="${currentStartTime}">
+    </div>`;
+
+    // N'afficher la durée que si elle peut être modifiée (min != max)
+    if (action.duration.min !== action.duration.max) {
+      html += `<div class="config-row">
         <label class="config-label">Durée (secondes)</label>
         <input type="number" class="config-input duration-input" name="duration"
-               min="${action.duration.min}" max="${action.duration.max}" step="0.1"
+               min="${action.duration.min}" max="${action.duration.max}" step="0.01"
                value="${currentValues.duration || action.duration.default}">
       </div>`;
+    }
 
     // Paramètres spécifiques
     Object.entries(action.params).forEach(([paramName, paramConfig]) => {
-      html += this.generateParameterInput(paramName, paramConfig, currentValues[paramName]);
+      html += this.generateParameterInput(paramName, paramConfig, currentValues[paramName], moduleId);
     });
 
     html += `</div>`;
@@ -1440,15 +1771,65 @@ class TimelineSequencer {
    * @param {string} paramName - Nom du paramètre
    * @param {Object} config - Configuration du paramètre
    * @param {*} [currentValue=null] - Valeur actuelle du paramètre
+   * @param {string} [moduleId=null] - ID du module pour les paramètres dépendants du module
    * @returns {string} HTML du champ de saisie
    * @private
    */
-  generateParameterInput(paramName, config, currentValue = null) {
+  generateParameterInput(paramName, config, currentValue = null, moduleId = null) {
     const value = currentValue !== null ? currentValue : config.default;
     let html = `<div class="config-row">
                   <label class="config-label">${config.label || paramName}</label>`;
 
     switch (config.type) {
+      case 'audio_file_select':
+        // Vérifier si le module est en ligne
+        const moduleElement = document.querySelector(`.module-item[data-module-id="${moduleId}"]`);
+        const isOnline = moduleElement && moduleElement.classList.contains('online');
+
+        if (isOnline) {
+          // Module en ligne - récupérer la liste des fichiers
+          const fileId = `audio-files-${moduleId}-${Date.now()}`;
+          let selectHtml = `<select class="config-select audio-file-select" name="${paramName}" id="${fileId}" data-module-id="${moduleId}" data-current-value="${value}">
+            <option value="">Chargement...</option>`;
+          
+          // Si on a déjà une valeur, l'ajouter comme option temporaire
+          if (value) {
+            selectHtml += `<option value="${value}" selected>${value}</option>`;
+          }
+          
+          selectHtml += `</select>`;
+          html += selectHtml;
+
+          // Vérifier le cache avant d'envoyer une requête
+          const cachedData = this.audioFileCache[moduleId];
+          const CACHE_DURATION = 10000; // 10 secondes
+          const now = Date.now();
+
+          if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+            // Utiliser les données du cache
+            setTimeout(() => {
+              this.populateAudioFileSelect(moduleId, cachedData.files);
+            }, 50); // Petit délai pour laisser le DOM se mettre à jour
+          } else {
+            // Envoyer une nouvelle requête
+            setTimeout(() => {
+              if (window.socket && window.socket.connected) {
+                window.socket.emit('send_module_command', {
+                  moduleId: moduleId,
+                  command: 'audio_list_request',
+                  params: {}
+                });
+              }
+            }, 100);
+          }
+        } else {
+          // Module hors ligne
+          html += `<div class="offline-message">
+            <span class="offline-text">Module hors ligne - Connectez le module pour sélectionner un fichier audio</span>
+            <input type="hidden" name="${paramName}" value="${value}">
+          </div>`;
+        }
+        break;
       case 'range':
         html += `<div class="range-container">
           <input type="range" class="config-range" name="${paramName}"
@@ -1471,7 +1852,7 @@ class TimelineSequencer {
         html += `<input type="color" class="config-color" name="${paramName}" value="${value}">`;
         break;
       default:
-        html += `<input type="text" class="config-input" name="${paramName}" value="${value}">`;
+        html += `<input type="number" class="config-input" name="${paramName}" value="${value}" step="${config.step || 1}" min="${config.min || ''}" max="${config.max || ''}">`;
     }
 
     html += `</div>`;
@@ -1488,7 +1869,11 @@ class TimelineSequencer {
    */
   saveConfig(timelineElement, modal) {
     const actionType = modal.querySelector('#actionTypeSelect').value;
-    const duration = parseFloat(modal.querySelector('.duration-input').value);
+    const startTimeInput = modal.querySelector('.start-time-input');
+    const durationInput = modal.querySelector('.duration-input');
+
+    const startTime = startTimeInput ? parseFloat(startTimeInput.value) : parseFloat(timelineElement.element.dataset.startTime);
+    const duration = durationInput ? parseFloat(durationInput.value) : timelineElement.duration;
 
     const actionParams = {};
     modal
@@ -1496,7 +1881,7 @@ class TimelineSequencer {
         '.config-input, .config-range, .config-select, .config-checkbox, .config-color'
       )
       .forEach(input => {
-        if (input.name && input.name !== 'duration') {
+        if (input.name && input.name !== 'startTime' && input.name !== 'duration') {
           if (input.type === 'checkbox') {
             actionParams[input.name] = input.checked;
           } else if (input.type === 'number' || input.type === 'range') {
@@ -1509,8 +1894,10 @@ class TimelineSequencer {
 
     // Mise à jour
     timelineElement.element.dataset.actionType = actionType;
+    timelineElement.element.dataset.startTime = startTime.toFixed(2);
     timelineElement.element.dataset.duration = duration.toString();
     timelineElement.actionType = actionType;
+    timelineElement.startTime = startTime;
     timelineElement.duration = duration;
     timelineElement.actionParams = actionParams;
 
@@ -1518,9 +1905,14 @@ class TimelineSequencer {
     const actionConfig = moduleConfig.actions[actionType];
 
     timelineElement.element.querySelector('.element-duration').textContent = this.formatTime(duration);
-    timelineElement.element.querySelector('.element-action').textContent = actionConfig.name;
+    
+    // Construire le texte de l'action avec le nom du fichier audio si applicable
+    let actionText = actionConfig.name;
+    if (timelineElement.element.dataset.moduleType === 'Audio Player' && actionParams.filename) {
+      actionText = `${actionConfig.name} - ${actionParams.filename}`;
+    }
+    timelineElement.element.querySelector('.element-action').textContent = actionText;
 
-    const startTime = parseFloat(timelineElement.element.dataset.startTime);
     const trackIndex = parseInt(timelineElement.element.dataset.trackIndex) || 0;
     this.positionElement(timelineElement.element, startTime, duration, trackIndex);
 
@@ -1542,45 +1934,424 @@ class TimelineSequencer {
     this.draggedElement = element;
     this.selectElement(element);
 
+    // Ajouter une classe visuelle pendant le drag
+    element.classList.add('dragging');
+
     const rect = element.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
 
+    // Stocker la position d'origine pour pouvoir revenir en arrière en cas de conflit
+    const originalStartTime = parseFloat(element.dataset.startTime);
+    const originalDuration = parseFloat(element.dataset.duration);
+    const originalTrackIndex = parseInt(element.dataset.trackIndex);
+
+    let hasMoved = false;
+    let conflictIndicator = null;
+
     const handleMouseMove = e => {
       if (!this.draggedElement) return;
 
-      const trackRect = this.track.getBoundingClientRect();
-      const x = e.clientX - trackRect.left - offsetX;
-      const y = e.clientY - trackRect.top - offsetY;
+      e.preventDefault();
 
-      const timePosition = Math.max(0, this.pixelToTime(x));
-      const trackIndex = this.getTrackIndexFromY(y + 60); // +60 pour compenser la règle
+      // Si on n'a pas encore détecté de mouvement, vérifier la distance
+      if (!hasMoved) {
+        const deltaX = Math.abs(e.clientX - this.dragStartX);
+        const deltaY = Math.abs(e.clientY - this.dragStartY);
+        const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+        
+        // Si la distance est suffisante, c'est un drag
+        if (distance > 5) { // 5px de tolérance
+          hasMoved = true;
+          this.isPotentialDrag = false; // Ce n'est plus un potentiel clic
+        }
+      }
 
-      // Mise à jour position
-      const duration = parseFloat(this.draggedElement.dataset.duration);
-      this.positionElement(this.draggedElement, timePosition, duration, trackIndex);
-      this.draggedElement.dataset.startTime = timePosition.toFixed(2);
-      this.draggedElement.dataset.trackIndex = trackIndex.toString();
+      if (hasMoved) {
+        const trackRect = this.track.getBoundingClientRect();
+        const x = e.clientX - trackRect.left - offsetX;
+        const y = e.clientY - trackRect.top - offsetY;
 
-      // Mise à jour données
-      const elementData = this.elements.find(e => e.element === this.draggedElement);
-      if (elementData) {
-        elementData.startTime = timePosition;
-        elementData.trackIndex = trackIndex;
+        const timePosition = Math.max(0, this.pixelToTime(x));
+        const preferredTrackIndex = this.getTrackIndexFromY(y + 60); // +60 pour compenser la règle
+
+        // Trouver la meilleure piste disponible pour éviter les collisions
+        const bestPosition = this.findBestTrackForDrag(timePosition, preferredTrackIndex, this.draggedElement);
+
+        if (bestPosition !== null) {
+          // Mise à jour position avec la piste optimale et position temporelle ajustée
+          const duration = parseFloat(this.draggedElement.dataset.duration);
+          this.positionElement(this.draggedElement, bestPosition.timePosition, duration, bestPosition.trackIndex);
+          this.draggedElement.dataset.startTime = bestPosition.timePosition.toFixed(2);
+          this.draggedElement.dataset.trackIndex = bestPosition.trackIndex.toString();
+
+          // Mise à jour données
+          const elementData = this.elements.find(e => e.element === this.draggedElement);
+          if (elementData) {
+            elementData.startTime = bestPosition.timePosition;
+            elementData.trackIndex = bestPosition.trackIndex;
+          }
+
+          // Validation des conflits temporels pour le même module
+          // Utiliser la position réelle du curseur, pas la position snappée
+          const moduleId = this.draggedElement.dataset.moduleId;
+          const hasConflict = this.hasModuleTimeConflict(moduleId, timePosition, duration, elementData);
+
+          // Supprimer les indicateurs précédents
+          if (conflictIndicator) {
+            conflictIndicator.remove();
+            conflictIndicator = null;
+          }
+
+          // Supprimer les classes de feedback précédentes
+          this.draggedElement.classList.remove('conflict', 'valid-placement', 'suggestion-highlight');
+
+          if (hasConflict) {
+            // Conflit détecté - feedback visuel rouge
+            this.draggedElement.classList.add('conflict');
+
+            // Ajouter un indicateur de conflit
+            conflictIndicator = document.createElement('div');
+            conflictIndicator.className = 'conflict-indicator';
+            conflictIndicator.textContent = 'Conflit temporel';
+            this.draggedElement.appendChild(conflictIndicator);
+
+            // Afficher les zones de suggestion de placement
+            this.showPlacementSuggestions(moduleId, duration, elementData);
+          } else {
+            // Pas de conflit - feedback visuel vert
+            this.draggedElement.classList.add('valid-placement');
+
+            // Masquer les suggestions puisqu'on est dans une position valide
+            this.hidePlacementSuggestions();
+          }
+
+          // Afficher l'indicateur de temps pendant le drag
+          this.showDragTimeIndicator(bestPosition.timePosition, e.clientX, e.clientY);
+        }
+        // Si aucune piste disponible, ne rien faire (garder la position actuelle)
       }
     };
 
     const handleMouseUp = () => {
+      if (this.draggedElement) {
+        this.draggedElement.classList.remove('dragging');
+      }
+      
+      // Vérifier s'il y a un conflit à la position finale
+      const elementData = this.elements.find(e => e.element === this.draggedElement);
+      if (elementData && hasMoved) {
+        const moduleId = this.draggedElement.dataset.moduleId;
+        const currentTimePosition = parseFloat(this.draggedElement.dataset.startTime);
+        const duration = parseFloat(this.draggedElement.dataset.duration);
+        
+        const hasConflict = this.hasModuleTimeConflict(moduleId, currentTimePosition, duration, elementData);
+        
+        if (hasConflict) {
+          // Conflit détecté - remettre à la position d'origine
+          this.positionElement(this.draggedElement, originalStartTime, originalDuration, originalTrackIndex);
+          this.draggedElement.dataset.startTime = originalStartTime.toFixed(2);
+          this.draggedElement.dataset.trackIndex = originalTrackIndex.toString();
+          
+          // Remettre à jour les données
+          elementData.startTime = originalStartTime;
+          elementData.trackIndex = originalTrackIndex;
+          
+          // Afficher un toast d'erreur
+          window.showToast?.('Déplacement annulé : conflit temporel avec une action existante du même module', 'error', 3000);
+        }
+      }
+      
+      // Supprimer les indicateurs de feedback
+      if (conflictIndicator) {
+        conflictIndicator.remove();
+      }
+
+      // Supprimer les classes de feedback
+      this.draggedElement.classList.remove('conflict', 'valid-placement', 'suggestion-highlight');
+
+      // Masquer les zones de suggestion
+      this.hidePlacementSuggestions();
+      
+      // Si on a bougé, marquer que c'était un drag
+      if (hasMoved) {
+        this.wasDragging = true;
+      }
+      
       this.draggedElement = null;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
 
-      // Déclencher l'auto-sauvegarde après le déplacement
-      this.triggerAutoSave();
+      // Masquer l'indicateur de temps
+      this.hideDragTimeIndicator();
+
+      // Déclencher l'auto-sauvegarde seulement si on a vraiment bougé et pas de conflit
+      if (hasMoved && elementData) {
+        const currentTimePosition = parseFloat(this.draggedElement?.dataset.startTime || '0');
+        const hasFinalConflict = this.hasModuleTimeConflict(
+          this.draggedElement?.dataset.moduleId || '', 
+          currentTimePosition, 
+          parseFloat(this.draggedElement?.dataset.duration || '0'), 
+          elementData
+        );
+        
+        if (!hasFinalConflict) {
+          this.triggerAutoSave();
+        }
+      }
     };
 
     document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
+  }
+
+  /**
+   * Initie le redimensionnement d'un élément par ses poignées
+   * Gère le redimensionnement interactif des éléments sur la timeline
+   * @param {HTMLElement} element - Élément à redimensionner
+   * @param {HTMLElement} resizeHandle - Poignée de redimensionnement cliquée
+   * @param {MouseEvent} e - Événement de souris déclencheur
+   * @returns {void}
+   * @public
+   */
+  startResize(element, resizeHandle, e) {
+    this.resizingElement = element;
+    this.resizeHandle = resizeHandle;
+    this.resizeType = resizeHandle.dataset.resize; // 'left' ou 'right'
+    this.selectElement(element);
+
+    // Ajouter une classe visuelle pendant le redimensionnement
+    element.classList.add('resizing');
+
+    const startX = e.clientX;
+    const originalStartTime = parseFloat(element.dataset.startTime);
+    const originalDuration = parseFloat(element.dataset.duration);
+    const originalEndTime = originalStartTime + originalDuration;
+
+    // Créer l'indicateur de temps pour le redimensionnement
+    this.showResizeTimeIndicator();
+
+    let conflictIndicator = null;
+
+    const handleMouseMove = e => {
+      if (!this.resizingElement) return;
+
+      e.preventDefault();
+
+      const deltaX = e.clientX - startX;
+      const deltaTime = this.pixelToTime(deltaX) - this.pixelToTime(0);
+
+      let newStartTime = originalStartTime;
+      let newDuration = originalDuration;
+
+      if (this.resizeType === 'left') {
+        // Redimensionnement depuis la gauche - changer le temps de début
+        newStartTime = Math.max(0, originalStartTime + deltaTime);
+        newDuration = originalEndTime - newStartTime;
+        // Appliquer le snapping au nouveau temps de début
+        newStartTime = this.snapToNearestRoundTime(newStartTime);
+        newDuration = originalEndTime - newStartTime;
+      } else if (this.resizeType === 'right') {
+        // Redimensionnement depuis la droite - changer la durée
+        newDuration = Math.max(0.1, originalDuration + deltaTime);
+        // Appliquer le snapping à la nouvelle durée
+        newDuration = this.snapToNearestRoundTime(newDuration);
+      }
+
+      // Appliquer les contraintes de durée du module
+      const elementData = this.elements.find(e => e.element === element);
+      if (elementData) {
+        const moduleConfig = this.getModuleConfig(elementData.moduleData.type);
+        const actionConfig = moduleConfig.actions[elementData.actionType];
+        if (actionConfig && actionConfig.duration) {
+          newDuration = Math.max(actionConfig.duration.min, Math.min(actionConfig.duration.max, newDuration));
+        }
+      }
+
+      // Vérifier les conflits temporels pour le même module
+      const moduleId = element.dataset.moduleId;
+      const hasConflict = this.hasModuleTimeConflict(moduleId, newStartTime, newDuration, elementData);
+
+      // Supprimer l'indicateur de conflit précédent
+      if (conflictIndicator) {
+        conflictIndicator.remove();
+        conflictIndicator = null;
+      }
+
+      // Supprimer les classes de feedback précédentes
+      element.classList.remove('conflict', 'valid-placement');
+
+      if (hasConflict) {
+        // Conflit détecté - feedback visuel rouge
+        element.classList.add('conflict');
+
+        // Ajouter un indicateur de conflit
+        conflictIndicator = document.createElement('div');
+        conflictIndicator.className = 'conflict-indicator';
+        conflictIndicator.textContent = 'Conflit temporel';
+        element.appendChild(conflictIndicator);
+      } else {
+        // Pas de conflit - feedback visuel vert
+        element.classList.add('valid-placement');
+      }
+
+      // Mettre à jour l'élément
+      this.positionElement(element, newStartTime, newDuration, parseInt(element.dataset.trackIndex));
+
+      // Mettre à jour l'indicateur de temps
+      this.updateResizeTimeIndicator(newStartTime, newDuration);
+
+      // Mettre à jour le texte de durée dans l'élément
+      const durationElement = element.querySelector('.element-duration');
+      if (durationElement) {
+        durationElement.textContent = this.formatTime(newDuration);
+      }
+
+      // Mettre à jour les données
+      element.dataset.startTime = newStartTime.toFixed(2);
+      element.dataset.duration = newDuration.toString();
+
+      const resizingElementData = this.elements.find(e => e.element === this.resizingElement);
+      if (resizingElementData) {
+        resizingElementData.startTime = newStartTime;
+        resizingElementData.duration = newDuration;
+      }
+    };
+
+    const handleMouseUp = () => {
+      if (this.resizingElement) {
+        this.resizingElement.classList.remove('resizing');
+      }
+      
+      // Vérifier s'il y a un conflit à la taille finale
+      const elementData = this.elements.find(e => e.element === this.resizingElement);
+      if (elementData) {
+        const moduleId = this.resizingElement.dataset.moduleId;
+        const currentStartTime = parseFloat(this.resizingElement.dataset.startTime);
+        const currentDuration = parseFloat(this.resizingElement.dataset.duration);
+        
+        const hasConflict = this.hasModuleTimeConflict(moduleId, currentStartTime, currentDuration, elementData);
+        
+        if (hasConflict) {
+          // Conflit détecté - remettre à la taille d'origine
+          this.positionElement(this.resizingElement, originalStartTime, originalDuration, parseInt(this.resizingElement.dataset.trackIndex));
+          this.resizingElement.dataset.startTime = originalStartTime.toFixed(2);
+          this.resizingElement.dataset.duration = originalDuration.toString();
+          
+          // Remettre à jour les données
+          elementData.startTime = originalStartTime;
+          elementData.duration = originalDuration;
+          
+          // Afficher un toast d'erreur
+          window.showToast?.('Redimensionnement annulé : conflit temporel avec une action existante du même module', 'error', 3000);
+        }
+      }
+      
+      // Supprimer l'indicateur de conflit
+      if (conflictIndicator) {
+        conflictIndicator.remove();
+      }
+
+      // Supprimer les classes de feedback
+      this.resizingElement.classList.remove('conflict', 'valid-placement');
+      
+      // Marquer que c'était un resize
+      this.wasResizing = true;
+      
+      this.resizingElement = null;
+      this.resizeHandle = null;
+      this.resizeType = null;
+
+      this.hideResizeTimeIndicator();
+
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+
+      // Déclencher l'auto-sauvegarde seulement si pas de conflit final
+      if (elementData) {
+        const currentStartTime = parseFloat(this.resizingElement?.dataset.startTime || '0');
+        const currentDuration = parseFloat(this.resizingElement?.dataset.duration || '0');
+        const hasFinalConflict = this.hasModuleTimeConflict(
+          this.resizingElement?.dataset.moduleId || '', 
+          currentStartTime, 
+          currentDuration, 
+          elementData
+        );
+        
+        if (!hasFinalConflict) {
+          this.triggerAutoSave();
+        }
+      }
+    };    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  }
+
+  /**
+   * Affiche l'indicateur de temps pendant le redimensionnement
+   * @returns {void}
+   * @private
+   */
+  showResizeTimeIndicator() {
+    if (!this.resizeTimeIndicator) {
+      this.resizeTimeIndicator = document.createElement('div');
+      this.resizeTimeIndicator.className = 'resize-time-indicator';
+      this.resizeTimeIndicator.style.position = 'fixed';
+      this.resizeTimeIndicator.style.pointerEvents = 'none';
+      this.resizeTimeIndicator.style.zIndex = '1000';
+      this.resizeTimeIndicator.style.backgroundColor = 'rgba(0, 0, 0, 0.8)';
+      this.resizeTimeIndicator.style.color = 'white';
+      this.resizeTimeIndicator.style.padding = '4px 8px';
+      this.resizeTimeIndicator.style.borderRadius = '4px';
+      this.resizeTimeIndicator.style.fontSize = '12px';
+      this.resizeTimeIndicator.style.fontWeight = 'bold';
+      this.resizeTimeIndicator.style.whiteSpace = 'nowrap';
+      document.body.appendChild(this.resizeTimeIndicator);
+    }
+
+    this.resizeTimeIndicator.style.display = 'block';
+  }
+
+  /**
+   * Met à jour l'indicateur de temps pendant le redimensionnement
+   * @param {number} startTime - Nouveau temps de début
+   * @param {number} duration - Nouvelle durée
+   * @returns {void}
+   * @private
+   */
+  updateResizeTimeIndicator(startTime, duration) {
+    if (!this.resizeTimeIndicator) return;
+
+    const endTime = startTime + duration;
+    this.resizeTimeIndicator.textContent = `Début: ${this.formatTime(startTime)} | Fin: ${this.formatTime(endTime)} | Durée: ${this.formatTime(duration)}`;
+
+    // Positionner l'indicateur près de la souris
+    const mouseEvent = window.event;
+    if (mouseEvent) {
+      this.resizeTimeIndicator.style.left = `${mouseEvent.clientX + 15}px`;
+      this.resizeTimeIndicator.style.top = `${mouseEvent.clientY - 30}px`;
+    }
+  }
+
+  /**
+   * Masque l'indicateur de temps du redimensionnement
+   * @returns {void}
+   * @private
+   */
+  hideResizeTimeIndicator() {
+    if (this.resizeTimeIndicator) {
+      this.resizeTimeIndicator.style.display = 'none';
+    }
+  }
+
+  /**
+   * Masque l'indicateur de temps du drag & drop
+   * @returns {void}
+   * @private
+   */
+  hideDragTimeIndicator() {
+    if (this.dragTimeIndicator) {
+      this.dragTimeIndicator.style.display = 'none';
+    }
   }
 
   /**
@@ -2258,7 +3029,12 @@ class TimelineSequencer {
         const moduleConfig = this.getModuleConfig(moduleData.type);
         const actionConfig = moduleConfig.actions[elementData.actionType];
         if (actionConfig) {
-          createdElement.element.querySelector('.element-action').textContent = actionConfig.name;
+          // Construire le texte de l'action avec le nom du fichier audio si applicable
+          let actionText = actionConfig.name;
+          if (moduleData.type === 'Audio Player' && elementData.actionParams && elementData.actionParams.filename) {
+            actionText = `${actionConfig.name} - ${elementData.actionParams.filename}`;
+          }
+          createdElement.element.querySelector('.element-action').textContent = actionText;
           createdElement.element.querySelector('.element-duration').textContent = this.formatTime(elementData.duration);
         }
 
@@ -2280,11 +3056,19 @@ class TimelineSequencer {
     if (timeline.data.elements && timeline.data.elements.length > 0) {
       // Timeline avec des éléments : calculer le temps maximum + 2s
       const maxTime = Math.max(...timeline.data.elements.map(el => el.startTime + el.duration));
-      this.viewportDuration = maxTime + 2; // Temps max + 2 secondes
+      const targetDuration = maxTime + 2; // Temps max + 2 secondes
+      
+      // Ajuster le zoom pour que la durée cible corresponde à la durée par défaut
+      this.zoomLevel = DEFAULT_VIEWPORT_DURATION / targetDuration;
+      this.zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoomLevel)); // Limiter le zoom
+      
+      // Calculer la durée du viewport selon le zoom ajusté
+      this.viewportDuration = DEFAULT_VIEWPORT_DURATION / this.zoomLevel;
       this.viewportStart = 0; // Toujours commencer à 0
     } else {
       // Timeline vide : utiliser la durée par défaut (15s)
       this.viewportDuration = DEFAULT_VIEWPORT_DURATION;
+      this.zoomLevel = 1; // Zoom par défaut
       this.viewportStart = 0;
     }
 
@@ -2434,7 +3218,7 @@ class TimelineSequencer {
     }
 
     // Fermer la modale
-    this.closeCreateTimelineModal();
+    window.timeline.closeCreateTimelineModal();
 
     // Vider la timeline actuelle
     this.clear();

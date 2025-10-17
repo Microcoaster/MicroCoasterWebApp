@@ -1169,6 +1169,34 @@
   box-shadow: 0 0 20px rgba(239,68,68,0.22), 0 0 0 4px rgba(0,0,0,0.12) inset, 0 4px 12px rgba(0,0,0,0.35);
 }
 
+/* Resize handles */
+.resize-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 8px;
+  cursor: ew-resize;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  z-index: 30;
+}
+
+.resize-handle.resize-left {
+  left: -4px;
+}
+
+.resize-handle.resize-right {
+  right: -4px;
+}
+
+.timeline-action:hover .resize-handle {
+  opacity: 1;
+}
+
+.timeline-action.resizing .resize-handle {
+  opacity: 1;
+}
+
 /* Tweak inner header to be compact and legible on gray cards */
 .timeline-action .element-header {
   margin-bottom: 6px;
@@ -1199,6 +1227,7 @@
   );
   background-size: 20px 100%;
   transition: background-color 0.2s ease;
+  pointer-events: none;
 }
 
 .timeline-track-lane:hover {
@@ -1283,4 +1312,152 @@
   margin-right: 10px;
   transition: all 0.3s ease;
   white-space: nowrap;
+}
+
+/* ================================================================================
+   VALIDATION DE CONFLITS TEMPORELS
+   ================================================================================ */
+
+/* Feedback visuel pour les conflits temporels */
+.timeline-action.conflict {
+  border-color: #ff6b6b !important;
+  background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important;
+  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.3), 0 6px 20px rgba(255, 107, 107, 0.4) !important;
+  animation: conflictPulse 0.8s ease-in-out infinite alternate;
+}
+
+.timeline-action.valid-placement {
+  border-color: #2ed573 !important;
+  background: linear-gradient(135deg, #2ed573, #1db660) !important;
+  box-shadow: 0 0 0 3px rgba(46, 213, 115, 0.3), 0 6px 20px rgba(46, 213, 115, 0.4) !important;
+}
+
+.timeline-action.suggestion-highlight {
+  border-color: #ffa502 !important;
+  background: linear-gradient(135deg, #ffa502, #ff8c00) !important;
+  box-shadow: 0 0 0 3px rgba(255, 165, 2, 0.3), 0 6px 20px rgba(255, 165, 2, 0.4) !important;
+  animation: suggestionGlow 1.5s ease-in-out infinite alternate;
+}
+
+/* Animation de pulsation pour les conflits */
+@keyframes conflictPulse {
+  0% {
+    transform: scale(1);
+    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.3), 0 6px 20px rgba(255, 107, 107, 0.4);
+  }
+  100% {
+    transform: scale(1.02);
+    box-shadow: 0 0 0 6px rgba(255, 107, 107, 0.2), 0 8px 25px rgba(255, 107, 107, 0.5);
+  }
+}
+
+/* Animation de lueur pour les suggestions */
+@keyframes suggestionGlow {
+  0% {
+    box-shadow: 0 0 0 3px rgba(255, 165, 2, 0.3), 0 6px 20px rgba(255, 165, 2, 0.4);
+  }
+  100% {
+    box-shadow: 0 0 0 6px rgba(255, 165, 2, 0.2), 0 8px 25px rgba(255, 165, 2, 0.5);
+  }
+}
+
+/* Indicateur visuel de conflit sur la timeline */
+.conflict-indicator {
+  position: absolute;
+  top: -30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 107, 107, 0.9);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: bold;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 2px 8px rgba(255, 107, 107, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.conflict-indicator::before {
+  content: '⚠️';
+  margin-right: 4px;
+}
+
+/* Indicateur de suggestion de placement */
+.suggestion-indicator {
+  position: absolute;
+  top: -25px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(255, 165, 2, 0.9);
+  color: white;
+  padding: 3px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: bold;
+  white-space: nowrap;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 2px 6px rgba(255, 165, 2, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.suggestion-indicator::before {
+  content: '💡';
+  margin-right: 3px;
+}
+
+/* Zones d'attraction visuelles pour les placements suggérés */
+.placement-zone {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  background: rgba(46, 213, 115, 0.1);
+  border: 2px dashed rgba(46, 213, 115, 0.5);
+  border-radius: 8px;
+  pointer-events: none;
+  z-index: 5;
+  animation: zonePulse 2s ease-in-out infinite;
+}
+
+.placement-zone.suggestion {
+  background: rgba(255, 165, 2, 0.1);
+  border-color: rgba(255, 165, 2, 0.5);
+}
+
+/* Animation de pulsation pour les zones */
+@keyframes zonePulse {
+  0% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.7;
+  }
+  100% {
+    opacity: 0.3;
+  }
+}
+
+/* Overlay de blocage pour les conflits */
+.conflict-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 107, 107, 0.8);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  pointer-events: none;
+}
+
+.conflict-overlay::before {
+  content: '🚫';
+  font-size: 24px;
+  opacity: 0.8;
 }
