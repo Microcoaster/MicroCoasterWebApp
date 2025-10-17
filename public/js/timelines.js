@@ -1993,9 +1993,9 @@ class TimelineSequencer {
           }
 
           // Validation des conflits temporels pour le même module
-          // Utiliser la position réelle du curseur, pas la position snappée
+          // Utiliser la position snappée pour la détection de conflit
           const moduleId = this.draggedElement.dataset.moduleId;
-          const hasConflict = this.hasModuleTimeConflict(moduleId, timePosition, duration, elementData);
+          const hasConflict = this.hasModuleTimeConflict(moduleId, bestPosition.timePosition, duration, elementData);
 
           // Supprimer les indicateurs précédents
           if (conflictIndicator) {
