@@ -345,7 +345,6 @@ class TimelineSequencer {
         } else {
           // Plusieurs timelines - ne pas charger automatiquement, rester sur savedTimelinesTab
           this.switchToTab('saved');
-          console.log(`${data.timelines.length} timelines disponibles - rester sur l'onglet sauvegardées`);
         }
       } else {
         // Aucune timeline disponible ou erreur, supprimer de localStorage et vérifier
@@ -446,7 +445,6 @@ class TimelineSequencer {
     if (!window.socket) return;
 
     this.websocketManager.isConnected = true;
-    console.log('Timeline WebSocket manager initialized');
 
     window.socket.on('command_error', (data) => {
       console.error('Command failed:', data);
@@ -2777,8 +2775,12 @@ class TimelineSequencer {
              data-timeline-id="${timeline.id}">
           <div class="saved-timeline-header">
             <div class="saved-timeline-name">${timeline.name}</div>
-            ${hasMissingModules ? '<div class="missing-modules-indicator" title="Certains modules ne sont plus disponibles">⚠️</div>' : ''}
           </div>
+          <button class="timeline-delete-btn" data-timeline-id="${timeline.id}" title="Supprimer cette timeline">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </button>
           <div class="saved-timeline-meta">
             <span class="timeline-duration">${this.formatTime(this.calculateTimelineDuration(timeline))}</span>
             ${hasMissingModules ? ` | ${validation.missingModules.length} module(s) manquant(s)` : ''}
@@ -2797,6 +2799,15 @@ class TimelineSequencer {
       item.addEventListener('click', () => {
         const timelineId = item.dataset.timelineId;
         this.loadTimeline(timelineId);
+      });
+    });
+
+    // Ajouter les événements pour les boutons de suppression
+    list.querySelectorAll('.timeline-delete-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation(); // Empêcher le clic sur la timeline
+        const timelineId = btn.dataset.timelineId;
+        this.showDeleteConfirmationModal(timelineId);
       });
     });
   }
@@ -3304,6 +3315,45 @@ class TimelineSequencer {
   }
 
   /**
+   * Affiche la modale de confirmation de suppression de timeline
+   * @param {string} timelineId - ID de la timeline à supprimer
+   * @returns {void}
+   * @private
+   */
+  showDeleteConfirmationModal(timelineId) {
+    const modal = document.getElementById('deleteTimelineModal');
+    if (!modal) {
+      console.error('Modale de suppression non trouvée');
+      return;
+    }
+
+    // Stocker l'ID de la timeline à supprimer
+    modal.dataset.timelineId = timelineId;
+
+    // Afficher la modale
+    modal.classList.add('open');
+
+    // Focus sur le bouton "Non" par défaut
+    const cancelBtn = modal.querySelector('#cancelDeleteTimelineBtn');
+    if (cancelBtn) {
+      setTimeout(() => cancelBtn.focus(), 100);
+    }
+  }
+
+  /**
+   * Masque la modale de confirmation de suppression
+   * @returns {void}
+   * @private
+   */
+  hideDeleteConfirmationModal() {
+    const modal = document.getElementById('deleteTimelineModal');
+    if (modal) {
+      modal.classList.remove('open');
+      delete modal.dataset.timelineId;
+    }
+  }
+
+  /**
    * Ferme la modale de création de timeline
    * @returns {void}
    * @private
@@ -3313,6 +3363,46 @@ class TimelineSequencer {
     if (modal) {
       modal.classList.remove('open');
     }
+  }
+
+  /**
+   * Supprime une timeline via l'API
+   * @param {string} timelineId - ID de la timeline à supprimer
+   * @returns {void}
+   * @private
+   */
+  deleteTimeline(timelineId) {
+    // Masquer la modale
+    this.hideDeleteConfirmationModal();
+
+    // Envoyer la requête de suppression
+    fetch(`/timelines/api/${timelineId}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        // Si la timeline supprimée était celle actuellement sélectionnée, la désélectionner
+        if (this.currentTimeline && this.currentTimeline.id == timelineId) {
+          this.setCurrentTimeline(null);
+          this.clear();
+        }
+
+        // Recharger la liste des timelines
+        this.loadSavedTimelines();
+
+        window.showToast?.('Timeline supprimée avec succès', 'success', 3000);
+      } else {
+        throw new Error(data.error || 'Erreur lors de la suppression');
+      }
+    })
+    .catch(error => {
+      console.error('Erreur lors de la suppression de la timeline:', error);
+      window.showToast?.('Erreur lors de la suppression de la timeline', 'error', 3000);
+    });
   }
 }
 
@@ -3360,5 +3450,38 @@ document.addEventListener('DOMContentLoaded', function () {
         window.timeline.closeCreateTimelineModal();
       });
     }
+  }
+
+  // Ajouter les gestionnaires d'événements pour la modale de suppression
+  const deleteTimelineModal = document.getElementById('deleteTimelineModal');
+  const closeDeleteBtn = document.getElementById('closeDeleteTimelineBtn');
+  const cancelDeleteBtn = document.getElementById('cancelDeleteTimelineBtn');
+  const confirmDeleteBtn = document.getElementById('confirmDeleteTimelineBtn');
+
+  if (deleteTimelineModal && closeDeleteBtn && cancelDeleteBtn && confirmDeleteBtn) {
+    // Gestionnaire pour fermer la modale en cliquant sur le bouton X
+    closeDeleteBtn.addEventListener('click', function() {
+      window.timeline.hideDeleteConfirmationModal();
+    });
+
+    // Gestionnaire pour fermer la modale en cliquant en dehors
+    deleteTimelineModal.addEventListener('click', function(event) {
+      if (event.target === deleteTimelineModal) {
+        window.timeline.hideDeleteConfirmationModal();
+      }
+    });
+
+    // Gestionnaire pour le bouton Annuler
+    cancelDeleteBtn.addEventListener('click', function() {
+      window.timeline.hideDeleteConfirmationModal();
+    });
+
+    // Gestionnaire pour le bouton Confirmer
+    confirmDeleteBtn.addEventListener('click', function() {
+      const timelineId = deleteTimelineModal.dataset.timelineId;
+      if (timelineId) {
+        window.timeline.deleteTimeline(timelineId);
+      }
+    });
   }
 });

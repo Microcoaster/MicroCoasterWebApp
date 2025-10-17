@@ -238,6 +238,7 @@
   box-shadow:
     0 2px 8px rgba(0, 0, 0, 0.2),
     inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  position: relative;
 }
 
 .saved-timeline-item:hover {
@@ -267,7 +268,6 @@
 
 .saved-timeline-header {
   display: flex;
-  justify-content: space-between;
   align-items: center;
   margin-bottom: 4px;
 }
@@ -296,14 +296,40 @@
   color: rgba(255, 255, 255, 0.6);
 }
 
-.timeline-duration {
-  font-size: 11px;
-  padding: 4px 8px;
-  background: rgba(32, 194, 106, 0.2);
-  border-radius: 6px;
-  color: var(--accent);
-  border: 1px solid rgba(32, 194, 106, 0.3);
-  font-weight: 600;
+.timeline-delete-btn {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  background: #ff4757;
+  border: none;
+  border-radius: 10%;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: white;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(255, 71, 87, 0.3);
+}
+
+.timeline-delete-btn:hover {
+  background: #ff3742;
+  transform: translateY(-50%) scale(1.05);
+  box-shadow: 0 3px 10px rgba(255, 71, 87, 0.4);
+}
+
+.timeline-delete-btn:active {
+  transform: scale(0.95);
+}
+
+.timeline-delete-btn svg {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2.5;
 }
 
 .loading {
@@ -655,11 +681,18 @@
   margin-top: 4px;
 }
 
-.modal-actions {
-  display: flex;
-  gap: 10px;
-  justify-content: flex-end;
-  margin-top: 20px;
+.delete-timeline-modal .modal-body {
+  margin-bottom: 20px;
+}
+
+.delete-timeline-modal .modal-body p {
+  margin: 10px 0;
+  color: var(--text);
+}
+
+.delete-timeline-modal .modal-warning {
+  color: #ff6b6b !important;
+  font-weight: 600;
 }
 
 .btn {
@@ -677,9 +710,26 @@
   color: white;
 }
 
-.btn-primary:hover {
+.btn-danger {
+  background: #ff4757;
+  color: white;
+  border: 1px solid #ff4757;
+}
+
+.btn-danger:hover {
+  background: #ff3742;
+  border-color: #ff3742;
+}
+
+.btn-success {
+  background: #2ed573;
+  color: white;
+  border: 1px solid #2ed573;
+}
+
+.btn-success:hover {
   background: #1db660;
-  transform: translateY(-1px);
+  border-color: #1db660;
 }
 
 .btn-secondary {

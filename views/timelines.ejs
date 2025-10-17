@@ -172,6 +172,25 @@
     </div>
   </div>
 
+  <div class="modal delete-timeline-modal" id="deleteTimelineModal">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 class="modal-title">Supprimer la timeline</h3>
+        <button class="close-btn" id="closeDeleteTimelineBtn">&times;</button>
+      </div>
+
+      <div class="modal-body">
+        <p>Êtes-vous sûr de vouloir supprimer cette timeline ?</p>
+        <p class="modal-warning">Cette action est irréversible.</p>
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-danger" id="cancelDeleteTimelineBtn">Non</button>
+        <button type="button" class="btn btn-success" id="confirmDeleteTimelineBtn">Oui</button>
+      </div>
+    </div>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
   <script src="/js/toast.js"></script>
   <script src="/js/global.js"></script>
