@@ -27,10 +27,18 @@
                     <span class="viewport-indicator" id="viewportIndicator">0s - 30s</span>
                     <small class="viewport-help">Shift+molette: naviguer | Ctrl+molette: zoom</small>
                   </div>
-                  <button id="playBtn" class="btn">
-                    <i class="bi bi-play-fill" id="playIcon"></i>
-                    <span id="playText"><%= t('timelines.play_timeline') %></span>
-                  </button>
+                  <div class="play-controls">
+                    <button id="playFromStartBtn" class="btn btn-primary" title="Lire du début">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M4 18L8.5 12L4 6V18ZM13 6V18L21.5 12L13 6Z" fill="currentColor"/>
+                      </svg>
+                    </button>
+                    <button id="playPauseBtn" class="btn" title="Lecture/Pause">
+                      <svg id="playPauseIcon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </header>
             </div>
@@ -209,6 +217,10 @@
       playTimeline: "<%= t('timelines.play_timeline') %>",
       stopTimeline: "<%= t('timelines.stop_timeline') %>",
       playing: "Lecture en cours...",
+      play_from_start: "<%= t('timelines.play_from_start') || 'Lire du début' %>",
+      play_pause: "<%= t('timelines.play_pause') || 'Lecture/Pause' %>",
+      pause: "<%= t('timelines.pause') || 'Pause' %>",
+      resume: "<%= t('timelines.resume') || 'Reprendre' %>",
       select_timeline_first: "<%= t('timelines.select_timeline_first') %>",
       create_or_select_timeline: "<%= t('timelines.create_or_select_timeline') %>",
       create_sequence: "<%= t('timelines.create_sequence') %>",

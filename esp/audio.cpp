@@ -53,24 +53,30 @@
   unsigned long uptimeStart = 0;   // Timestamp du démarrage pour calcul uptime
   bool isAuthenticated = false;     // État d'authentification avec le serveur
 
-  // Variables audio
-  String currentAudioFile = "";     // Fichier audio en cours de lecture
-  bool isPlaying = false;           // État de lecture
-  bool isPaused = false;            // État de pause
-  int volumeLevel = 50;             // Niveau de volume (0-100)
-  unsigned long playDelay = 0;      // Délai avant lecture en ms
-  bool sdCardMounted = false;       // État de la carte SD
+// Variables audio
+String currentAudioFile = "";     // Fichier audio en cours de lecture
+bool isPlaying = false;           // État de lecture
+bool isPaused = false;            // État de pause
+int volumeLevel = 50;             // Niveau de volume (0-100)
+unsigned long playDelay = 0;      // Délai avant lecture en ms
+bool sdCardMounted = false;       // État de la carte SD
 
-  // CONFIGURATION HARDWARE
+// Variables pour la timeline
+unsigned long timelineStartTime = 0;      // Timestamp de début de la timeline
+unsigned long timelineDuration = 0;       // Durée de lecture en ms
+bool isTimelinePlaying = false;           // Flag pour mode timeline
+
+// Configuration persistante
+const String CONFIG_FILE = "/audio.json";  // CONFIGURATION DANS L'ESP32 (LittleFS) - comme wifi.json
   // ========================================
 
   // Pins I2S pour l'amplificateur MAX98357
   const int I2S_BCLK_PIN = 26;      // GPIO 26 - Bit Clock I2S
   const int I2S_LRC_PIN = 25;       // GPIO 25 - Word Select (WS) I2S
-  const int I2S_DIN_PIN = 27;       // GPIO 27 - Data In I2S
+  const int I2S_DIN_PIN = 22;       // GPIO 22 - Data In I2S
 
-  // Pins SPI pour la carte SD
-  const int SD_CS_PIN = 5;          // GPIO 5 - Chip Select SD
+  // Pins SPI pour la carte SD2
+  const int SD_CS_PIN = 13;          // GPIO 13 - Chip Select SD
   const int SD_MOSI_PIN = 23;       // GPIO 23 - Master Out Slave In
   const int SD_MISO_PIN = 19;       // GPIO 19 - Master In Slave Out
   const int SD_SCK_PIN = 18;        // GPIO 18 - Serial Clock
@@ -110,7 +116,10 @@ void sendAudioVolumeUpdate();
   void setVolume(int volume);
   void updateStatusLED();
 
-// Fonctions upload - SUPPRIMÉES
+// Fonctions timeline et configuration
+bool playTimelineAudio(const String& filename, unsigned long start_time_ms, unsigned long duration_ms, unsigned long delay_ms);
+void saveAudioConfig();
+void loadAudioConfig();
 // void handleAudioUploadStart(const char* payload);
 // void handleAudioUploadChunk(const char* payload);
 // void handleAudioUploadEnd();
@@ -195,8 +204,8 @@ void sendAudioVolumeUpdate();
     Serial.println("   └─ Reconnexion automatique: activée");
     
     // Protection des fichiers critiques (empêche leur suppression accidentelle)
-    wifi.setProtectedJsons({"/wifi.json"});  // Protège le fichier de configuration WiFi
-    Serial.println("🛡️  Protection fichiers: /wifi.json");
+    wifi.setProtectedJsons({"/wifi.json", "/audio.json"});  // Protège les fichiers de configuration WiFi et Audio
+    Serial.println("🛡️  Protection fichiers: /wifi.json, /audio.json");
     
     // ear*** INITIALISATION DU WIFI MANAGER ***
     
@@ -205,6 +214,9 @@ void sendAudioVolumeUpdate();
     wifi.begin();  // Monte le système de fichiers, charge /wifi.json si présent
     Serial.println("💾 Système de fichiers LittleFS monté");
     Serial.println("📁 Recherche du fichier de configuration /wifi.json...");
+    
+    // Charger la configuration audio sauvegardée dans ESP32
+    loadAudioConfig();
     
     Serial.println("🌐 Tentative de connexion WiFi...");
     wifi.run();    // Essaie de se connecter en STA; si ça échoue, applique la politique de fallback
@@ -305,6 +317,28 @@ void sendAudioVolumeUpdate();
       playDelay = 0;
     }
     
+    // Vérification de la durée timeline
+    if (isTimelinePlaying && timelineDuration > 0 && millis() - timelineStartTime >= timelineDuration) {
+      Serial.println("[TIMELINE] ⏰ Durée timeline écoulée - Arrêt automatique");
+      stopAudio();
+      isTimelinePlaying = false;
+      timelineStartTime = 0;
+      timelineDuration = 0;
+      
+      // Notification WebSocket
+      JsonDocument doc;
+      doc["type"] = "timeline_ended";
+      doc["moduleId"] = MODULE_ID;
+      doc["password"] = MODULE_PASSWORD;
+      doc["filename"] = currentAudioFile;
+      
+      String message;
+      serializeJson(doc, message);
+      webSocket.sendTXT(message);
+      
+      Serial.println("[TIMELINE] 📤 Notification timeline_ended envoyée");
+    }
+    
     // Mise à jour continue du système audio
     audio.loop();
 
@@ -343,9 +377,6 @@ void sendAudioVolumeUpdate();
       sendTelemetry();
       lastTelemetry = now;
     }
-    
-    // Pause pour éviter la saturation CPU
-    delay(100);
   }
 
   // ========================================
@@ -529,6 +560,32 @@ void sendAudioVolumeUpdate();
         int level = doc["data"]["params"]["level"];
         setVolume(level);
         message = "Volume réglé à " + String(level) + "%";
+      }
+      
+    } else if (command == "audio_timeline_play") {
+      if (!doc["data"]["params"]["filename"].is<String>()) {
+        Serial.println("[TIMELINE] ❌ Filename manquant ou invalide");
+        status = "error";
+        message = "Nom de fichier manquant";
+      } else {
+        String filename = doc["data"]["params"]["filename"];
+        unsigned long start_time_ms = doc["data"]["params"]["start_time_ms"].is<unsigned long>() ? doc["data"]["params"]["start_time_ms"].as<unsigned long>() : 0;
+        unsigned long duration_ms = doc["data"]["params"]["duration_ms"].is<unsigned long>() ? doc["data"]["params"]["duration_ms"].as<unsigned long>() : 0;
+        unsigned long delay_ms = doc["data"]["params"]["delay_ms"].is<unsigned long>() ? doc["data"]["params"]["delay_ms"].as<unsigned long>() : 0;
+        
+        Serial.printf("[TIMELINE] 📁 Timeline reçue: '%s' (start: %lu ms, duration: %lu ms, delay: %lu ms)\n",
+                      filename.c_str(), start_time_ms, duration_ms, delay_ms);
+        
+        if (filename.length() == 0) {
+          Serial.println("[TIMELINE] ❌ Filename vide");
+          status = "error";
+          message = "Nom de fichier vide";
+        } else if (playTimelineAudio(filename, start_time_ms, duration_ms, delay_ms)) {
+          message = "Timeline démarrée: " + filename;
+        } else {
+          status = "error";
+          message = "Erreur lors du démarrage timeline: " + filename;
+        }
       }
       
     // Commandes upload supprimées - fichiers directement sur SD
@@ -834,24 +891,46 @@ void sendAudioVolumeUpdate();
       return true;
     }
 
-    // Démarrer la lecture immédiatement
+    // Démarrer la lecture avec FADE-IN anti-pop
+    Serial.println("[AUDIO] 🔇 Démarrage silencieux (anti-pop)...");
+    
+    // Sauvegarder le volume original
+    int originalVolume = volumeLevel;
+    
+    // Commencer à volume 0 pour éviter le pop
+    audio.setVolume(0);
+    
     Serial.println("[AUDIO] 🔄 Tentative de connexion à l'audio...");
     if (audio.connecttoFS(SD, filepath.c_str())) {
       Serial.println("[AUDIO] ✅ Connexion audio réussie");
-      Serial.println("[AUDIO] ▶️ Démarrage de la lecture...");
       isPlaying = true;
       isPaused = false;
       currentAudioFile = filename;
+      
+      // Laisser l'audio se stabiliser
+      delay(50);
+      
+      // FADE-IN progressif pour éviter le pop
+      Serial.println("[AUDIO] 🔊 Fade-in progressif...");
+      for (int vol = 0; vol <= originalVolume; vol += 3) {
+        int audioVolume = map(vol, 0, 100, 0, 63);
+        audio.setVolume(audioVolume);
+        delay(15); // 15ms par step = fade-in fluide
+      }
+      
+      // Volume final exact
+      int finalVolume = map(originalVolume, 0, 100, 0, 63);
+      audio.setVolume(finalVolume);
+      
+      Serial.printf("[AUDIO] ✅ Volume final: %d%% (audio: %d/63)\n", originalVolume, finalVolume);
       sendAudioStatusUpdate();
-
-      // Attendre un peu et vérifier l'état
-      ::delay(100);
-      Serial.printf("[AUDIO] 📊 État après connexion - isPlaying: %s\n", isPlaying ? "true" : "false");
 
       return true;
     } else {
       Serial.println("[AUDIO] ❌ Échec connexion audio");
-      Serial.println("[AUDIO] 🔍 Vérifiez que le fichier existe et est au bon format");
+      // Restaurer le volume en cas d'échec
+      int audioVolume = map(originalVolume, 0, 100, 0, 63);
+      audio.setVolume(audioVolume);
       return false;
     }
   }
@@ -869,32 +948,150 @@ void sendAudioVolumeUpdate();
   void stopAudio() {
     if (!isPlaying && currentAudioFile == "") return;
     
-    Serial.println("[AUDIO] 🛑 Arrêt lecture");
+    Serial.println("[AUDIO] 🛑 FADE-OUT anti-pop avant arrêt...");
+    
+    // Récupérer le volume actuel
+    int currentVolume = volumeLevel;
+    
+    // FADE-OUT progressif pour éviter le pop
+    for (int vol = currentVolume; vol >= 0; vol -= 5) {
+      int audioVolume = map(vol, 0, 100, 0, 63);
+      audio.setVolume(audioVolume);
+      delay(10); // 10ms par step = fade-out rapide mais fluide
+    }
+    
+    // Volume à 0 avant arrêt définitif
+    audio.setVolume(0);
+    delay(20);
+    
+    Serial.println("[AUDIO] 🛑 Arrêt lecture silencieux");
     audio.stopSong();
     isPlaying = false;
     isPaused = false;
     currentAudioFile = "";
     playDelay = 0;
+    
+    // Restaurer le volume pour la prochaine lecture
+    int audioVolume = map(currentVolume, 0, 100, 0, 63);
+    audio.setVolume(audioVolume);
+    
     sendAudioStatusUpdate();
   }
 
   void setVolume(int volume) {
+    int oldVolume = volumeLevel;
     volumeLevel = constrain(volume, 0, 100);
-    // Convertir 0-100 vers 0-63 pour une meilleure résolution de volume
-    int audioVolume = map(volumeLevel, 0, 100, 0, 63);
-    audio.setVolume(audioVolume);
-    Serial.printf("[AUDIO] 🔊 Volume réglé à %d%% (audio: %d/63)\n", volumeLevel, audioVolume);
+    
+    Serial.printf("[AUDIO] 🔊 Changement volume %d%% → %d%%\n", oldVolume, volumeLevel);
+    
+    // Changement de volume progressif anti-crachement
+    int oldAudioVolume = map(oldVolume, 0, 100, 0, 63);
+    int newAudioVolume = map(volumeLevel, 0, 100, 0, 63);
+    
+    // Si la différence est importante, faire une transition douce
+    if (abs(newAudioVolume - oldAudioVolume) > 5) {
+      Serial.println("[AUDIO] 🎛️ Transition volume progressive...");
+      
+      if (newAudioVolume > oldAudioVolume) {
+        // Volume UP progressif
+        for (int vol = oldAudioVolume; vol <= newAudioVolume; vol += 2) {
+          audio.setVolume(vol);
+          delay(8);
+        }
+      } else {
+        // Volume DOWN progressif
+        for (int vol = oldAudioVolume; vol >= newAudioVolume; vol -= 2) {
+          audio.setVolume(vol);
+          delay(8);
+        }
+      }
+    }
+    
+    // Volume final exact
+    audio.setVolume(newAudioVolume);
+    Serial.printf("[AUDIO] ✅ Volume final: %d%% (audio: %d/63)\n", volumeLevel, newAudioVolume);
+
+    // Sauvegarder la configuration audio
+    saveAudioConfig();
 
     // Envoyer la mise à jour du volume
     sendAudioVolumeUpdate();
   }
 
 // ========================================
-// FONCTIONS UPLOAD - SUPPRIMÉES
+// FONCTIONS TIMELINE ET CONFIGURATION
 // ========================================
 
-// Toutes les fonctions d'upload ont été supprimées
-// Les fichiers audio sont maintenant directement sur la carte SD  // Fonctions WebSocket natif
+void saveAudioConfig() {
+  Serial.println("[CONFIG] 💾 Sauvegarde configuration audio...");
+
+  // Créer le JSON de configuration
+  JsonDocument doc;
+  doc["volume"] = volumeLevel;
+
+  // Générer timestamp ISO 8601
+  char timestamp[25];
+  time_t now = time(nullptr);
+  struct tm* timeinfo = localtime(&now);
+  strftime(timestamp, sizeof(timestamp), "%Y-%m-%dT%H:%M:%SZ", timeinfo);
+  doc["last_updated"] = timestamp;
+
+  // Ouvrir et sauvegarder dans LittleFS
+  File configFile = LittleFS.open(CONFIG_FILE, "w");
+  if (!configFile) {
+    Serial.println("[CONFIG] ❌ Impossible de sauvegarder la configuration audio");
+    return;
+  }
+
+  if (serializeJson(doc, configFile) == 0) {
+    Serial.println("[CONFIG] ❌ Erreur sérialisation JSON");
+  } else {
+    Serial.printf("[CONFIG] ✅ Configuration sauvegardée - Volume: %d%%\n", volumeLevel);
+  }
+
+  configFile.close();
+}
+
+void loadAudioConfig() {
+  Serial.println("[CONFIG] 📂 Chargement configuration audio...");
+
+  if (!LittleFS.exists(CONFIG_FILE)) {
+    Serial.println("[CONFIG] ℹ️ Configuration audio inexistante - valeurs par défaut");
+    return;
+  }
+
+  File configFile = LittleFS.open(CONFIG_FILE, "r");
+  if (!configFile) {
+    Serial.println("[CONFIG] ❌ Impossible de lire la configuration audio");
+    return;
+  }
+
+  JsonDocument doc;
+  DeserializationError error = deserializeJson(doc, configFile);
+  configFile.close();
+
+  if (error) {
+    Serial.printf("[CONFIG] ❌ Erreur parsing JSON: %s\n", error.c_str());
+    return;
+  }
+
+  // Charger le volume
+  if (doc["volume"].is<int>()) {
+    int savedVolume = doc["volume"];
+    volumeLevel = constrain(savedVolume, 0, 100);
+    Serial.printf("[CONFIG] ✅ Volume chargé: %d%%\n", volumeLevel);
+
+    // Appliquer au système audio
+    int audioVolume = map(volumeLevel, 0, 100, 0, 63);
+    audio.setVolume(audioVolume);
+  }
+
+  // Afficher timestamp si disponible
+  if (doc["last_updated"].is<String>()) {
+    String lastUpdated = doc["last_updated"];
+    Serial.println("[CONFIG] 📅 Dernière sauvegarde: " + lastUpdated);
+  }
+}  // Fonctions WebSocket natif
   void sendCommandResponse(const String& command, const String& status, const String& message) {
     if (!isAuthenticated) return;
     
@@ -999,3 +1196,93 @@ void sendAudioVolumeUpdate();
     
     Serial.println("[AUDIO] 📊 Volume mis à jour");
   }
+  
+  bool playTimelineAudio(const String& filename, unsigned long start_time_ms, unsigned long duration_ms, unsigned long delay_ms) {
+  if (!sdCardMounted) {
+    Serial.println("[TIMELINE] ❌ Lecture annulée - SD non montée");
+    return false;
+  }
+
+  // Arrêter la lecture en cours si nécessaire
+  if (isPlaying || isTimelinePlaying) {
+    stopAudio();
+  }
+
+  String filepath = "/" + filename;
+  Serial.printf("[TIMELINE] 🎬 Démarrage timeline: %s (start: %lu ms, duration: %lu ms, delay: %lu ms)\n",
+                filepath.c_str(), start_time_ms, duration_ms, delay_ms);
+
+  // Vérifier si le fichier existe
+  if (!SD.exists(filepath)) {
+    Serial.println("[TIMELINE] ❌ Fichier non trouvé: " + filepath);
+    return false;
+  }
+
+  // Calculer la position de départ en octets (approximation pour MP3)
+  // Pour MP3, c'est approximatif car le bitrate peut varier
+  // On utilise une estimation basée sur un débit moyen de 128kbps
+  unsigned long startPos = 0;
+  if (start_time_ms > 0) {
+    // Estimation: 128kbps = 16KB/s = 16000 octets/seconde
+    startPos = (start_time_ms * 16000) / 1000;
+    Serial.printf("[TIMELINE] 📍 Position de départ estimée: %lu octets\n", startPos);
+  }
+
+  if (delay_ms > 0) {
+    Serial.printf("[TIMELINE] ⏱️ Délai avant lecture: %lu ms\n", delay_ms);
+    playDelay = millis() + delay_ms;
+    currentAudioFile = filename;
+    timelineStartTime = millis() + delay_ms;
+    timelineDuration = duration_ms;
+    isTimelinePlaying = true;
+    return true;
+  }
+
+  // Démarrer la lecture timeline immédiatement
+  Serial.println("[TIMELINE] � Démarrage silencieux (anti-pop)...");
+
+  // Sauvegarder le volume original
+  int originalVolume = volumeLevel;
+
+  // Commencer à volume 0 pour éviter le pop
+  audio.setVolume(0);
+
+  Serial.println("[TIMELINE] 🔄 Tentative de connexion à l'audio avec position...");
+  if (audio.connecttoFS(SD, filepath.c_str(), startPos)) {
+    Serial.println("[TIMELINE] ✅ Connexion audio réussie");
+
+    isPlaying = true;
+    isPaused = false;
+    isTimelinePlaying = true;
+    currentAudioFile = filename;
+    timelineStartTime = millis();
+    timelineDuration = duration_ms;
+
+    // Laisser l'audio se stabiliser
+    delay(50);
+
+    // FADE-IN progressif pour éviter le pop
+    Serial.println("[TIMELINE] 🔊 Fade-in progressif...");
+    for (int vol = 0; vol <= originalVolume; vol += 3) {
+      int audioVolume = map(vol, 0, 100, 0, 63);
+      audio.setVolume(audioVolume);
+      delay(15);
+    }
+
+    // Volume final exact
+    int finalVolume = map(originalVolume, 0, 100, 0, 63);
+    audio.setVolume(finalVolume);
+
+    Serial.printf("[TIMELINE] ✅ Timeline démarrée - Volume: %d%%, Durée: %lu ms\n", originalVolume, duration_ms);
+    sendAudioStatusUpdate();
+
+    return true;
+  } else {
+    Serial.println("[TIMELINE] ❌ Échec connexion audio");
+    // Restaurer le volume en cas d'échec
+    int audioVolume = map(originalVolume, 0, 100, 0, 63);
+    audio.setVolume(audioVolume);
+    isTimelinePlaying = false;
+    return false;
+  }
+}

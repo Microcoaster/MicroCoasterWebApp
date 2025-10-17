@@ -14,7 +14,7 @@ const MODULE_CONFIGS = {
     icon: '🎵',
     color: '#ff6b6b',
     actions: {
-      play_audio: {
+      audio_play: {
         name: 'Jouer audio',
         duration: { min: 1, max: 300, default: 10 },
         params: {
@@ -34,12 +34,12 @@ const MODULE_CONFIGS = {
     actions: {
       switch_left: {
         name: 'Basculer à gauche',
-        duration: { min: 2, max: 2, default: 2 }, // Temps fixe de 2 secondes
+        duration: { min: 3, max: 3, default: 3 }, // Temps fixe de 3 secondes
         params: {},
       },
       switch_right: {
         name: 'Basculer à droite',
-        duration: { min: 2, max: 2, default: 2 }, // Temps fixe de 2 secondes
+        duration: { min: 3, max: 3, default: 3 }, // Temps fixe de 3 secondes
         params: {},
       },
     },
@@ -946,17 +946,20 @@ class TimelineSequencer {
     // Boutons de contrôle
     const clearBtn = document.getElementById('clearBtn');
     const saveBtn = document.getElementById('saveBtn');
-    const playBtn = document.getElementById('playBtn');
+    const playFromStartBtn = document.getElementById('playFromStartBtn');
+    const playPauseBtn = document.getElementById('playPauseBtn');
     const modulesTab = document.getElementById('modulesTab');
     const savedTimelinesTab = document.getElementById('savedTimelinesTab');
     const createTimelineBtn = document.getElementById('createTimelineBtn');
 
     // Initialiser les propriétés des boutons
-    this.playButton = playBtn;
+    this.playFromStartButton = playFromStartBtn;
+    this.playPauseButton = playPauseBtn;
 
     if (clearBtn) clearBtn.addEventListener('click', () => this.clear());
     if (saveBtn) saveBtn.addEventListener('click', () => this.save());
-    if (playBtn) playBtn.addEventListener('click', () => this.togglePlayback());
+    if (playFromStartBtn) playFromStartBtn.addEventListener('click', () => this.playFromStart());
+    if (playPauseBtn) playPauseBtn.addEventListener('click', () => this.togglePlayPause());
     if (modulesTab) modulesTab.addEventListener('click', () => this.switchToTab('modules'));
     if (savedTimelinesTab) savedTimelinesTab.addEventListener('click', () => this.switchToTab('saved'));
     if (createTimelineBtn) createTimelineBtn.addEventListener('click', () => this.createNewTimeline());
@@ -1684,7 +1687,7 @@ class TimelineSequencer {
             <button class="control-btn delete-btn" id="deleteElement" style="background-color: #ff4757; color: white; border: none;">Supprimer</button>
             <div style="display: flex; gap: 10px;">
               <button class="control-btn" id="cancelConfig">Annuler</button>
-              <button class="play-btn" id="saveConfig">Sauvegarder</button>
+              <button class="btn btn-primary" id="saveConfig">Sauvegarder</button>
             </div>
           </div>
         </div>
@@ -2462,12 +2465,12 @@ class TimelineSequencer {
   }
 
   /**
-   * Lance la lecture de la séquence de timeline
-   * Exécute les actions des modules selon leur programmation temporelle
+   * Lance la lecture de la séquence depuis le début
+   * Réinitialise le temps et lance la lecture
    * @returns {void}
    * @public
    */
-  playSequence() {
+  playFromStart() {
     if (!this.currentTimeline) {
       window.showToast?.('Aucune timeline sélectionnée', 'error', 3000);
       return;
@@ -2483,18 +2486,157 @@ class TimelineSequencer {
       return;
     }
 
+    // Arrêter la lecture en cours si elle existe
+    if (this.isPlaying) {
+      this.stopSequence();
+    }
+
+    // Réinitialiser l'état
     this.isPlaying = true;
-    this.playButton.disabled = true;
-    this.playButton.textContent = window.timelineTranslations.playing;
-
+    this.isPaused = false;
+    this.currentTime = 0;
     this.startTime = Date.now();
-    this.animationFrame = requestAnimationFrame(() => this.updatePlaybackPosition());
 
+    // Mettre à jour les boutons
+    this.updatePlayButtons();
+
+    // Lancer la lecture
+    this.startPlayback();
+  }
+
+  /**
+   * Bascule entre lecture et pause
+   * @returns {void}
+   * @public
+   */
+  togglePlayPause() {
+    if (!this.currentTimeline) {
+      window.showToast?.('Aucune timeline sélectionnée', 'error', 3000);
+      return;
+    }
+
+    if (!this.websocketManager.isConnected) {
+      window.showToast?.('Connexion WebSocket perdue', 'error', 3000);
+      return;
+    }
+
+    if (this.elements.length === 0) {
+      window.showToast?.('Aucun élément dans la timeline', 'warning', 3000);
+      return;
+    }
+
+    if (this.isPlaying && !this.isPaused) {
+      // En cours de lecture -> mettre en pause
+      this.pausePlayback();
+    } else if (this.isPlaying && this.isPaused) {
+      // En pause -> reprendre la lecture
+      this.resumePlayback();
+    } else {
+      // Pas en cours -> démarrer depuis le début
+      this.playFromStart();
+    }
+  }
+
+  /**
+   * Met à jour l'état des boutons de lecture
+   * @returns {void}
+   * @private
+   */
+  updatePlayButtons() {
+    if (!this.playFromStartButton || !this.playPauseButton) return;
+
+    const playPauseIcon = this.playPauseButton.querySelector('#playPauseIcon');
+
+    if (this.isPlaying && !this.isPaused) {
+      // En cours de lecture
+      this.playPauseButton.classList.add('playing');
+      if (playPauseIcon) {
+        playPauseIcon.innerHTML = '<path d="M6 19H10V5H6V19ZM14 5V19H18V5H14Z" fill="currentColor"/>';
+      }
+    } else if (this.isPlaying && this.isPaused) {
+      // En pause
+      this.playPauseButton.classList.add('playing');
+      if (playPauseIcon) {
+        playPauseIcon.innerHTML = '<path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>';
+      }
+    } else {
+      // Arrêté
+      this.playPauseButton.classList.remove('playing');
+      if (playPauseIcon) {
+        playPauseIcon.innerHTML = '<path d="M8 5V19L19 12L8 5Z" fill="currentColor"/>';
+      }
+    }
+  }
+
+  /**
+   * Démarre la lecture de la séquence
+   * @returns {void}
+   * @private
+   */
+  startPlayback() {
     const sortedElements = this.elements
       .filter(el => el.moduleData && el.moduleData.id && el.actionType && el.startTime !== null)
       .sort((a, b) => a.startTime - b.startTime);
 
     this.scheduleActions(sortedElements);
+    this.animationFrame = requestAnimationFrame(() => this.updatePlaybackPosition());
+  }
+
+  /**
+   * Met en pause la lecture en cours
+   * @returns {void}
+   * @private
+   */
+  pausePlayback() {
+    if (!this.isPlaying) return;
+
+    this.isPaused = true;
+    this.pausedTime = Date.now();
+
+    // Annuler les timeouts restants
+    if (this.timeouts) {
+      this.timeouts.forEach(timeout => clearTimeout(timeout));
+      this.timeouts = [];
+    }
+
+    // Annuler l'animation frame
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
+    }
+
+    // Mettre à jour les boutons
+    this.updatePlayButtons();
+
+    window.showToast?.('Lecture mise en pause', 'info', 2000);
+  }
+
+  /**
+   * Reprend la lecture après une pause
+   * @returns {void}
+   * @private
+   */
+  resumePlayback() {
+    if (!this.isPlaying || !this.isPaused) return;
+
+    this.isPaused = false;
+    const pauseDuration = Date.now() - this.pausedTime;
+    this.startTime += pauseDuration; // Ajuster le temps de départ
+
+    // Reprogrammer les actions restantes
+    const remainingElements = this.elements
+      .filter(el => el.moduleData && el.moduleData.id && el.actionType && el.startTime > this.currentTime)
+      .sort((a, b) => a.startTime - b.startTime);
+
+    this.scheduleActions(remainingElements);
+
+    // Redémarrer l'animation
+    this.animationFrame = requestAnimationFrame(() => this.updatePlaybackPosition());
+
+    // Mettre à jour les boutons
+    this.updatePlayButtons();
+
+    window.showToast?.('Lecture reprise', 'success', 2000);
   }
 
   /**
@@ -2525,6 +2667,7 @@ class TimelineSequencer {
   /**
    * Exécute une action de module via WebSocket
    * Envoie la commande au serveur pour contrôler le module physique
+   * Vérifie que le module est en ligne avant d'envoyer la commande
    * @param {Object} element - Élément contenant les données d'action
    * @returns {void}
    * @private
@@ -2540,6 +2683,16 @@ class TimelineSequencer {
     if (!element.actionType) {
       console.error('Type d\'action manquant pour l\'élément:', element);
       window.showToast?.('Erreur: Action manquante', 'error', 3000);
+      return;
+    }
+
+    // Vérifier si le module est en ligne
+    const moduleElement = document.querySelector(`.module-item[data-module-id="${element.moduleData.id}"]`);
+    const isOnline = moduleElement && moduleElement.classList.contains('online');
+
+    if (!isOnline) {
+      console.warn(`Module ${element.moduleData.id} hors ligne - commande ignorée`);
+      window.showToast?.(`Module ${element.moduleData.name || element.moduleData.id} hors ligne - action ignorée`, 'warning', 3000);
       return;
     }
 
@@ -2561,24 +2714,28 @@ class TimelineSequencer {
    * @private
    */
   updatePlaybackPosition() {
-    if (!this.isPlaying) return;
+    if (!this.isPlaying || this.isPaused) return;
 
     const elapsedTime = (Date.now() - this.startTime) / 1000;
+    this.currentTime = elapsedTime;
     const trackWidth = this.track.offsetWidth;
 
-    // Position relative dans le viewport
+    // Position relative au viewport (même logique que pour les modules)
     const relativeTime = elapsedTime - this.viewportStart;
-    const position = (relativeTime / this.viewportDuration) * trackWidth;
 
     if (!this.playbackLine) {
       this.playbackLine = document.createElement('div');
-      this.playbackLine.className = 'playback-line';
+      this.playbackLine.className = 'playback-indicator';
       this.track.appendChild(this.playbackLine);
     }
 
     // Afficher la ligne seulement si elle est dans le viewport
     if (relativeTime >= 0 && relativeTime <= this.viewportDuration) {
-      this.playbackLine.style.left = `${position}px`;
+      // Calculer la position en pourcentage de la largeur totale (même logique que les modules)
+      const leftPercent = Math.max(0, relativeTime / this.viewportDuration);
+      const left = leftPercent * trackWidth;
+
+      this.playbackLine.style.left = `${left}px`;
       this.playbackLine.style.display = 'block';
     } else {
       this.playbackLine.style.display = 'none';
@@ -2595,11 +2752,12 @@ class TimelineSequencer {
    */
   stopSequence() {
     this.isPlaying = false;
-    this.playButton.disabled = false;
-    this.playButton.textContent = window.timelineTranslations.playTimeline;
+    this.isPaused = false;
+    this.currentTime = 0;
 
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
+      this.animationFrame = null;
     }
 
     this.timeouts.forEach(timeout => clearTimeout(timeout));
@@ -2613,6 +2771,9 @@ class TimelineSequencer {
       this.playbackLine.remove();
       this.playbackLine = null;
     }
+
+    // Mettre à jour les boutons
+    this.updatePlayButtons();
   }
 
   /**
