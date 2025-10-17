@@ -325,8 +325,8 @@ class TimelineSequencer {
       return;
     }
 
-    // Charger la timeline depuis l'API
-    fetch(`/timelines/api/${lastTimelineId}`, {
+    // Vérifier d'abord combien de timelines sont disponibles
+    fetch('/timelines/api', {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -334,15 +334,22 @@ class TimelineSequencer {
     })
     .then(response => response.json())
     .then(data => {
-      if (data.success && data.timeline) {
-        this.setCurrentTimeline(data.timeline);
-        this.loadTimelineData(data.timeline);
-        this.switchToTab('modules'); // Basculer vers l'onglet modules
-        console.log('Dernière timeline chargée:', data.timeline.name);
+      if (data.success && data.timelines && data.timelines.length > 0) {
+        if (data.timelines.length === 1) {
+          // Une seule timeline - charger celle-ci (qui devrait être la même que lastTimelineId)
+          const timeline = data.timelines[0];
+          this.setCurrentTimeline(timeline);
+          this.loadTimelineData(timeline);
+          this.switchToTab('modules');
+          console.log('Timeline unique chargée automatiquement:', timeline.name);
+        } else {
+          // Plusieurs timelines - ne pas charger automatiquement, rester sur savedTimelinesTab
+          this.switchToTab('saved');
+          console.log(`${data.timelines.length} timelines disponibles - rester sur l'onglet sauvegardées`);
+        }
       } else {
-        // Timeline non trouvée, supprimer de localStorage et vérifier les timelines disponibles
+        // Aucune timeline disponible ou erreur, supprimer de localStorage et vérifier
         localStorage.removeItem('lastTimelineId');
-        console.log('Dernière timeline non trouvée, supprimée du cache');
         this.checkForAvailableTimelines();
       }
     })
@@ -355,7 +362,8 @@ class TimelineSequencer {
 
   /**
    * Vérifie s'il y a des timelines disponibles et en charge une si possible
-   * Sinon, ouvre la modale de création
+   * Si une seule timeline : la charger automatiquement
+   * Si plusieurs timelines : rester sur l'onglet savedTimelinesTab sans charger
    * @returns {void}
    * @private
    */
@@ -370,15 +378,18 @@ class TimelineSequencer {
     .then(response => response.json())
     .then(data => {
       if (data.success && data.timelines && data.timelines.length > 0) {
-        // Il y a des timelines, charger la plus récente
-        const mostRecentTimeline = data.timelines.reduce((latest, current) => {
-          return new Date(current.updated_at) > new Date(latest.updated_at) ? current : latest;
-        });
-
-        this.setCurrentTimeline(mostRecentTimeline);
-        this.loadTimelineData(mostRecentTimeline);
-        this.switchToTab('modules');
-        console.log('Timeline la plus récente chargée:', mostRecentTimeline.name);
+        if (data.timelines.length === 1) {
+          // Une seule timeline - la charger automatiquement
+          const timeline = data.timelines[0];
+          this.setCurrentTimeline(timeline);
+          this.loadTimelineData(timeline);
+          this.switchToTab('modules');
+          console.log('Timeline unique chargée automatiquement:', timeline.name);
+        } else {
+          // Plusieurs timelines - rester sur l'onglet savedTimelinesTab
+          this.switchToTab('saved');
+          console.log(`${data.timelines.length} timelines disponibles - rester sur l'onglet sauvegardées`);
+        }
       } else {
         // Aucune timeline disponible, ouvrir la modale de création
         console.log('Aucune timeline disponible, ouverture de la modale de création');
@@ -1671,9 +1682,12 @@ class TimelineSequencer {
         </div>
 
         <div class="config-section">
-          <div style="display: flex; gap: 10px; justify-content: flex-end;">
-            <button class="control-btn" id="cancelConfig">Annuler</button>
-            <button class="play-btn" id="saveConfig">Sauvegarder</button>
+          <div style="display: flex; gap: 10px; justify-content: space-between;">
+            <button class="control-btn delete-btn" id="deleteElement" style="background-color: #ff4757; color: white; border: none;">Supprimer</button>
+            <div style="display: flex; gap: 10px;">
+              <button class="control-btn" id="cancelConfig">Annuler</button>
+              <button class="play-btn" id="saveConfig">Sauvegarder</button>
+            </div>
           </div>
         </div>
       </div>
@@ -1683,6 +1697,12 @@ class TimelineSequencer {
 
     // Events
     modal.querySelector('#cancelConfig').addEventListener('click', () => modal.remove());
+    modal
+      .querySelector('#deleteElement')
+      .addEventListener('click', () => {
+        this.deleteElement(timelineElement.element);
+        modal.remove();
+      });
     modal
       .querySelector('#saveConfig')
       .addEventListener('click', () => this.saveConfig(timelineElement, modal));
