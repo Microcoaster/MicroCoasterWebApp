@@ -897,13 +897,6 @@
   z-index: 50;
 }
 
-.timeline-action.dragging {
-  transform: scale(1.05) rotate(2deg);
-  box-shadow: 0 12px 35px rgba(0, 0, 0, 0.5);
-  z-index: 50;
-  opacity: 0.8;
-}
-
 /* Actions selon le type de module */
 .timeline-action.estop-button {
   background: linear-gradient(135deg, #ff6b6b, #ee5a52);

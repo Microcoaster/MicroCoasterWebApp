@@ -2007,9 +2007,6 @@ class TimelineSequencer {
     this.draggedElement = element;
     this.selectElement(element);
 
-    // Ajouter une classe visuelle pendant le drag
-    element.classList.add('dragging');
-
     const rect = element.getBoundingClientRect();
     const offsetX = e.clientX - rect.left;
     const offsetY = e.clientY - rect.top;
@@ -2108,7 +2105,6 @@ class TimelineSequencer {
 
     const handleMouseUp = () => {
       if (this.draggedElement) {
-        this.draggedElement.classList.remove('dragging');
       }
       
       // Vérifier s'il y a un conflit à la position finale
