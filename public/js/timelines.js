@@ -1524,6 +1524,10 @@ class TimelineSequencer {
 
     this.positionElement(element, timePosition, defaultDuration, trackIndex);
 
+    // Vérifier si la durée peut être modifiée (min != max)
+    const actionConfig = moduleConfig.actions[defaultAction];
+    const canResize = actionConfig && actionConfig.duration && actionConfig.duration.min !== actionConfig.duration.max;
+
     element.innerHTML = `
       <div class="element-header">
         <div class="element-icon">${moduleConfig.icon}</div>
@@ -1535,8 +1539,8 @@ class TimelineSequencer {
         <div class="element-duration">${this.formatTime(defaultDuration)}</div>
       </div>
       <div class="status-dot" aria-hidden="true"></div>
-      <div class="resize-handle resize-left" data-resize="left"></div>
-      <div class="resize-handle resize-right" data-resize="right"></div>
+      ${canResize ? '<div class="resize-handle resize-left" data-resize="left"></div>' : ''}
+      ${canResize ? '<div class="resize-handle resize-right" data-resize="right"></div>' : ''}
     `;
 
     // Events
@@ -2184,6 +2188,20 @@ class TimelineSequencer {
    * @public
    */
   startResize(element, resizeHandle, e) {
+    // Vérifier si le redimensionnement est autorisé pour cet élément
+    const elementData = this.elements.find(e => e.element === element);
+    if (elementData) {
+      const moduleConfig = this.getModuleConfig(elementData.moduleData.type);
+      const actionConfig = moduleConfig.actions[elementData.actionType];
+      const canResize = actionConfig && actionConfig.duration && actionConfig.duration.min !== actionConfig.duration.max;
+      
+      if (!canResize) {
+        // Durée fixe - empêcher le redimensionnement
+        window.showToast?.('La durée de cette action est fixe et ne peut pas être modifiée', 'warning', 2000);
+        return;
+      }
+    }
+
     this.resizingElement = element;
     this.resizeHandle = resizeHandle;
     this.resizeType = resizeHandle.dataset.resize; // 'left' ou 'right'
