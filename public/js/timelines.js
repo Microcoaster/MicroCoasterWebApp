@@ -131,6 +131,7 @@ class TimelineSequencer {
     this.autoSaveTimeout = null;
     this.isAutoSaving = false;
     this.autoSaveIndicator = null;
+    this.lastSavedSequence = null; // Stocke l'état de la dernière sauvegarde pour détecter les changements
 
     // Audio file list cache to prevent spam requests
     this.audioFileCache = {}; // { moduleId: { files: [], timestamp: Date.now() } }
@@ -187,6 +188,9 @@ class TimelineSequencer {
     this.currentTimeline = timeline;
     this.updateInstructions();
 
+    // Réinitialiser l'état de la dernière sauvegarde quand on change de timeline
+    this.lastSavedSequence = null;
+
     // Sauvegarder dans localStorage pour persister entre les sessions
     if (timeline && timeline.id) {
       localStorage.setItem('lastTimelineId', timeline.id.toString());
@@ -198,11 +202,18 @@ class TimelineSequencer {
   /**
    * Déclenche la sauvegarde automatique avec debounce
    * Attend 2 secondes après la dernière modification avant de sauvegarder
+   * Ne sauvegarde que si des changements ont été détectés
    * @returns {void}
    * @private
    */
   triggerAutoSave() {
     if (!this.currentTimeline) return;
+
+    // Vérifier si la séquence a changé depuis la dernière sauvegarde
+    if (!this.hasSequenceChanged()) {
+      // Pas de changement détecté, annuler l'auto-sauvegarde
+      return;
+    }
 
     // Annuler le timeout précédent
     if (this.autoSaveTimeout) {
@@ -252,6 +263,9 @@ class TimelineSequencer {
         this.currentTimeline.data = timelineData.data;
         this.currentTimeline.updated_at = new Date().toISOString();
 
+        // Mettre à jour l'état de la dernière sauvegarde pour éviter les sauvegardes inutiles
+        this.lastSavedSequence = this.generateSequence();
+
         this.showAutoSaveIndicator('saved');
 
         // Masquer l'indicateur après 2 secondes
@@ -273,6 +287,59 @@ class TimelineSequencer {
       this.isAutoSaving = false;
       this.autoSaveTimeout = null;
     }
+  }
+
+  /**
+   * Vérifie si la séquence actuelle a changé depuis la dernière sauvegarde
+   * Compare l'état actuel avec l'état sauvegardé pour éviter les sauvegardes inutiles
+   * @returns {boolean} True si la séquence a changé, false sinon
+   * @private
+   */
+  hasSequenceChanged() {
+    const currentSequence = this.generateSequence();
+    const lastSequence = this.lastSavedSequence;
+
+    // Si pas de sauvegarde précédente, considérer comme changé
+    if (!lastSequence) {
+      return true;
+    }
+
+    // Comparer les longueurs des éléments
+    if (currentSequence.elements.length !== lastSequence.elements.length) {
+      return true;
+    }
+
+    // Comparer chaque élément
+    for (let i = 0; i < currentSequence.elements.length; i++) {
+      const currentElement = currentSequence.elements[i];
+      const lastElement = lastSequence.elements[i];
+
+      // Comparer les propriétés principales
+      if (
+        currentElement.moduleId !== lastElement.moduleId ||
+        currentElement.moduleType !== lastElement.moduleType ||
+        Math.abs(currentElement.startTime - lastElement.startTime) > 0.01 || // Tolérance de 0.01s
+        Math.abs(currentElement.duration - lastElement.duration) > 0.01 ||
+        currentElement.actionType !== lastElement.actionType ||
+        currentElement.trackIndex !== lastElement.trackIndex
+      ) {
+        return true;
+      }
+
+      // Comparer les paramètres d'action (comparaison profonde)
+      const currentParams = JSON.stringify(currentElement.actionParams || {});
+      const lastParams = JSON.stringify(lastElement.actionParams || {});
+      if (currentParams !== lastParams) {
+        return true;
+      }
+    }
+
+    // Comparer la durée totale
+    if (Math.abs(currentSequence.totalDuration - lastSequence.totalDuration) > 0.01) {
+      return true;
+    }
+
+    return false;
   }
 
   /**
@@ -3500,6 +3567,9 @@ class TimelineSequencer {
 
     // Mettre à jour le viewport
     this.updateViewport();
+
+    // Initialiser l'état de la dernière sauvegarde pour éviter les sauvegardes inutiles
+    this.lastSavedSequence = this.generateSequence();
   }
 
   /**
@@ -3602,6 +3672,9 @@ class TimelineSequencer {
         this.currentTimeline.data = timelineData.data;
         this.currentTimeline.updated_at = new Date().toISOString();
 
+        // Mettre à jour l'état de la dernière sauvegarde pour éviter les sauvegardes inutiles
+        this.lastSavedSequence = this.generateSequence();
+
         window.showToast?.('Timeline sauvegardée avec succès', 'success', 3000);
         // Recharger la liste des timelines sauvegardées
         this.loadSavedTimelines();
@@ -3699,6 +3772,9 @@ class TimelineSequencer {
 
         // Recharger la liste des timelines sauvegardées pour afficher la nouvelle
         this.loadSavedTimelines();
+
+        // Initialiser l'état de la dernière sauvegarde pour une timeline vide
+        this.lastSavedSequence = this.generateSequence();
 
         // Afficher un message de succès
         window.showToast?.(`Timeline "${timelineName}" créée avec succès.`, 'success', 4000);
