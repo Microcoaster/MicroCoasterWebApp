@@ -14,7 +14,7 @@
   #include <WebSocketsClient.h> // Client WebSocket pour communication serveur
   #include <ArduinoJson.h>      // Manipulation des données JSON
   #include <SD.h>           // Gestionnaire carte SD
-  #include <Audio.h>            // Bibliothèque audio ESP32-audioI2S pour WAV
+  #include <Audio.h>            // Bibliothèque audio ESP32-audioI2S pour MP3
 
   // ========================================
   // CONFIGURATION PRINCIPALE
@@ -58,13 +58,44 @@ String currentAudioFile = "";     // Fichier audio en cours de lecture
 bool isPlaying = false;           // État de lecture
 bool isPaused = false;            // État de pause
 int volumeLevel = 50;             // Niveau de volume (0-100)
+int delayedVolume = 50;           // Volume pour lectures différées
+float delayedStartSeconds = 0.0;  // Position de départ pour lectures différées
 unsigned long playDelay = 0;      // Délai avant lecture en ms
+bool isDelayedTimeline = false;   // Flag pour savoir si c'est une timeline différée
+unsigned long delayedTimelineDuration = 0; // Durée pour timeline différée
 bool sdCardMounted = false;       // État de la carte SD
 
 // Variables pour la timeline
 unsigned long timelineStartTime = 0;      // Timestamp de début de la timeline
 unsigned long timelineDuration = 0;       // Durée de lecture en ms
-bool isTimelinePlaying = false;           // Flag pour mode timeline
+bool isTimelinePlaying = false;           // Flag pour mode timeline (basé sur paramètres)
+
+// ========================================
+// STRUCTURE DE PARAMÈTRES AUDIO UNIFIÉS
+// ========================================
+
+/**
+ * Structure unifiée pour tous les paramètres audio
+ * Remplace la séparation artificielle audio_play vs audio_timeline_play
+ */
+struct AudioParams {
+  String filename;
+  unsigned long delay_ms = 0;
+  int volume = -1;              // -1 = utiliser volume global
+  float start_seconds = 0.0;    // Position de départ dans le fichier
+  unsigned long duration_ms = 0; // Durée de lecture (0 = jusqu'à la fin)
+  bool timeline_mode = false;   // Mode timeline auto-détecté
+  
+  // Constructeur par défaut
+  AudioParams() {}
+  
+  // Constructeur avec paramètres
+  AudioParams(String f, unsigned long d = 0, int v = -1, float ss = 0.0, unsigned long dur = 0)
+    : filename(f), delay_ms(d), volume(v), start_seconds(ss), duration_ms(dur) {
+    // Auto-détection du mode timeline
+    timeline_mode = (start_seconds > 0.0 || duration_ms > 0);
+  }
+};
 
 // Configuration persistante
 const String CONFIG_FILE = "/audio.json";  // CONFIGURATION DANS L'ESP32 (LittleFS) - comme wifi.json
@@ -108,16 +139,16 @@ void sendAudioVolumeUpdate();
   bool initAudio();
   void scanAudioFiles();
   void analyzeMp3File(const String& filename);
-  void analyzeWavFile(const String& filename);
   void sendAudioFileList();
-  bool playAudioFile(const String& filename, unsigned long delay_ms = 0);
+  bool playAudio(const AudioParams& params);  // FONCTION UNIFIÉE - REMPLACE playAudioFile et playTimelineAudio
   void pauseAudio();
+  void resumeAudio();
   void stopAudio();
   void setVolume(int volume);
   void updateStatusLED();
 
-// Fonctions timeline et configuration
-bool playTimelineAudio(const String& filename, unsigned long start_time_ms, unsigned long duration_ms, unsigned long delay_ms);
+// Fonctions timeline et configuration (MAINTENUES POUR COMPATIBILITÉ)
+bool playTimelineAudio(const String& filename, unsigned long start_time_ms, unsigned long duration_ms, unsigned long delay_ms, float start_seconds = 0.0);
 void saveAudioConfig();
 void loadAudioConfig();
 // void handleAudioUploadStart(const char* payload);
@@ -300,19 +331,54 @@ void loadAudioConfig();
       // Démarrer la lecture après le délai
       String filepath = "/" + currentAudioFile;
       Serial.println("[AUDIO] 🔄 Tentative de connexion à l'audio après délai...");
-      if (audio.connecttoFS(SD, filepath.c_str())) {
+      
+      // Démarrer silencieusement (anti-pop)
+      audio.setVolume(0);
+      
+      bool success = false;
+      if (isDelayedTimeline) {
+        // C'est une timeline différée - utiliser la nouvelle fonction unifiée
+        Serial.println("[AUDIO] 📺 Démarrage timeline différée avec fonction unifiée...");
+        AudioParams delayedParams(currentAudioFile, 0, delayedVolume, delayedStartSeconds, delayedTimelineDuration);
+        delayedParams.timeline_mode = true;  // Forcer le mode timeline
+        success = playAudio(delayedParams);
+        isDelayedTimeline = false; // Reset le flag
+      } else {
+        // C'est une lecture audio normale différée - utiliser la nouvelle fonction unifiée
+        Serial.println("[AUDIO] 🎵 Démarrage audio différé avec fonction unifiée...");
+        AudioParams delayedParams(currentAudioFile, 0, delayedVolume, delayedStartSeconds, 0);
+        success = playAudio(delayedParams);
+      }
+      
+      if (success) {
         Serial.println("[AUDIO] ✅ Lecture démarrée après délai");
         Serial.println("[AUDIO] ▶️ Démarrage de la lecture...");
         isPlaying = true;
         updateStatusLED();
+        
+        // Laisser l'audio se stabiliser
+        delay(50);
+        
+        // FADE-IN progressif avec le volume stocké
+        Serial.printf("[AUDIO] 🔊 Fade-in progressif vers %d%%\n", delayedVolume);
+        for (int vol = 0; vol <= delayedVolume; vol += 3) {
+          int audioVolume = map(vol, 0, 100, 0, 63);
+          audio.setVolume(audioVolume);
+          delay(15);
+        }
+        
+        // Volume final exact
+        int finalVolume = map(delayedVolume, 0, 100, 0, 63);
+        audio.setVolume(finalVolume);
+        
+        Serial.printf("[AUDIO] ✅ Volume final après délai: %d%% (audio: %d/63)\n", delayedVolume, finalVolume);
         sendAudioStatusUpdate();
-
-        // Attendre un peu et vérifier l'état
-        ::delay(100);
-        Serial.printf("[AUDIO] 📊 État après délai - isPlaying: %s\n", isPlaying ? "true" : "false");
       } else {
         Serial.println("[AUDIO] ❌ Échec démarrage lecture après délai");
         currentAudioFile = "";
+        // Restaurer le volume en cas d'échec
+        int audioVolume = map(delayedVolume, 0, 100, 0, 63);
+        audio.setVolume(audioVolume);
       }
       playDelay = 0;
     }
@@ -523,23 +589,40 @@ void loadAudioConfig();
       sendAudioFileList();
       
     } else if (command == "audio_play") {
-      if (!doc["data"]["params"]["filename"].is<String>()) {
+      if (!doc["data"]["filename"].is<String>()) {
         Serial.println("[AUDIO] ❌ Filename manquant ou invalide");
         status = "error";
         message = "Nom de fichier manquant";
       } else {
-        String filename = doc["data"]["params"]["filename"];
+        String filename = doc["data"]["filename"];
         Serial.println("[AUDIO] 📁 Filename reçu: '" + filename + "'");
-        unsigned long delay_ms = doc["data"]["params"]["delay"].is<unsigned long>() ? doc["data"]["params"]["delay"].as<unsigned long>() : 0;
+        unsigned long delay_ms = doc["data"]["delay"].is<unsigned long>() ? doc["data"]["delay"].as<unsigned long>() : 0;
+        int volume = doc["data"]["volume"].is<int>() ? doc["data"]["volume"].as<int>() : volumeLevel;
+        float start_seconds = doc["data"]["start_seconds"].is<float>() ? doc["data"]["start_seconds"].as<float>() : 0.0;
+        unsigned long duration_ms = doc["data"]["duration"].is<unsigned long>() ? doc["data"]["duration"].as<unsigned long>() : 0;
+        
+        Serial.printf("[AUDIO] 🔊 Volume demandé: %d%%\n", volume);
+        if (start_seconds > 0.0) {
+          Serial.printf("[AUDIO] ⏰ Démarrage à: %.1f secondes\n", start_seconds);
+        }
+        if (duration_ms > 0) {
+          Serial.printf("[AUDIO] ⏱️ Durée limitée: %lu ms\n", duration_ms);
+        }
+        
         if (filename.length() == 0) {
           Serial.println("[AUDIO] ❌ Filename vide");
           status = "error";
           message = "Nom de fichier vide";
-        } else if (playAudioFile(filename, delay_ms)) {
-          message = "Lecture démarrée: " + filename;
         } else {
-          status = "error";
-          message = "Erreur lors de la lecture: " + filename;
+          // CRÉER LES PARAMÈTRES UNIFIÉS
+          AudioParams audioParams(filename, delay_ms, volume, start_seconds, duration_ms);
+          
+          if (playAudio(audioParams)) {
+            message = "Lecture démarrée: " + filename + " (volume: " + String(volume) + "%)";
+          } else {
+            status = "error";
+            message = "Erreur lors de la lecture: " + filename;
+          }
         }
       }
       
@@ -552,54 +635,74 @@ void loadAudioConfig();
       message = "Lecture arrêtée";
       
     } else if (command == "audio_volume") {
-      if (!doc["data"]["params"]["level"].is<int>()) {
+      if (!doc["data"]["level"].is<int>()) {
         Serial.println("[AUDIO] ❌ Level de volume manquant ou invalide");
         status = "error";
         message = "Niveau de volume manquant";
       } else {
-        int level = doc["data"]["params"]["level"];
+        int level = doc["data"]["level"];
         setVolume(level);
         message = "Volume réglé à " + String(level) + "%";
       }
       
     } else if (command == "audio_timeline_play") {
-      if (!doc["data"]["params"]["filename"].is<String>()) {
-        Serial.println("[TIMELINE] ❌ Filename manquant ou invalide");
+      // COMMANDE DÉPRÉCIÉE - Rediriger vers audio_play unifié
+      Serial.println("[AUDIO] ⚠️ Commande audio_timeline_play dépréciée - utiliser audio_play");
+      if (!doc["data"]["filename"].is<String>()) {
+        Serial.println("[AUDIO] ❌ Filename manquant ou invalide");
         status = "error";
         message = "Nom de fichier manquant";
       } else {
-        String filename = doc["data"]["params"]["filename"];
-        unsigned long start_time_ms = doc["data"]["params"]["start_time_ms"].is<unsigned long>() ? doc["data"]["params"]["start_time_ms"].as<unsigned long>() : 0;
-        unsigned long duration_ms = doc["data"]["params"]["duration_ms"].is<unsigned long>() ? doc["data"]["params"]["duration_ms"].as<unsigned long>() : 0;
-        unsigned long delay_ms = doc["data"]["params"]["delay_ms"].is<unsigned long>() ? doc["data"]["params"]["delay_ms"].as<unsigned long>() : 0;
+        String filename = doc["data"]["filename"];
+        unsigned long start_time_ms = doc["data"]["start_time_ms"].is<unsigned long>() ? doc["data"]["start_time_ms"].as<unsigned long>() : 0;
+        unsigned long duration_ms = doc["data"]["duration_ms"].is<unsigned long>() ? doc["data"]["duration_ms"].as<unsigned long>() : 0;
+        unsigned long delay_ms = doc["data"]["delay_ms"].is<unsigned long>() ? doc["data"]["delay_ms"].as<unsigned long>() : 0;
+        float start_seconds = doc["data"]["start_seconds"].is<float>() ? doc["data"]["start_seconds"].as<float>() : 0.0;
         
-        Serial.printf("[TIMELINE] 📁 Timeline reçue: '%s' (start: %lu ms, duration: %lu ms, delay: %lu ms)\n",
-                      filename.c_str(), start_time_ms, duration_ms, delay_ms);
+        // Créer les paramètres unifiés avec mode timeline forcé
+        AudioParams audioParams(filename, delay_ms, volumeLevel, start_seconds, duration_ms);
+        audioParams.timeline_mode = true;  // Forcer le mode timeline pour compatibilité
         
-        if (filename.length() == 0) {
-          Serial.println("[TIMELINE] ❌ Filename vide");
-          status = "error";
-          message = "Nom de fichier vide";
-        } else if (playTimelineAudio(filename, start_time_ms, duration_ms, delay_ms)) {
-          message = "Timeline démarrée: " + filename;
+        if (playAudio(audioParams)) {
+          message = "Timeline démarrée (via commande dépréciée): " + filename;
         } else {
           status = "error";
           message = "Erreur lors du démarrage timeline: " + filename;
         }
       }
       
-    // Commandes upload supprimées - fichiers directement sur SD
-    // } else if (command == "audio_upload_start") {
-    //   handleAudioUploadStart(payload);
-    //   return; // Ne pas envoyer de réponse pour l'upload
+    } else if (command == "timeline_pause") {
+      if (isPlaying) {
+        Serial.println("[AUDIO] ⏸️ Mise en pause de la lecture");
+        pauseAudio();
+        message = "Lecture mise en pause";
+      } else {
+        Serial.println("[AUDIO] ⚠️ Aucune lecture en cours");
+        status = "error";
+        message = "Aucune lecture en cours";
+      }
       
-    // } else if (command == "audio_upload_chunk") {
-    //   handleAudioUploadChunk(payload);
-    //   return; // Ne pas envoyer de réponse pour l'upload
+    } else if (command == "timeline_resume") {
+      if (isPaused) {
+        Serial.println("[AUDIO] ▶️ Reprise de la lecture");
+        resumeAudio();
+        message = "Lecture reprise";
+      } else {
+        Serial.println("[AUDIO] ⚠️ Aucune lecture en pause");
+        status = "error";
+        message = "Aucune lecture en pause";
+      }
       
-    // } else if (command == "audio_upload_end") {
-    //   handleAudioUploadEnd();
-    //   return; // Ne pas envoyer de réponse pour l'upload
+    } else if (command == "timeline_stop") {
+      if (isPlaying || isPaused) {
+        Serial.println("[AUDIO] 🛑 Arrêt de la lecture");
+        stopAudio();
+        message = "Lecture arrêtée";
+      } else {
+        Serial.println("[AUDIO] ⚠️ Aucune lecture en cours");
+        status = "error";
+        message = "Aucune lecture en cours";
+      }
       
     } else {
       Serial.println("[AUDIO] ❌ Commande inconnue: " + command);
@@ -722,15 +825,12 @@ void loadAudioConfig();
     while (file) {
       if (!file.isDirectory()) {
         String filename = file.name();
-        if (filename.endsWith(".mp3") || filename.endsWith(".MP3") ||
-            filename.endsWith(".wav") || filename.endsWith(".WAV")) {
+        if (filename.endsWith(".mp3") || filename.endsWith(".MP3")) {
           Serial.println("[AUDIO] 📁 Fichier audio trouvé: " + filename);
 
           // Analyser les propriétés du fichier selon le type
           if (filename.endsWith(".mp3") || filename.endsWith(".MP3")) {
             analyzeMp3File(filename);
-          } else if (filename.endsWith(".wav") || filename.endsWith(".WAV")) {
-            analyzeWavFile(filename);
           }
 
           audioCount++;
@@ -745,54 +845,9 @@ void loadAudioConfig();
     if (audioCount > 0) {
       Serial.println("[AUDIO] 💡 Conseils qualité audio:");
       Serial.println("   ├─ MP3: Utilisez des MP3 encodés en haute qualité (320kbps)");
-      Serial.println("   ├─ WAV: 16-bit PCM, 44.1kHz ou 48kHz recommandés");
       Serial.println("   ├─ Privilégiez les fichiers stéréo");
       Serial.println("   └─ Vérifiez l'alimentation stable pour éviter le bruit");
     }
-  }
-
-  void analyzeWavFile(const String& filename) {
-    File wavFile = SD.open("/" + filename, FILE_READ);
-    if (!wavFile) {
-      Serial.println("[AUDIO] ⚠️ Impossible d'analyser: " + filename);
-      return;
-    }
-
-    // Lire l'en-tête WAV (44 octets)
-    uint8_t header[44];
-    if (wavFile.read(header, 44) != 44) {
-      Serial.println("[AUDIO] ⚠️ En-tête WAV invalide: " + filename);
-      wavFile.close();
-      return;
-    }
-
-    // Vérifier le format WAV
-    if (header[0] != 'R' || header[1] != 'I' || header[2] != 'F' || header[3] != 'F') {
-      Serial.println("[AUDIO] ⚠️ Pas un fichier WAV valide: " + filename);
-      wavFile.close();
-      return;
-    }
-
-    // Extraire les informations importantes
-    uint32_t sampleRate = (header[24] | (header[25] << 8) | (header[26] << 16) | (header[27] << 24));
-    uint16_t bitsPerSample = (header[34] | (header[35] << 8));
-    uint16_t numChannels = (header[22] | (header[23] << 8));
-
-    Serial.printf("[AUDIO] 📊 %s: %dHz, %d-bit, %d canal(s)\n",
-                 filename.c_str(), sampleRate, bitsPerSample, numChannels);
-
-    // Vérifications de qualité
-    if (bitsPerSample != 16) {
-      Serial.println("[AUDIO] ⚠️ Recommandé: 16-bit PCM pour une meilleure qualité");
-    }
-    if (sampleRate < 44100) {
-      Serial.println("[AUDIO] ⚠️ Faible fréquence d'échantillonnage détectée");
-    }
-    if (numChannels != 2) {
-      Serial.println("[AUDIO] ℹ️ Fichier mono détecté (stéréo recommandé)");
-    }
-
-    wavFile.close();
   }
 
   void analyzeMp3File(const String& filename) {
@@ -813,9 +868,27 @@ void loadAudioConfig();
     // Vérifier si c'est un fichier MP3 valide (commence par ID3 ou frame sync)
     bool isValidMp3 = false;
     if (header[0] == 'I' && header[1] == 'D' && header[2] == '3') {
-      // Fichier avec tag ID3
+      // Fichier avec tag ID3 - chercher le premier frame MP3
       isValidMp3 = true;
       Serial.println("[AUDIO] 📊 " + filename + ": MP3 avec tag ID3 détecté");
+
+      // Sauter le tag ID3 pour trouver le premier frame
+      uint8_t id3Header[10];
+      if (mp3File.read(id3Header, 6) == 6) {
+        // Calculer la taille du tag ID3 (bytes 6-9, big-endian, synchsafe)
+        uint32_t id3Size = ((id3Header[0] & 0x7F) << 21) |
+                          ((id3Header[1] & 0x7F) << 14) |
+                          ((id3Header[2] & 0x7F) << 7) |
+                          (id3Header[3] & 0x7F);
+        mp3File.seek(id3Size + 10); // +10 pour l'en-tête ID3
+      }
+
+      // Lire le premier frame MP3
+      if (mp3File.read(header, 4) != 4) {
+        Serial.println("[AUDIO] ⚠️ Impossible de lire le premier frame MP3");
+        mp3File.close();
+        return;
+      }
     } else if ((header[0] & 0xFF) == 0xFF && (header[1] & 0xE0) == 0xE0) {
       // Frame sync MP3 direct
       isValidMp3 = true;
@@ -824,6 +897,35 @@ void loadAudioConfig();
 
     if (!isValidMp3) {
       Serial.println("[AUDIO] ⚠️ Format MP3 non reconnu: " + filename);
+      mp3File.close();
+      return;
+    }
+
+    // Analyser le frame MP3 pour extraire le bitrate
+    if ((header[0] & 0xFF) == 0xFF && (header[1] & 0xE0) == 0xE0) {
+      // Extraire les informations du frame MP3
+      uint8_t version = (header[1] >> 3) & 0x03;
+      uint8_t layer = (header[1] >> 1) & 0x03;
+      uint8_t bitrateIndex = (header[2] >> 4) & 0x0F;
+
+      // Table des bitrates MP3 (kbps)
+      const uint16_t bitrateTable[16] = {0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0};
+
+      if (bitrateIndex > 0 && bitrateIndex < 15) {
+        uint16_t bitrate = bitrateTable[bitrateIndex];
+        uint32_t bytesPerSecond = (bitrate * 1000) / 8; // Convertir kbps en octets/seconde
+
+        Serial.printf("[AUDIO] 📊 %s: MP3 %dkbps (%d octets/sec)\n",
+                     filename.c_str(), bitrate, bytesPerSecond);
+
+        // Stocker le bitrate pour utilisation future
+        if (filename.endsWith(".mp3") || filename.endsWith(".MP3")) {
+          // Ici on pourrait stocker dans une map ou structure globale
+          // Pour l'instant, juste afficher l'info
+        }
+      } else {
+        Serial.println("[AUDIO] ⚠️ Bitrate MP3 invalide détecté");
+      }
     }
 
     // Obtenir la taille du fichier
@@ -831,6 +933,59 @@ void loadAudioConfig();
     Serial.printf("[AUDIO] 📊 Taille: %d bytes\n", fileSize);
 
     mp3File.close();
+  }
+
+  /**
+   * Calcule le taux d'octets par seconde pour un fichier audio
+   * Analyse le fichier pour déterminer le bitrate réel (MP3)
+   */
+  float getBytesPerSecond(const String& filename) {
+    if (filename.endsWith(".mp3") || filename.endsWith(".MP3")) {
+      // Analyser le bitrate réel du fichier MP3
+      File mp3File = SD.open("/" + filename, FILE_READ);
+      if (!mp3File) {
+        Serial.println("[AUDIO] ⚠️ Impossible d'analyser bitrate MP3, utilisation valeur par défaut");
+        return 24000.0; // Valeur par défaut plus réaliste (192kbps)
+      }
+
+      // Chercher le premier frame MP3
+      uint8_t header[4];
+      bool foundFrame = false;
+      uint32_t fileSize = mp3File.size();
+
+      // Limiter la recherche aux premiers 10KB pour éviter les scans trop longs
+      for (uint32_t pos = 0; pos < min(fileSize, (uint32_t)10240) && !foundFrame; pos++) {
+        if (mp3File.read(header, 4) != 4) break;
+
+        if ((header[0] & 0xFF) == 0xFF && (header[1] & 0xE0) == 0xE0) {
+          foundFrame = true;
+        } else {
+          // Reculer d'un octet pour le prochain test
+          mp3File.seek(pos + 1);
+        }
+      }
+
+      if (foundFrame) {
+        // Extraire le bitrate du frame MP3
+        uint8_t bitrateIndex = (header[2] >> 4) & 0x0F;
+        const uint16_t bitrateTable[16] = {0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320, 0};
+
+        if (bitrateIndex > 0 && bitrateIndex < 15) {
+          uint16_t bitrate = bitrateTable[bitrateIndex];
+          float bytesPerSecond = (bitrate * 1000.0) / 8.0;
+          mp3File.close();
+          return bytesPerSecond;
+        }
+      }
+
+      mp3File.close();
+      Serial.println("[AUDIO] ⚠️ Bitrate MP3 non trouvé, utilisation valeur par défaut");
+      return 24000.0; // Valeur par défaut plus réaliste (192kbps)
+    }
+
+    // Type de fichier non reconnu
+    Serial.println("[AUDIO] ⚠️ Type de fichier non reconnu, utilisation valeur par défaut");
+    return 16000.0; // Valeur de secours
   }
 
   void sendAudioFileList() {
@@ -854,8 +1009,7 @@ void loadAudioConfig();
       while (file) {
         if (!file.isDirectory()) {
           String filename = file.name();
-          if (filename.endsWith(".mp3") || filename.endsWith(".MP3") ||
-              filename.endsWith(".wav") || filename.endsWith(".WAV")) {
+          if (filename.endsWith(".mp3") || filename.endsWith(".MP3")) {
             files.add(filename);
           }
         }
@@ -870,42 +1024,82 @@ void loadAudioConfig();
     Serial.printf("[AUDIO] 📤 Liste envoyée - %d fichiers\n", files.size());
   }
 
-  bool playAudioFile(const String& filename, unsigned long delay_ms) {
+  /**
+   * FONCTION AUDIO UNIFIÉE - Remplace playAudioFile() et playTimelineAudio()
+   * Gère tous les types de lecture audio avec paramètres unifiés
+   * @param params Structure AudioParams avec tous les paramètres
+   * @return bool Succès de la lecture
+   */
+  bool playAudio(const AudioParams& params) {
     if (!sdCardMounted) {
       Serial.println("[AUDIO] ❌ Lecture annulée - SD non montée");
       return false;
     }
 
+    // Utiliser le volume passé en paramètre ou le volume global par défaut
+    int playbackVolume = (params.volume >= 0 && params.volume <= 100) ? params.volume : volumeLevel;
+    
+    // Déterminer automatiquement si c'est une timeline basée sur les paramètres
+    bool isTimeline = params.timeline_mode || (params.start_seconds > 0.0) || (params.duration_ms > 0);
+    
     // Arrêter la lecture en cours si nécessaire
-    if (isPlaying) {
+    if (isPlaying || isTimelinePlaying) {
       stopAudio();
     }
 
-    String filepath = "/" + filename;
-    Serial.println("[AUDIO] 🎵 Démarrage lecture: " + filepath);
+    String filepath = "/" + params.filename;
+    Serial.printf("[AUDIO] 🎵 Démarrage lecture unifiée: %s (timeline: %s)\n", 
+                 filepath.c_str(), isTimeline ? "oui" : "non");
 
-    if (delay_ms > 0) {
-      Serial.printf("[AUDIO] ⏱️ Délai avant lecture: %lu ms\n", delay_ms);
-      playDelay = millis() + delay_ms;
-      currentAudioFile = filename;
+    // Calculer la position de départ en octets si start_seconds > 0
+    unsigned long startPos = 0;
+    if (params.start_seconds > 0.0) {
+      // Utiliser la fonction d'analyse pour déterminer le taux d'octets par seconde réel
+      float bytesPerSecond = getBytesPerSecond(params.filename);
+      
+      startPos = (unsigned long)(params.start_seconds * bytesPerSecond);
+      Serial.printf("[AUDIO] 📍 Position de départ: %.1f secondes (%lu octets, %.0f octets/sec)\n", 
+                   params.start_seconds, startPos, bytesPerSecond);
+    }
+
+    if (params.delay_ms > 0) {
+      Serial.printf("[AUDIO] ⏱️ Délai avant lecture: %lu ms\n", params.delay_ms);
+      playDelay = millis() + params.delay_ms;
+      currentAudioFile = params.filename;
+      
+      // Stocker les paramètres pour la lecture différée
+      delayedVolume = playbackVolume;
+      delayedStartSeconds = params.start_seconds;
+      delayedTimelineDuration = params.duration_ms;
+      isDelayedTimeline = isTimeline;  // Utiliser le flag déterminé automatiquement
+      
       return true;
     }
 
-    // Démarrer la lecture avec FADE-IN anti-pop
+    // Démarrer la lecture immédiatement
     Serial.println("[AUDIO] 🔇 Démarrage silencieux (anti-pop)...");
     
     // Sauvegarder le volume original
-    int originalVolume = volumeLevel;
+    int originalVolume = playbackVolume;
     
     // Commencer à volume 0 pour éviter le pop
     audio.setVolume(0);
     
     Serial.println("[AUDIO] 🔄 Tentative de connexion à l'audio...");
-    if (audio.connecttoFS(SD, filepath.c_str())) {
+    if (audio.connecttoFS(SD, filepath.c_str(), startPos)) {
       Serial.println("[AUDIO] ✅ Connexion audio réussie");
+      
       isPlaying = true;
       isPaused = false;
-      currentAudioFile = filename;
+      isTimelinePlaying = isTimeline;  // État basé sur les paramètres, pas sur la commande
+      currentAudioFile = params.filename;
+      
+      // Configurer la timeline si nécessaire
+      if (isTimeline) {
+        timelineStartTime = millis();
+        timelineDuration = params.duration_ms;
+        Serial.printf("[TIMELINE] 🎬 Mode timeline activé - Durée: %lu ms\n", params.duration_ms);
+      }
       
       // Laisser l'audio se stabiliser
       delay(50);
@@ -915,14 +1109,15 @@ void loadAudioConfig();
       for (int vol = 0; vol <= originalVolume; vol += 3) {
         int audioVolume = map(vol, 0, 100, 0, 63);
         audio.setVolume(audioVolume);
-        delay(15); // 15ms par step = fade-in fluide
+        delay(15);
       }
       
       // Volume final exact
       int finalVolume = map(originalVolume, 0, 100, 0, 63);
       audio.setVolume(finalVolume);
       
-      Serial.printf("[AUDIO] ✅ Volume final: %d%% (audio: %d/63)\n", originalVolume, finalVolume);
+      Serial.printf("[AUDIO] ✅ Lecture démarrée - Volume: %d%%, Timeline: %s\n", 
+                   originalVolume, isTimeline ? "oui" : "non");
       sendAudioStatusUpdate();
 
       return true;
@@ -931,6 +1126,7 @@ void loadAudioConfig();
       // Restaurer le volume en cas d'échec
       int audioVolume = map(originalVolume, 0, 100, 0, 63);
       audio.setVolume(audioVolume);
+      isTimelinePlaying = false;
       return false;
     }
   }
@@ -942,6 +1138,16 @@ void loadAudioConfig();
     audio.pauseResume();
     isPlaying = false;
     isPaused = true;
+    sendAudioStatusUpdate();
+  }
+
+  void resumeAudio() {
+    if (!isPaused) return;
+    
+    Serial.println("[AUDIO] ▶️ Reprise de la lecture");
+    audio.pauseResume();
+    isPlaying = true;
+    isPaused = false;
     sendAudioStatusUpdate();
   }
 
@@ -970,6 +1176,11 @@ void loadAudioConfig();
     isPaused = false;
     currentAudioFile = "";
     playDelay = 0;
+    
+    // RESET ÉTAT TIMELINE - IMPORTANT pour la nouvelle architecture
+    isTimelinePlaying = false;
+    timelineStartTime = 0;
+    timelineDuration = 0;
     
     // Restaurer le volume pour la prochaine lecture
     int audioVolume = map(currentVolume, 0, 100, 0, 63);
@@ -1197,7 +1408,7 @@ void loadAudioConfig() {
     Serial.println("[AUDIO] 📊 Volume mis à jour");
   }
   
-  bool playTimelineAudio(const String& filename, unsigned long start_time_ms, unsigned long duration_ms, unsigned long delay_ms) {
+  bool playTimelineAudio(const String& filename, unsigned long start_time_ms, unsigned long duration_ms, unsigned long delay_ms, float start_seconds) {
   if (!sdCardMounted) {
     Serial.println("[TIMELINE] ❌ Lecture annulée - SD non montée");
     return false;
@@ -1211,6 +1422,9 @@ void loadAudioConfig() {
   String filepath = "/" + filename;
   Serial.printf("[TIMELINE] 🎬 Démarrage timeline: %s (start: %lu ms, duration: %lu ms, delay: %lu ms)\n",
                 filepath.c_str(), start_time_ms, duration_ms, delay_ms);
+  if (start_seconds > 0.0) {
+    Serial.printf("[TIMELINE] ⏰ Début fichier audio: %.1f secondes\n", start_seconds);
+  }
 
   // Vérifier si le fichier existe
   if (!SD.exists(filepath)) {
@@ -1218,14 +1432,16 @@ void loadAudioConfig() {
     return false;
   }
 
-  // Calculer la position de départ en octets (approximation pour MP3)
-  // Pour MP3, c'est approximatif car le bitrate peut varier
-  // On utilise une estimation basée sur un débit moyen de 128kbps
+  // Calculer la position de départ en octets (combinaison start_time_ms et start_seconds)
+  // start_time_ms est pour la position dans la timeline globale
+  // start_seconds est pour le début dans le fichier audio
   unsigned long startPos = 0;
-  if (start_time_ms > 0) {
-    // Estimation: 128kbps = 16KB/s = 16000 octets/seconde
-    startPos = (start_time_ms * 16000) / 1000;
-    Serial.printf("[TIMELINE] 📍 Position de départ estimée: %lu octets\n", startPos);
+  if (start_seconds > 0.0) {
+    // Utiliser la fonction d'analyse pour déterminer le taux d'octets par seconde réel
+    float bytesPerSecond = getBytesPerSecond(filename);
+    
+    startPos = (unsigned long)(start_seconds * bytesPerSecond);
+    Serial.printf("[TIMELINE] 📍 Position de départ estimée: %lu octets (%.1f sec, %.0f octets/sec)\n", startPos, start_seconds, bytesPerSecond);
   }
 
   if (delay_ms > 0) {
@@ -1235,6 +1451,11 @@ void loadAudioConfig() {
     timelineStartTime = millis() + delay_ms;
     timelineDuration = duration_ms;
     isTimelinePlaying = true;
+    isDelayedTimeline = true;
+    // Stocker les paramètres pour la lecture différée
+    delayedVolume = volumeLevel;
+    delayedStartSeconds = start_seconds;
+    delayedTimelineDuration = duration_ms;
     return true;
   }
 

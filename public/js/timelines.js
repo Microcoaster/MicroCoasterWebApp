@@ -23,6 +23,22 @@ const MODULE_CONFIGS = {
             label: 'Fichier audio',
             default: '',
           },
+          volume: {
+            type: 'range',
+            label: 'Volume (%)',
+            min: 0,
+            max: 100,
+            step: 1,
+            default: 50,
+          },
+          start_seconds: {
+            type: 'number',
+            label: 'Commencer à (secondes)',
+            min: 0,
+            max: 3600,
+            step: 0.1,
+            default: 0,
+          },
         },
       },
     },
@@ -242,8 +258,6 @@ class TimelineSequencer {
         setTimeout(() => {
           this.hideAutoSaveIndicator();
         }, 2000);
-
-        console.log('Auto-sauvegarde réussie');
       } else {
         throw new Error(data.error || 'Erreur lors de l\'auto-sauvegarde');
       }
@@ -341,7 +355,6 @@ class TimelineSequencer {
           this.setCurrentTimeline(timeline);
           this.loadTimelineData(timeline);
           this.switchToTab('modules');
-          console.log('Timeline unique chargée automatiquement:', timeline.name);
         } else {
           // Plusieurs timelines - ne pas charger automatiquement, rester sur savedTimelinesTab
           this.switchToTab('saved');
@@ -383,15 +396,12 @@ class TimelineSequencer {
           this.setCurrentTimeline(timeline);
           this.loadTimelineData(timeline);
           this.switchToTab('modules');
-          console.log('Timeline unique chargée automatiquement:', timeline.name);
         } else {
           // Plusieurs timelines - rester sur l'onglet savedTimelinesTab
           this.switchToTab('saved');
-          console.log(`${data.timelines.length} timelines disponibles - rester sur l'onglet sauvegardées`);
         }
       } else {
         // Aucune timeline disponible, ouvrir la modale de création
-        console.log('Aucune timeline disponible, ouverture de la modale de création');
         setTimeout(() => {
           this.createNewTimeline();
         }, 500); // Petit délai pour laisser la page se charger
@@ -575,6 +585,34 @@ class TimelineSequencer {
 
     console.log('Sending WebSocket message:', serverMessage);
     window.socket.emit('send_module_command', serverMessage);
+  }
+
+  /**
+   * Envoie une commande de contrôle de timeline à tous les modules actifs
+   * Utilisé pour pause, stop et autres contrôles globaux
+   * @param {string} command - Commande à envoyer ('timeline_pause', 'timeline_stop', etc.)
+   * @returns {void}
+   * @private
+   */
+  sendTimelineControlCommand(command) {
+    if (!window.socket || !this.websocketManager.isConnected) {
+      console.error('WebSocket not connected');
+      window.showToast?.('Connexion WebSocket perdue', 'error', 3000);
+      return;
+    }
+
+    // Envoyer la commande à tous les modules actifs dans la timeline
+    this.elements.forEach(element => {
+      const moduleId = element.moduleData.id;
+      const serverMessage = {
+        moduleId: moduleId,
+        command: command,
+        parameters: {}
+      };
+
+      console.log('Sending timeline control command:', serverMessage);
+      window.socket.emit('send_module_command', serverMessage);
+    });
   }
 
   /**
@@ -1266,39 +1304,49 @@ class TimelineSequencer {
    */
   isTrackAvailableForDuration(timePosition, duration, trackIndex, excludeElement = null) {
     // Vérifier si un élément existe déjà sur cette piste pendant toute la durée
+    const startA = timePosition;
+    const endA = timePosition + duration;
+
     return !this.elements.some(element => {
-      if (element === excludeElement || element.trackIndex !== trackIndex) return false;
-      // Chevauchement d'intervalles
-      const startA = timePosition;
-      const endA = timePosition + duration;
+      // Ignorer l'élément exclu (utile pour le drag & drop)
+      if (element === excludeElement) return false;
+
+      // Vérifier seulement les éléments sur la même piste
+      if (element.trackIndex !== trackIndex) return false;
+
       const startB = element.startTime;
       const endB = element.startTime + element.duration;
+
       return startA < endB && endA > startB;
     });
   }
 
   /**
-   * Vérifie s'il y a un conflit temporel pour le même module physique
-   * Un module ne peut pas avoir deux actions qui se chevauchent dans le temps
+   * Vérifie s'il y a un conflit temporel pour un module donné
+   * Un conflit existe si deux actions du même module se chevauchent dans le temps
    * @param {string} moduleId - ID du module à vérifier
-   * @param {number} timePosition - Position temporelle proposée pour la nouvelle action
+   * @param {number} startTime - Temps de début de la nouvelle action
    * @param {number} duration - Durée de la nouvelle action
-   * @param {Object} [excludeElement=null] - Élément à exclure de la vérification (utile pour le drag)
-   * @returns {boolean} True s'il y a un conflit temporel avec le même module
+   * @param {Object} [excludeElement=null] - Élément à exclure de la vérification (utile pour éviter de se comparer à soi-même)
+   * @returns {boolean} True s'il y a un conflit, false sinon
    * @private
    */
-  hasModuleTimeConflict(moduleId, timePosition, duration, excludeElement = null) {
-    // Vérifier si un élément du même module existe déjà dans cette plage temporelle
+  hasModuleTimeConflict(moduleId, startTime, duration, excludeElement = null) {
+    const endTime = startTime + duration;
+
+    // Vérifier tous les éléments du même module (sauf celui exclu)
     return this.elements.some(element => {
-      if (element === excludeElement || element.moduleData.id !== moduleId) return false;
+      // Ignorer l'élément exclu (utile pour le drag & drop)
+      if (element === excludeElement) return false;
 
-      // Chevauchement d'intervalles temporels (même module)
-      const startA = timePosition;
-      const endA = timePosition + duration;
-      const startB = element.startTime;
-      const endB = element.startTime + element.duration;
+      // Vérifier seulement les éléments du même module
+      if (element.moduleData.id !== moduleId) return false;
 
-      return startA < endB && endA > startB;
+      const elementStart = element.startTime;
+      const elementEnd = element.startTime + element.duration;
+
+      // Vérifier s'il y a un chevauchement temporel
+      return startTime < elementEnd && endTime > elementStart;
     });
   }
 
@@ -2605,6 +2653,9 @@ class TimelineSequencer {
       this.animationFrame = null;
     }
 
+    // Envoyer les commandes de pause aux modules audio actifs
+    this.sendTimelineControlCommand('timeline_pause');
+
     // Mettre à jour les boutons
     this.updatePlayButtons();
 
@@ -2632,6 +2683,9 @@ class TimelineSequencer {
 
     // Redémarrer l'animation
     this.animationFrame = requestAnimationFrame(() => this.updatePlaybackPosition());
+
+    // Envoyer la commande de reprise aux modules audio actifs
+    this.sendTimelineControlCommand('timeline_resume');
 
     // Mettre à jour les boutons
     this.updatePlayButtons();
@@ -2696,11 +2750,17 @@ class TimelineSequencer {
       return;
     }
 
+    // Déterminer la commande à envoyer
+    // REFONTE: Toujours utiliser audio_play - le serveur détecte automatiquement le mode timeline
+    const command = element.actionType;
+
     const message = {
       moduleId: element.moduleData.id,
-      command: element.actionType,
-      parameters: element.actionParams || {},
-      duration: element.duration,
+      command: command,
+      parameters: {
+        ...element.actionParams,
+        duration: element.duration,
+      },
     };
 
     console.log('Executing action:', message);
@@ -2771,6 +2831,9 @@ class TimelineSequencer {
       this.playbackLine.remove();
       this.playbackLine = null;
     }
+
+    // Envoyer les commandes d'arrêt aux modules audio actifs
+    this.sendTimelineControlCommand('timeline_stop');
 
     // Mettre à jour les boutons
     this.updatePlayButtons();
