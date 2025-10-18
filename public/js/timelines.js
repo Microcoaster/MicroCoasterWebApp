@@ -978,6 +978,7 @@ class TimelineSequencer {
 
     // Interactions timeline
     this.track.addEventListener('click', e => this.handleTrackClick(e));
+    document.addEventListener('click', e => this.handleDocumentClick(e));
     document.addEventListener('keydown', e => this.handleKeyDown(e));
     document.addEventListener('keyup', e => this.handleKeyUp(e));
 
@@ -1547,6 +1548,9 @@ class TimelineSequencer {
     element.addEventListener('click', e => {
       e.stopPropagation();
       
+      // Fermer tout menu contextuel ouvert
+      this.hideContextMenu();
+      
       // Ne pas ouvrir la modale si c'était un drag ou un resize récent
       if (this.wasDragging || this.wasResizing) {
         this.wasDragging = false;
@@ -1555,7 +1559,29 @@ class TimelineSequencer {
       }
       
       this.selectElement(element);
+    });
+
+    // Double-clic pour ouvrir la configuration
+    element.addEventListener('dblclick', e => {
+      e.stopPropagation();
+      
+      // Fermer tout menu contextuel ouvert
+      this.hideContextMenu();
+      
+      this.selectElement(element);
       this.openConfig(element);
+    });
+
+    // Clic droit pour le menu contextuel
+    element.addEventListener('contextmenu', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      
+      // Fermer tout menu contextuel ouvert avant d'en ouvrir un nouveau
+      this.hideContextMenu();
+      
+      this.selectElement(element);
+      this.showContextMenu(element, e.clientX, e.clientY);
     });
 
     element.addEventListener('mousedown', e => {
@@ -1685,6 +1711,20 @@ class TimelineSequencer {
     this.selectedElement = element;
   }
 
+  /**
+   * Désélectionne tous les éléments de timeline
+   * @returns {void}
+   * @public
+   */
+  clearSelection() {
+    document
+      .querySelectorAll('.timeline-action.selected, .timeline-element.selected')
+      .forEach(el => {
+        el.classList.remove('selected');
+      });
+    this.selectedElement = null;
+  }
+
   // ================================================================================
   // CONFIGURATION DES MODULES
   // ================================================================================
@@ -1749,7 +1789,10 @@ class TimelineSequencer {
     document.body.appendChild(modal);
 
     // Events
-    modal.querySelector('#cancelConfig').addEventListener('click', () => modal.remove());
+    modal.querySelector('#cancelConfig').addEventListener('click', () => {
+      this.clearSelection();
+      modal.remove();
+    });
     modal
       .querySelector('#deleteElement')
       .addEventListener('click', () => {
@@ -1767,7 +1810,10 @@ class TimelineSequencer {
       }, timelineElement.element.dataset.moduleId);
     });
     modal.addEventListener('click', e => {
-      if (e.target === modal) modal.remove();
+      if (e.target === modal) {
+        this.clearSelection();
+        modal.remove();
+      }
     });
 
     // Mise à jour temps réel des ranges
@@ -1989,6 +2035,7 @@ class TimelineSequencer {
     const trackIndex = parseInt(timelineElement.element.dataset.trackIndex) || 0;
     this.positionElement(timelineElement.element, startTime, duration, trackIndex);
 
+    this.clearSelection();
     modal.remove();
 
     // Déclencher l'auto-sauvegarde
@@ -2451,6 +2498,25 @@ class TimelineSequencer {
   }
 
   /**
+   * Gère les clics sur le document
+   * Désélectionne les éléments si clic ailleurs que sur un élément de timeline
+   * @param {MouseEvent} e - Événement de clic
+   * @returns {void}
+   * @public
+   */
+  handleDocumentClick(e) {
+    // Ne pas désélectionner si le clic est sur un élément de timeline
+    if (e.target.closest('.timeline-action')) {
+      return;
+    }
+
+    // Désélectionner si on a un élément sélectionné
+    if (this.selectedElement) {
+      this.clearSelection();
+    }
+  }
+
+  /**
    * Gère les raccourcis clavier de la timeline
    * Supprime l'élément sélectionné avec la touche Delete
    * @param {KeyboardEvent} e - Événement clavier
@@ -2494,18 +2560,109 @@ class TimelineSequencer {
   }
 
   /**
-   * Désélectionne tous les éléments de la timeline
-   * Retire les classes de sélection et remet à zéro la sélection active
+   * Affiche un menu contextuel pour un élément de timeline
+   * Menu avec options "⚙️ Configurer" et "🗑️ Supprimer"
+   * @param {HTMLElement} element - Élément pour lequel afficher le menu
+   * @param {number} x - Position X de la souris
+   * @param {number} y - Position Y de la souris
    * @returns {void}
    * @public
    */
-  clearSelection() {
-    document
-      .querySelectorAll('.timeline-action.selected, .timeline-element.selected')
-      .forEach(el => {
-        el.classList.remove('selected');
-      });
-    this.selectedElement = null;
+  showContextMenu(element, x, y) {
+    // Supprimer tout menu contextuel existant
+    this.hideContextMenu();
+
+    // Créer le menu contextuel
+    const contextMenu = document.createElement('div');
+    contextMenu.className = 'timeline-context-menu';
+    contextMenu.style.position = 'fixed';
+    contextMenu.style.left = `${x}px`;
+    contextMenu.style.top = `${y}px`;
+    contextMenu.style.zIndex = '10000';
+
+    // Ajuster la position si le menu dépasse les bords de l'écran
+    const menuRect = contextMenu.getBoundingClientRect();
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+
+    if (x + 150 > viewportWidth) {
+      contextMenu.style.left = `${x - 150}px`;
+    }
+    if (y + 80 > viewportHeight) {
+      contextMenu.style.top = `${y - 80}px`;
+    }
+
+    contextMenu.innerHTML = `
+      <div class="context-menu-item" data-action="configure">
+        <span class="context-menu-icon">⚙️</span>
+        <span class="context-menu-text">Configurer</span>
+      </div>
+      <div class="context-menu-item" data-action="delete">
+        <span class="context-menu-icon">🗑️</span>
+        <span class="context-menu-text">Supprimer</span>
+      </div>
+    `;
+
+    // Gestionnaire pour l'option "Configurer"
+    contextMenu.querySelector('[data-action="configure"]').addEventListener('click', () => {
+      this.openConfig(element);
+      this.hideContextMenu();
+    });
+
+    // Gestionnaire pour l'option "Supprimer"
+    contextMenu.querySelector('[data-action="delete"]').addEventListener('click', () => {
+      this.deleteElement(element);
+      this.hideContextMenu();
+    });
+
+    // Fermer le menu au clic ailleurs (y compris clic gauche)
+    const closeMenu = (e) => {
+      // Fermer le menu si le clic n'est pas sur le menu lui-même
+      if (!contextMenu.contains(e.target)) {
+        this.hideContextMenu();
+        document.removeEventListener('click', closeMenu);
+        document.removeEventListener('contextmenu', closeMenu);
+      }
+    };
+
+    // Fermer le menu avec Échap
+    const closeMenuOnEscape = (e) => {
+      if (e.key === 'Escape') {
+        this.hideContextMenu();
+        document.removeEventListener('keydown', closeMenuOnEscape);
+      }
+    };
+
+    // Fermer le menu au scroll ou redimensionnement
+    const closeMenuOnScroll = () => {
+      this.hideContextMenu();
+      window.removeEventListener('scroll', closeMenuOnScroll);
+      window.removeEventListener('resize', closeMenuOnScroll);
+    };
+
+    // Délai pour permettre au menu de se rendre avant d'écouter les clics
+    setTimeout(() => {
+      document.addEventListener('click', closeMenu);
+      document.addEventListener('contextmenu', closeMenu);
+      document.addEventListener('keydown', closeMenuOnEscape);
+      window.addEventListener('scroll', closeMenuOnScroll);
+      window.addEventListener('resize', closeMenuOnScroll);
+    }, 10);
+
+    document.body.appendChild(contextMenu);
+    this.contextMenu = contextMenu;
+  }
+
+  /**
+   * Masque le menu contextuel
+   * @returns {void}
+   * @private
+   */
+  hideContextMenu() {
+    if (this.contextMenu) {
+      this.contextMenu.remove();
+      this.contextMenu = null;
+    }
   }
 
   /**
@@ -3398,6 +3555,9 @@ class TimelineSequencer {
     });
     this.elements = [];
     this.selectedElement = null;
+
+    // Fermer tout menu contextuel ouvert
+    this.hideContextMenu();
 
     // Ne remettre les instructions que si une timeline est sélectionnée
     if (this.currentTimeline) {

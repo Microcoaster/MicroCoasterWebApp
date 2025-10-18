@@ -1129,6 +1129,63 @@
   pointer-events: none;
 }
 
+/* Feedback visuel de sélection */
+.timeline-action.selected {
+  border-color: #2ed573 !important;
+  background: linear-gradient(135deg, #2ed573, #1db660) !important;
+  box-shadow: 0 0 0 3px rgba(46, 213, 115, 0.3), 0 6px 20px rgba(46, 213, 115, 0.4) !important;
+}
+
+/* Menu contextuel */
+.timeline-context-menu {
+  background: var(--panel);
+  border: 1px solid var(--edge);
+  border-radius: 8px;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+  padding: 4px 0;
+  min-width: 140px;
+  backdrop-filter: blur(10px);
+  animation: contextMenuFadeIn 0.15s ease-out;
+}
+
+@keyframes contextMenuFadeIn {
+  0% {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.context-menu-item:hover {
+  background: rgba(46, 213, 115, 0.1);
+}
+
+.context-menu-item[data-action="delete"]:hover {
+  background: rgba(255, 107, 107, 0.1);
+}
+
+.context-menu-icon {
+  margin-right: 8px;
+  font-size: 16px;
+}
+
+.context-menu-text {
+  flex: 1;
+}
+
 /* Styles des éléments de timeline consolidés */
 .element-header {
   display: flex;
