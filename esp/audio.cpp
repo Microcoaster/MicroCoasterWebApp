@@ -12,11 +12,13 @@
   #include <Arduino.h>          // Bibliothèque principale Arduino pour ESP32
   #include <AyresWiFiManager.h> // Gestionnaire WiFi avec portail captif
   #include <WebSocketsClient.h> // Client WebSocket pour communication serveur
-  #include <ArduinoJson.h>      // Manipulation des données JSON
-  #include <SD.h>           // Gestionnaire carte SD
-  #include <Audio.h>            // Bibliothèque audio ESP32-audioI2S pour MP3
-
-  // ========================================
+#include <ArduinoJson.h>      // Manipulation des données JSON
+#include <SD.h>           // Gestionnaire carte SD
+#include <Audio.h>            // Bibliothèque audio ESP32-audioI2S pour MP3
+#include <freertos/FreeRTOS.h> // Système d'exploitation temps réel
+#include <freertos/task.h>     // Gestion des tâches
+#include <freertos/queue.h>    // Files d'attente inter-tâches
+#include <freertos/semphr.h>   // Sémaphores et mutex  // ========================================
   // CONFIGURATION PRINCIPALE
   // ========================================
 
@@ -99,6 +101,29 @@ struct AudioParams {
 
 // Configuration persistante
 const String CONFIG_FILE = "/audio.json";  // CONFIGURATION DANS L'ESP32 (LittleFS) - comme wifi.json
+
+// ========================================
+// VARIABLES FREERTOS
+// ========================================
+
+// Structure pour les commandes audio
+typedef struct {
+  String command;           // Type de commande (play, pause, stop, volume)
+  AudioParams params;       // Paramètres audio pour play
+  int volumeLevel;          // Volume pour volume change
+  String responseId;        // ID pour la réponse
+} AudioCommand;
+
+// Queue pour envoyer des commandes audio (taille 10 pour gérer le spam)
+QueueHandle_t audioQueue = NULL;
+
+// Mutex pour protéger les variables audio partagées
+SemaphoreHandle_t audioMutex = NULL;
+
+// Variables pour les tâches
+volatile bool isAudioProcessing = false;  // Indique si l'audio est en traitement
+TaskHandle_t audioTaskHandle = NULL;
+TaskHandle_t websocketTaskHandle = NULL;
   // ========================================
 
   // Pins I2S pour l'amplificateur MAX98357
@@ -134,7 +159,13 @@ void sendAudioStatusUpdate();
 void sendAudioVolumeUpdate();
 // void sendAudioUploadProgress(int progress); - SUPPRIMÉ
 // void sendAudioUploadComplete(const String& filename); - SUPPRIMÉ
-// void sendAudioUploadError(const String& error); - SUPPRIMÉ  // Fonctions audio
+// void sendAudioUploadError(const String& error); - SUPPRIMÉ
+
+// Tâches FreeRTOS
+void audioTask(void* parameter);
+void websocketTask(void* parameter);
+
+// Fonctions audio
   bool initSDCard();
   bool initAudio();
   void scanAudioFiles();
@@ -203,6 +234,52 @@ void loadAudioConfig();
     } else {
       Serial.println("[AUDIO] ❌ Échec initialisation système audio");
     }
+
+    // *** INITIALISATION FREERTOS ***
+    
+    Serial.println("🧵 Initialisation FreeRTOS...");
+    
+    // Créer le mutex pour protéger les variables audio partagées
+    audioMutex = xSemaphoreCreateMutex();
+    if (audioMutex == NULL) {
+      Serial.println("❌ Échec création du mutex");
+      ESP.restart();
+    }
+    Serial.println("   ✅ Mutex créé");
+    
+    // Créer la queue pour les commandes audio (taille 10)
+    audioQueue = xQueueCreate(10, sizeof(AudioCommand));
+    if (audioQueue == NULL) {
+      Serial.println("❌ Échec création de la queue");
+      ESP.restart();
+    }
+    Serial.println("   ✅ Queue créée (taille 10)");
+    
+    // Créer la tâche audio (haute priorité pour réactivité)
+    xTaskCreatePinnedToCore(
+      audioTask,           // Fonction de la tâche
+      "AudioTask",         // Nom de la tâche
+      8192,                // Taille de la pile (8KB pour audio)
+      NULL,                // Paramètre
+      2,                   // Priorité (2 = haute)
+      &audioTaskHandle,    // Handle de la tâche
+      0                    // Core 0
+    );
+    Serial.println("   ✅ Tâche audio créée (Core 0, priorité 2)");
+    
+    // Créer la tâche WebSocket (priorité moyenne)
+    xTaskCreatePinnedToCore(
+      websocketTask,       // Fonction de la tâche
+      "WebSocketTask",     // Nom de la tâche
+      8192,                // Taille de la pile (8KB pour JSON)
+      NULL,                // Paramètre
+      1,                   // Priorité (1 = moyenne)
+      &websocketTaskHandle,// Handle de la tâche
+      1                    // Core 1
+    );
+    Serial.println("   ✅ Tâche WebSocket créée (Core 1, priorité 1)");
+    
+    Serial.println("✅ FreeRTOS initialisé avec succès\n");
 
     // *** CONFIGURATION DU GESTIONNAIRE WIFI ***
     
@@ -283,166 +360,11 @@ void loadAudioConfig();
 
   void loop() {
     // Mise à jour du gestionnaire WiFi (portail web, DNS, timeouts)
-    wifi.update(); 
+    // C'est le seul traitement dans loop() car FreeRTOS gère le reste
+    wifi.update();
     
-    // Variables statiques pour le monitoring périodique
-    static unsigned long lastStatusCheck = 0;     // Dernier check de statut WiFi
-    static unsigned long lastConnectionState = false; // Dernier état de connexion
-    static unsigned long lastHeartbeat = 0;       // Dernier heartbeat envoyé
-    static unsigned long lastTelemetry = 0;       // Dernière télémétrie envoyée
-    unsigned long now = millis();                 // Timestamp actuel
-    
-    // *** MONITORING WIFI PÉRIODIQUE ***
-    // Vérification du statut WiFi toutes les 15 secondes (plus fréquent)
-    
-    if (millis() - lastStatusCheck > 15000) {
-      lastStatusCheck = millis();
-      bool currentState = wifi.isConnected();
-      
-      // Affichage du statut de connexion
-      if (currentState) {
-        Serial.println("🟢 WiFi connecté - IP: " + WiFi.localIP().toString() + 
-                      " | Signal: " + String(WiFi.RSSI()) + " dBm");
-      } else {
-        Serial.println("🔴 WiFi déconnecté - Portail de configuration actif sur 192.168.4.1");
-      }
-      
-      // Détection des changements d'état WiFi pour actions automatiques
-      if (currentState != lastConnectionState) {
-        if (currentState) {
-          Serial.println("🎉 Connexion WiFi établie !");
-          // Reconnexion WebSocket automatique après retour WiFi
-          connectSocket();
-        } else {
-          Serial.println("⚠️  Connexion WiFi perdue, basculement en mode portail...");
-          // Reset de l'authentification et arrêt audio
-          isAuthenticated = false;
-          stopAudio();
-          digitalWrite(STATUS_LED_PIN, LOW);
-        }
-        lastConnectionState = currentState;
-      }
-    }
-    
-    // *** GESTION AUDIO ***
-    // Gestion des délais de lecture et mise à jour de l'état audio
-    
-    if (sdCardMounted && playDelay > 0 && millis() >= playDelay) {
-      // Démarrer la lecture après le délai
-      String filepath = "/" + currentAudioFile;
-      Serial.println("[AUDIO] 🔄 Tentative de connexion à l'audio après délai...");
-      
-      // Démarrer silencieusement (anti-pop)
-      audio.setVolume(0);
-      
-      bool success = false;
-      if (isDelayedTimeline) {
-        // C'est une timeline différée - utiliser la nouvelle fonction unifiée
-        Serial.println("[AUDIO] 📺 Démarrage timeline différée avec fonction unifiée...");
-        AudioParams delayedParams(currentAudioFile, 0, delayedVolume, delayedStartSeconds, delayedTimelineDuration);
-        delayedParams.timeline_mode = true;  // Forcer le mode timeline
-        success = playAudio(delayedParams);
-        isDelayedTimeline = false; // Reset le flag
-      } else {
-        // C'est une lecture audio normale différée - utiliser la nouvelle fonction unifiée
-        Serial.println("[AUDIO] 🎵 Démarrage audio différé avec fonction unifiée...");
-        AudioParams delayedParams(currentAudioFile, 0, delayedVolume, delayedStartSeconds, 0);
-        success = playAudio(delayedParams);
-      }
-      
-      if (success) {
-        Serial.println("[AUDIO] ✅ Lecture démarrée après délai");
-        Serial.println("[AUDIO] ▶️ Démarrage de la lecture...");
-        isPlaying = true;
-        updateStatusLED();
-        
-        // Laisser l'audio se stabiliser
-        delay(50);
-        
-        // FADE-IN progressif avec le volume stocké
-        Serial.printf("[AUDIO] 🔊 Fade-in progressif vers %d%%\n", delayedVolume);
-        for (int vol = 0; vol <= delayedVolume; vol += 3) {
-          int audioVolume = map(vol, 0, 100, 0, 63);
-          audio.setVolume(audioVolume);
-          delay(15);
-        }
-        
-        // Volume final exact
-        int finalVolume = map(delayedVolume, 0, 100, 0, 63);
-        audio.setVolume(finalVolume);
-        
-        Serial.printf("[AUDIO] ✅ Volume final après délai: %d%% (audio: %d/63)\n", delayedVolume, finalVolume);
-        sendAudioStatusUpdate();
-      } else {
-        Serial.println("[AUDIO] ❌ Échec démarrage lecture après délai");
-        currentAudioFile = "";
-        // Restaurer le volume en cas d'échec
-        int audioVolume = map(delayedVolume, 0, 100, 0, 63);
-        audio.setVolume(audioVolume);
-      }
-      playDelay = 0;
-    }
-    
-    // Vérification de la durée timeline
-    if (isTimelinePlaying && timelineDuration > 0 && millis() - timelineStartTime >= timelineDuration) {
-      Serial.println("[TIMELINE] ⏰ Durée timeline écoulée - Arrêt automatique");
-      stopAudio();
-      isTimelinePlaying = false;
-      timelineStartTime = 0;
-      timelineDuration = 0;
-      
-      // Notification WebSocket
-      JsonDocument doc;
-      doc["type"] = "timeline_ended";
-      doc["moduleId"] = MODULE_ID;
-      doc["password"] = MODULE_PASSWORD;
-      doc["filename"] = currentAudioFile;
-      
-      String message;
-      serializeJson(doc, message);
-      webSocket.sendTXT(message);
-      
-      Serial.println("[TIMELINE] 📤 Notification timeline_ended envoyée");
-    }
-    
-    // Mise à jour continue du système audio
-    audio.loop();
-
-    // Debug audio - vérifier l'état périodiquement
-    static unsigned long lastAudioDebug = 0;
-    if (millis() - lastAudioDebug > 2000) {  // Toutes les 2 secondes
-      lastAudioDebug = millis();
-      if (isPlaying) {
-        Serial.println("[AUDIO] 🔊 Audio en cours - vérification...");
-      }
-    }
-    
-    // Mise à jour du client WebSocket (obligatoire pour traiter les messages)
-    webSocket.loop();
-    
-    // Vérification de l'état de la connexion WebSocket
-    static unsigned long lastWebSocketCheck = 0;
-    if (millis() - lastWebSocketCheck > 10000) {  // Toutes les 10 secondes
-      lastWebSocketCheck = millis();
-      if (!webSocket.isConnected() && isAuthenticated) {
-        Serial.println("[AUDIO] ⚠️  Connexion WebSocket perdue - Reset de l'authentification");
-        isAuthenticated = false;
-        digitalWrite(STATUS_LED_PIN, LOW);
-        connectSocket();
-      }
-    }
-    
-    // Envoi périodique de heartbeat (keepalive) - toutes les 60 secondes (réduit pour éviter conflits)
-    if (isAuthenticated && now - lastHeartbeat > 60000) {
-      sendHeartbeat();
-      lastHeartbeat = now;
-    }
-    
-    // Envoi périodique de télémétrie - toutes les 10 secondes
-    if (isAuthenticated && now - lastTelemetry > 10000) {
-      sendTelemetry();
-      lastTelemetry = now;
-    }
+    // Petit délai pour ne pas saturer le CPU
+    vTaskDelay(pdMS_TO_TICKS(100));
   }
 
   // ========================================
@@ -581,141 +503,81 @@ void loadAudioConfig();
     String command = doc["data"]["command"];
     Serial.println("[AUDIO] 🎮 Commande reçue: " + command);
     
-    String status = "success";
-    String message = "";
-    
-    // Traitement des commandes audio
+    // Traitement des commandes immédiates (sans queue)
     if (command == "audio_list_request") {
       sendAudioFileList();
-      
-    } else if (command == "audio_play") {
+      return;
+    }
+    
+    // Créer la structure de commande pour la queue
+    AudioCommand cmd;
+    cmd.responseId = command;
+    
+    // Traitement des commandes audio via queue (non-bloquant)
+    if (command == "audio_play") {
       if (!doc["data"]["filename"].is<String>()) {
         Serial.println("[AUDIO] ❌ Filename manquant ou invalide");
-        status = "error";
-        message = "Nom de fichier manquant";
-      } else {
-        String filename = doc["data"]["filename"];
-        Serial.println("[AUDIO] 📁 Filename reçu: '" + filename + "'");
-        unsigned long delay_ms = doc["data"]["delay"].is<unsigned long>() ? doc["data"]["delay"].as<unsigned long>() : 0;
-        int volume = doc["data"]["volume"].is<int>() ? doc["data"]["volume"].as<int>() : volumeLevel;
-        float start_seconds = doc["data"]["start_seconds"].is<float>() ? doc["data"]["start_seconds"].as<float>() : 0.0;
-        unsigned long duration_ms = doc["data"]["duration"].is<unsigned long>() ? doc["data"]["duration"].as<unsigned long>() : 0;
-        
-        Serial.printf("[AUDIO] 🔊 Volume demandé: %d%%\n", volume);
-        if (start_seconds > 0.0) {
-          Serial.printf("[AUDIO] ⏰ Démarrage à: %.1f secondes\n", start_seconds);
-        }
-        if (duration_ms > 0) {
-          Serial.printf("[AUDIO] ⏱️ Durée limitée: %lu ms\n", duration_ms);
-        }
-        
-        if (filename.length() == 0) {
-          Serial.println("[AUDIO] ❌ Filename vide");
-          status = "error";
-          message = "Nom de fichier vide";
-        } else {
-          // CRÉER LES PARAMÈTRES UNIFIÉS
-          AudioParams audioParams(filename, delay_ms, volume, start_seconds, duration_ms);
-          
-          if (playAudio(audioParams)) {
-            message = "Lecture démarrée: " + filename + " (volume: " + String(volume) + "%)";
-          } else {
-            status = "error";
-            message = "Erreur lors de la lecture: " + filename;
-          }
-        }
+        sendCommandResponse(command, "error", "Nom de fichier manquant");
+        return;
       }
       
-    } else if (command == "audio_pause") {
-      pauseAudio();
-      message = "Lecture mise en pause";
+      String filename = doc["data"]["filename"];
+      unsigned long delay_ms = doc["data"]["delay"].is<unsigned long>() ? doc["data"]["delay"].as<unsigned long>() : 0;
+      int volume = doc["data"]["volume"].is<int>() ? doc["data"]["volume"].as<int>() : volumeLevel;
+      float start_seconds = doc["data"]["start_seconds"].is<float>() ? doc["data"]["start_seconds"].as<float>() : 0.0;
+      unsigned long duration_ms = doc["data"]["duration"].is<unsigned long>() ? doc["data"]["duration"].as<unsigned long>() : 0;
       
-    } else if (command == "audio_stop") {
-      stopAudio();
-      message = "Lecture arrêtée";
+      cmd.command = "play";
+      cmd.params = AudioParams(filename, delay_ms, volume, start_seconds, duration_ms);
+      
+    } else if (command == "audio_pause" || command == "timeline_pause") {
+      cmd.command = "pause";
+      
+    } else if (command == "audio_stop" || command == "timeline_stop") {
+      cmd.command = "stop";
+      
+    } else if (command == "timeline_resume") {
+      cmd.command = "resume";
       
     } else if (command == "audio_volume") {
       if (!doc["data"]["level"].is<int>()) {
         Serial.println("[AUDIO] ❌ Level de volume manquant ou invalide");
-        status = "error";
-        message = "Niveau de volume manquant";
-      } else {
-        int level = doc["data"]["level"];
-        setVolume(level);
-        message = "Volume réglé à " + String(level) + "%";
+        sendCommandResponse(command, "error", "Niveau de volume manquant");
+        return;
       }
+      cmd.command = "volume";
+      cmd.volumeLevel = doc["data"]["level"];
       
     } else if (command == "audio_timeline_play") {
-      // COMMANDE DÉPRÉCIÉE - Rediriger vers audio_play unifié
-      Serial.println("[AUDIO] ⚠️ Commande audio_timeline_play dépréciée - utiliser audio_play");
+      // COMMANDE DÉPRÉCIÉE - Rediriger vers play unifié
       if (!doc["data"]["filename"].is<String>()) {
         Serial.println("[AUDIO] ❌ Filename manquant ou invalide");
-        status = "error";
-        message = "Nom de fichier manquant";
-      } else {
-        String filename = doc["data"]["filename"];
-        unsigned long start_time_ms = doc["data"]["start_time_ms"].is<unsigned long>() ? doc["data"]["start_time_ms"].as<unsigned long>() : 0;
-        unsigned long duration_ms = doc["data"]["duration_ms"].is<unsigned long>() ? doc["data"]["duration_ms"].as<unsigned long>() : 0;
-        unsigned long delay_ms = doc["data"]["delay_ms"].is<unsigned long>() ? doc["data"]["delay_ms"].as<unsigned long>() : 0;
-        float start_seconds = doc["data"]["start_seconds"].is<float>() ? doc["data"]["start_seconds"].as<float>() : 0.0;
-        
-        // Créer les paramètres unifiés avec mode timeline forcé
-        AudioParams audioParams(filename, delay_ms, volumeLevel, start_seconds, duration_ms);
-        audioParams.timeline_mode = true;  // Forcer le mode timeline pour compatibilité
-        
-        if (playAudio(audioParams)) {
-          message = "Timeline démarrée (via commande dépréciée): " + filename;
-        } else {
-          status = "error";
-          message = "Erreur lors du démarrage timeline: " + filename;
-        }
+        sendCommandResponse(command, "error", "Nom de fichier manquant");
+        return;
       }
       
-    } else if (command == "timeline_pause") {
-      if (isPlaying) {
-        Serial.println("[AUDIO] ⏸️ Mise en pause de la lecture");
-        pauseAudio();
-        message = "Lecture mise en pause";
-      } else {
-        Serial.println("[AUDIO] ⚠️ Aucune lecture en cours");
-        status = "error";
-        message = "Aucune lecture en cours";
-      }
+      String filename = doc["data"]["filename"];
+      unsigned long delay_ms = doc["data"]["delay_ms"].is<unsigned long>() ? doc["data"]["delay_ms"].as<unsigned long>() : 0;
+      float start_seconds = doc["data"]["start_seconds"].is<float>() ? doc["data"]["start_seconds"].as<float>() : 0.0;
+      unsigned long duration_ms = doc["data"]["duration_ms"].is<unsigned long>() ? doc["data"]["duration_ms"].as<unsigned long>() : 0;
       
-    } else if (command == "timeline_resume") {
-      if (isPaused) {
-        Serial.println("[AUDIO] ▶️ Reprise de la lecture");
-        resumeAudio();
-        message = "Lecture reprise";
-      } else {
-        Serial.println("[AUDIO] ⚠️ Aucune lecture en pause");
-        status = "error";
-        message = "Aucune lecture en pause";
-      }
-      
-    } else if (command == "timeline_stop") {
-      if (isPlaying || isPaused) {
-        Serial.println("[AUDIO] 🛑 Arrêt de la lecture");
-        stopAudio();
-        message = "Lecture arrêtée";
-      } else {
-        Serial.println("[AUDIO] ⚠️ Aucune lecture en cours");
-        status = "error";
-        message = "Aucune lecture en cours";
-      }
+      cmd.command = "play";
+      cmd.params = AudioParams(filename, delay_ms, volumeLevel, start_seconds, duration_ms);
+      cmd.params.timeline_mode = true;  // Forcer le mode timeline
       
     } else {
       Serial.println("[AUDIO] ❌ Commande inconnue: " + command);
-      status = "unknown_command";
-      message = "Commande inconnue: " + command;
+      sendCommandResponse(command, "unknown_command", "Commande inconnue: " + command);
+      return;
     }
-
-    updateStatusLED();
     
-    // Envoyer la réponse de commande
-    sendCommandResponse(command, status, message);
-    
-    Serial.println("[AUDIO] ✅ Commande exécutée: " + message);
+    // Envoyer la commande à la queue (timeout 100ms)
+    if (xQueueSend(audioQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
+      Serial.println("[AUDIO] ✅ Commande ajoutée à la queue: " + cmd.command);
+    } else {
+      Serial.println("[AUDIO] ⚠️  Queue pleine, commande ignorée");
+      sendCommandResponse(command, "error", "Queue audio pleine, réessayez");
+    }
   }
 
   void handlePing(const char* payload) {
@@ -1505,5 +1367,166 @@ void loadAudioConfig() {
     audio.setVolume(audioVolume);
     isTimelinePlaying = false;
     return false;
+  }
+}
+
+// ========================================
+// TÂCHES FREERTOS
+// ========================================
+
+// Tâche dédiée au traitement audio (exécution sur Core 0)
+void audioTask(void* parameter) {
+  Serial.println("[AUDIO TASK] 🚀 Tâche audio démarrée");
+  
+  AudioCommand cmd;
+  
+  while (true) {
+    // Attendre une commande dans la queue (bloquant)
+    if (xQueueReceive(audioQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
+      Serial.println("[AUDIO TASK] 📥 Commande reçue: " + cmd.command);
+      
+      isAudioProcessing = true;
+      String status = "success";
+      String message = "";
+      
+      // Traiter la commande
+      if (cmd.command == "play") {
+        if (playAudio(cmd.params)) {
+          message = "Lecture démarrée: " + cmd.params.filename;
+        } else {
+          status = "error";
+          message = "Erreur lors de la lecture: " + cmd.params.filename;
+        }
+      } else if (cmd.command == "pause") {
+        pauseAudio();
+        message = "Lecture mise en pause";
+      } else if (cmd.command == "resume") {
+        resumeAudio();
+        message = "Lecture reprise";
+      } else if (cmd.command == "stop") {
+        stopAudio();
+        message = "Lecture arrêtée";
+      } else if (cmd.command == "volume") {
+        setVolume(cmd.volumeLevel);
+        message = "Volume réglé à " + String(cmd.volumeLevel) + "%";
+      }
+      
+      isAudioProcessing = false;
+      
+      // Envoyer la réponse si un ID est fourni
+      if (cmd.responseId.length() > 0) {
+        sendCommandResponse(cmd.responseId, status, message);
+      }
+      
+      Serial.println("[AUDIO TASK] ✅ Commande traitée: " + message);
+    }
+    
+    // Vérification de la durée timeline (si en mode timeline)
+    if (xSemaphoreTake(audioMutex, pdMS_TO_TICKS(10)) == pdTRUE) {
+      if (isTimelinePlaying && timelineDuration > 0 && 
+          millis() - timelineStartTime >= timelineDuration) {
+        Serial.println("[TIMELINE] ⏰ Durée timeline écoulée - Arrêt automatique");
+        stopAudio();
+        isTimelinePlaying = false;
+        timelineStartTime = 0;
+        timelineDuration = 0;
+        
+        // Notification WebSocket
+        JsonDocument doc;
+        doc["type"] = "timeline_ended";
+        doc["moduleId"] = MODULE_ID;
+        doc["password"] = MODULE_PASSWORD;
+        doc["filename"] = currentAudioFile;
+        
+        String timelineMessage;
+        serializeJson(doc, timelineMessage);
+        webSocket.sendTXT(timelineMessage);
+        
+        Serial.println("[TIMELINE] 📤 Notification timeline_ended envoyée");
+      }
+      xSemaphoreGive(audioMutex);
+    }
+    
+    // Mise à jour continue du système audio
+    audio.loop();
+    
+    // Pause pour éviter saturation CPU
+    vTaskDelay(pdMS_TO_TICKS(10));
+  }
+}
+
+// Tâche dédiée au WebSocket et monitoring (exécution sur Core 1)
+void websocketTask(void* parameter) {
+  Serial.println("[WEBSOCKET TASK] 🚀 Tâche WebSocket démarrée");
+  
+  unsigned long lastStatusCheck = 0;
+  unsigned long lastConnectionState = false;
+  unsigned long lastHeartbeat = 0;
+  unsigned long lastTelemetry = 0;
+  unsigned long lastWebSocketCheck = 0;
+  
+  while (true) {
+    unsigned long now = millis();
+    
+    // *** MONITORING WIFI PÉRIODIQUE ***
+    if (now - lastStatusCheck > 15000) {
+      lastStatusCheck = now;
+      bool currentState = wifi.isConnected();
+      
+      // Affichage du statut
+      if (currentState) {
+        Serial.println("🟢 WiFi connecté - IP: " + WiFi.localIP().toString() + 
+                       " | Signal: " + String(WiFi.RSSI()) + " dBm");
+      } else {
+        Serial.println("🔴 WiFi déconnecté - Portail actif");
+      }
+      
+      // Détection des changements d'état
+      if (currentState != lastConnectionState) {
+        if (currentState) {
+          Serial.println("🎉 Connexion WiFi établie !");
+          connectSocket();
+        } else {
+          Serial.println("⚠️  Connexion WiFi perdue");
+          isAuthenticated = false;
+          stopAudio();
+          digitalWrite(STATUS_LED_PIN, LOW);
+        }
+        lastConnectionState = currentState;
+      }
+    }
+    
+    // *** GESTION WEBSOCKET ***
+    if (wifi.isConnected()) {
+      // Traitement des messages WebSocket
+      webSocket.loop();
+      
+      // Vérification connexion WebSocket
+      if (now - lastWebSocketCheck > 10000) {
+        lastWebSocketCheck = now;
+        if (!webSocket.isConnected() && isAuthenticated) {
+          Serial.println("[WEBSOCKET TASK] ⚠️  Connexion WebSocket perdue");
+          isAuthenticated = false;
+          stopAudio();
+          digitalWrite(STATUS_LED_PIN, LOW);
+          connectSocket();
+        }
+      }
+      
+      // Heartbeat périodique
+      if (isAuthenticated && now - lastHeartbeat > 60000) {
+        sendHeartbeat();
+        lastHeartbeat = now;
+      }
+      
+      // Télémétrie périodique
+      if (isAuthenticated && now - lastTelemetry > 10000) {
+        sendTelemetry();
+        lastTelemetry = now;
+      }
+    }
+    
+    // Pause pour éviter saturation CPU
+    vTaskDelay(pdMS_TO_TICKS(50));
   }
 }
