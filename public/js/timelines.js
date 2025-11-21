@@ -655,8 +655,9 @@ class TimelineSequencer {
   }
 
   /**
-   * Envoie une commande de contrôle de timeline à tous les modules actifs
+   * Envoie une commande de contrôle de timeline uniquement aux modules Audio Player
    * Utilisé pour pause, stop et autres contrôles globaux
+   * OPTIMISATION: Ne spam pas les Switch Track et dédoublonne les modules
    * @param {string} command - Commande à envoyer ('timeline_pause', 'timeline_stop', etc.)
    * @returns {void}
    * @private
@@ -668,18 +669,33 @@ class TimelineSequencer {
       return;
     }
 
-    // Envoyer la commande à tous les modules actifs dans la timeline
+    // Collecter les modules uniques qui ont besoin de la commande de timeline
+    // UNIQUEMENT les Audio Player car Switch Track n'a pas besoin de pause/resume
+    const audioPlayerModules = new Set();
+    
     this.elements.forEach(element => {
+      const moduleType = element.moduleData.type;
       const moduleId = element.moduleData.id;
+      
+      // Ne traiter que les Audio Player pour les commandes timeline
+      if (moduleType === 'Audio Player') {
+        audioPlayerModules.add(moduleId);
+      }
+    });
+
+    // Envoyer la commande une seule fois par module unique
+    audioPlayerModules.forEach(moduleId => {
       const serverMessage = {
         moduleId: moduleId,
         command: command,
         parameters: {}
       };
 
-      console.log('Sending timeline control command:', serverMessage);
+      console.log('Sending timeline control command to Audio Player:', serverMessage);
       window.socket.emit('send_module_command', serverMessage);
     });
+    
+    console.log(`Timeline command '${command}' sent to ${audioPlayerModules.size} unique Audio Player(s)`);
   }
 
   /**
@@ -2875,7 +2891,12 @@ class TimelineSequencer {
    */
   pausePlayback() {
     if (!this.isPlaying) return;
+    if (this.isPaused) return; // Éviter les pauses multiples
 
+    // Calculer le temps actuel AVANT de mettre en pause
+    const elapsedTime = (Date.now() - this.startTime) / 1000;
+    this.currentTime = elapsedTime;
+    
     this.isPaused = true;
     this.pausedTime = Date.now();
 
@@ -2885,18 +2906,25 @@ class TimelineSequencer {
       this.timeouts = [];
     }
 
+    // Annuler le timeout de fin si existe
+    if (this.stopTimeout) {
+      clearTimeout(this.stopTimeout);
+      this.stopTimeout = null;
+    }
+
     // Annuler l'animation frame
     if (this.animationFrame) {
       cancelAnimationFrame(this.animationFrame);
       this.animationFrame = null;
     }
 
-    // Envoyer les commandes de pause aux modules audio actifs
+    // Envoyer les commandes de pause uniquement aux modules Audio Player
     this.sendTimelineControlCommand('timeline_pause');
 
     // Mettre à jour les boutons
     this.updatePlayButtons();
 
+    console.log(`Timeline paused at ${this.currentTime.toFixed(2)}s`);
     window.showToast?.('Lecture mise en pause', 'info', 2000);
   }
 
@@ -2909,20 +2937,29 @@ class TimelineSequencer {
     if (!this.isPlaying || !this.isPaused) return;
 
     this.isPaused = false;
-    const pauseDuration = Date.now() - this.pausedTime;
-    this.startTime += pauseDuration; // Ajuster le temps de départ
+    
+    // Ajuster le startTime pour reprendre là où on s'était arrêté
+    // Nouveau startTime = maintenant - temps écoulé avant la pause
+    this.startTime = Date.now() - (this.currentTime * 1000);
 
-    // Reprogrammer les actions restantes
+    // Reprogrammer UNIQUEMENT les actions qui n'ont pas encore été exécutées
     const remainingElements = this.elements
-      .filter(el => el.moduleData && el.moduleData.id && el.actionType && el.startTime > this.currentTime)
+      .filter(el => {
+        if (!el.moduleData || !el.moduleData.id || !el.actionType) return false;
+        // Garder uniquement les actions qui commencent APRÈS currentTime
+        return el.startTime > this.currentTime;
+      })
       .sort((a, b) => a.startTime - b.startTime);
 
-    this.scheduleActions(remainingElements);
+    console.log(`Resuming timeline from ${this.currentTime.toFixed(2)}s with ${remainingElements.length} remaining actions`);
+
+    // Reprogrammer les actions avec les nouveaux timings
+    this.scheduleActionsFromTime(remainingElements, this.currentTime);
 
     // Redémarrer l'animation
     this.animationFrame = requestAnimationFrame(() => this.updatePlaybackPosition());
 
-    // Envoyer la commande de reprise aux modules audio actifs
+    // Envoyer la commande de reprise uniquement aux modules Audio Player
     this.sendTimelineControlCommand('timeline_resume');
 
     // Mettre à jour les boutons
@@ -2953,6 +2990,41 @@ class TimelineSequencer {
       this.stopTimeout = setTimeout(() => {
         this.stopSequence();
       }, totalDuration);
+    }
+  }
+
+  /**
+   * Programme l'exécution des actions à partir d'un temps de référence
+   * Utilisé pour reprendre la lecture après une pause
+   * @param {Array<Object>} elements - Liste des éléments à exécuter
+   * @param {number} fromTime - Temps de référence en secondes
+   * @returns {void}
+   * @private
+   */
+  scheduleActionsFromTime(elements, fromTime) {
+    this.timeouts = [];
+    elements.forEach(el => {
+      // Calculer le délai relatif par rapport au temps actuel
+      const relativeDelay = (el.startTime - fromTime) * 1000;
+      if (relativeDelay >= 0) {
+        const timeout = setTimeout(() => {
+          this.executeAction(el);
+        }, relativeDelay);
+        this.timeouts.push(timeout);
+      }
+    });
+
+    // Programmer l'arrêt final basé sur l'élément le plus long
+    if (elements.length > 0) {
+      const lastElement = elements.reduce((max, el) => 
+        (el.startTime + el.duration) > (max.startTime + max.duration) ? el : max
+      );
+      const totalDuration = (lastElement.startTime + lastElement.duration - fromTime) * 1000;
+      if (totalDuration > 0) {
+        this.stopTimeout = setTimeout(() => {
+          this.stopSequence();
+        }, totalDuration);
+      }
     }
   }
 

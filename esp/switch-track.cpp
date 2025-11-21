@@ -18,6 +18,10 @@
 #include <WebSocketsClient.h> // Client WebSocket pour communication serveur
 #include <ArduinoJson.h>      // Manipulation des données JSON
 #include <LittleFS.h>         // Système de fichiers LittleFS pour ESP32
+#include <freertos/FreeRTOS.h> // Système d'exploitation temps réel
+#include <freertos/task.h>     // Gestion des tâches
+#include <freertos/queue.h>    // Files d'attente inter-tâches
+#include <freertos/semphr.h>   // Sémaphores et mutex
 
 // ========================================
 // CONFIGURATION PRINCIPALE
@@ -61,6 +65,27 @@ const String CONFIG_FILE = "/switch_track.json";
 int moveCount = 0;  // Compteur de mouvements pour monitoring
 
 // ========================================
+// VARIABLES FREERTOS
+// ========================================
+
+// Structure pour les commandes de mouvement
+typedef struct {
+  String targetPosition;  // "left" ou "right"
+  String command;         // Commande originale pour la réponse
+} MoveCommand;
+
+// Queue pour envoyer des commandes au vérin (taille 5 pour gérer le spam)
+QueueHandle_t moveQueue = NULL;
+
+// Mutex pour protéger currentPosition (accès concurrent)
+SemaphoreHandle_t positionMutex = NULL;
+
+// Variables pour la tâche vérin
+volatile bool isMoving = false;  // Indique si le vérin est en mouvement
+TaskHandle_t verinTaskHandle = NULL;
+TaskHandle_t websocketTaskHandle = NULL;
+
+// ========================================
 // CONFIGURATION HARDWARE
 // ========================================
 
@@ -83,7 +108,8 @@ void handleConnected(const char* payload);
 void handleCommand(const char* payload);
 void handlePing(const char* payload);
 void handleError(const char* payload);
-void updatePosition();
+void updatePositionAsync(const String& newPosition, const String& command);
+void moveVerin(const String& position);
 void stopVerin();
 void sendCommandResponse(const String& command, const String& status, const String& position);
 void sendHeartbeat();
@@ -91,6 +117,12 @@ void sendTelemetry();
 void saveSwitchConfig();
 void loadSwitchConfig();
 String getTimestamp();
+String getCurrentPosition();
+void setCurrentPosition(const String& pos);
+
+// Tâches FreeRTOS
+void verinTask(void* parameter);
+void websocketTask(void* parameter);
 
 // ========================================
 // FONCTION DE DÉMARRAGE (SETUP)
@@ -116,6 +148,52 @@ void setup() {
 
   // Arrêt initial du vérin
   stopVerin();
+
+  // *** INITIALISATION FREERTOS ***
+
+  Serial.println("🧵 Initialisation FreeRTOS...");
+  
+  // Créer le mutex pour protéger currentPosition
+  positionMutex = xSemaphoreCreateMutex();
+  if (positionMutex == NULL) {
+    Serial.println("❌ Échec création du mutex");
+    ESP.restart();
+  }
+  Serial.println("   ✅ Mutex créé");
+
+  // Créer la queue pour les commandes de mouvement (taille 5)
+  moveQueue = xQueueCreate(5, sizeof(MoveCommand));
+  if (moveQueue == NULL) {
+    Serial.println("❌ Échec création de la queue");
+    ESP.restart();
+  }
+  Serial.println("   ✅ Queue créée (taille 5)");
+
+  // Créer la tâche du vérin (haute priorité pour réactivité)
+  xTaskCreatePinnedToCore(
+    verinTask,           // Fonction de la tâche
+    "VerinTask",         // Nom de la tâche
+    4096,                // Taille de la pile (4KB)
+    NULL,                // Paramètre
+    2,                   // Priorité (2 = haute)
+    &verinTaskHandle,    // Handle de la tâche
+    0                    // Core 0
+  );
+  Serial.println("   ✅ Tâche vérin créée (Core 0, priorité 2)");
+
+  // Créer la tâche WebSocket (priorité moyenne)
+  xTaskCreatePinnedToCore(
+    websocketTask,       // Fonction de la tâche
+    "WebSocketTask",     // Nom de la tâche
+    8192,                // Taille de la pile (8KB pour JSON)
+    NULL,                // Paramètre
+    1,                   // Priorité (1 = moyenne)
+    &websocketTaskHandle,// Handle de la tâche
+    1                    // Core 1
+  );
+  Serial.println("   ✅ Tâche WebSocket créée (Core 1, priorité 1)");
+
+  Serial.println("✅ FreeRTOS initialisé avec succès\n");
 
   // *** CONFIGURATION DU GESTIONNAIRE WIFI ***
 
@@ -163,7 +241,7 @@ void setup() {
   loadSwitchConfig();
 
   // Appliquer la position chargée au vérin
-  updatePosition();
+  moveVerin(currentPosition);
   Serial.println("[SWITCH TRACK] 📍 Position initiale appliquée: " + currentPosition);
 
   Serial.println("🌐 Tentative de connexion WiFi...");
@@ -200,79 +278,10 @@ void setup() {
 
 void loop() {
   // Mise à jour du gestionnaire WiFi (portail web, DNS, timeouts)
-  wifi.update(); 
-
-  // Variables statiques pour le monitoring périodique
-  static unsigned long lastStatusCheck = 0;     // Dernier check de statut WiFi
-  static unsigned long lastConnectionState = false; // Dernier état de connexion
-  static unsigned long lastHeartbeat = 0;       // Dernier heartbeat envoyé
-  static unsigned long lastTelemetry = 0;       // Dernière télémétrie envoyée
-  unsigned long now = millis();                 // Timestamp actuel
-
-  // *** MONITORING WIFI PÉRIODIQUE ***
-  // Vérification du statut WiFi toutes les 15 secondes (plus fréquent)
-
-  if (millis() - lastStatusCheck > 15000) {
-    lastStatusCheck = millis();
-    bool currentState = wifi.isConnected();
-
-    // Affichage du statut de connexion
-    if (currentState) {
-      Serial.println("🟢 WiFi connecté - IP: " + WiFi.localIP().toString() + 
-                     " | Signal: " + String(WiFi.RSSI()) + " dBm");
-    } else {
-      Serial.println("🔴 WiFi déconnecté - Portail de configuration actif sur 192.168.4.1");
-    }
-
-    // Détection des changements d'état WiFi pour actions automatiques
-    if (currentState != lastConnectionState) {
-      if (currentState) {
-        Serial.println("🎉 Connexion WiFi établie !");
-        // Reconnexion WebSocket automatique après retour WiFi
-        connectSocket();
-      } else {
-        Serial.println("⚠️  Connexion WiFi perdue, basculement en mode portail...");
-        // Reset de l'authentification et arrêt du vérin
-        isAuthenticated = false;
-        stopVerin();
-      }
-      lastConnectionState = currentState;
-    }
-  }
-
-  // *** GESTION WEBSOCKET ET TÉLÉMÉTRIE ***
-  // Traitement uniquement si connecté au WiFi
-
-  if (wifi.isConnected()) {
-    // Traitement des messages WebSocket entrants
-    webSocket.loop();
-
-    // Vérification de l'état de la connexion WebSocket
-    static unsigned long lastWebSocketCheck = 0;
-    if (millis() - lastWebSocketCheck > 10000) {  // Toutes les 10 secondes
-      lastWebSocketCheck = millis();
-      if (!webSocket.isConnected() && isAuthenticated) {
-        Serial.println("[SWITCH TRACK] ⚠️  Connexion WebSocket perdue - Reset de l'authentification");
-        isAuthenticated = false;
-        stopVerin();
-        connectSocket();
-      }
-    }
-
-    // Envoi périodique de heartbeat (keepalive) - toutes les 60 secondes (réduit pour éviter conflits)
-    if (isAuthenticated && now - lastHeartbeat > 60000) {
-      sendHeartbeat();
-      lastHeartbeat = now;
-    }
-
-    // Envoi périodique de télémétrie - toutes les 10 secondes
-    if (isAuthenticated && now - lastTelemetry > 10000) {
-      sendTelemetry();
-      lastTelemetry = now;
-    }
-  }
-
-  // Pause pour éviter la saturation CPU
+  // C'est le seul traitement dans loop() car FreeRTOS gère le reste
+  wifi.update();
+  
+  // Petit délai pour ne pas saturer le CPU
   delay(100);
 }
 
@@ -425,11 +434,13 @@ void handleCommand(const char* payload) {
     status = "unknown_command";
   }
 
-  currentPosition = newPosition;
-  updatePosition(); // Mettre à jour le vérin après changement de position
+  // Envoyer la commande de mouvement à la tâche vérin (non-bloquant)
+  if (newPosition != getCurrentPosition()) {
+    updatePositionAsync(newPosition, command);
+  }
 
-  // Envoyer la réponse de commande (WebSocket natif)
-  sendCommandResponse(command, status, currentPosition);
+  // Envoyer la réponse de commande immédiatement (WebSocket natif)
+  sendCommandResponse(command, status, newPosition);
 
   Serial.println("[SWITCH TRACK] ✅ Commande exécutée: " + currentPosition);
 }
@@ -463,26 +474,74 @@ void handleError(const char* payload) {
   stopVerin();
 }
 
-void updatePosition() {
-  if (currentPosition == "left") {
-    // Mouvement vers "left" (ex. : rétraction ; ajustez polarité si nécessaire)
+// Fonction thread-safe pour lire currentPosition
+String getCurrentPosition() {
+  String pos;
+  if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE) {
+    pos = currentPosition;
+    xSemaphoreGive(positionMutex);
+  }
+  return pos;
+}
+
+// Fonction thread-safe pour écrire currentPosition
+void setCurrentPosition(const String& pos) {
+  if (xSemaphoreTake(positionMutex, portMAX_DELAY) == pdTRUE) {
+    currentPosition = pos;
+    xSemaphoreGive(positionMutex);
+  }
+}
+
+// Envoyer une commande de mouvement à la tâche vérin (non-bloquant)
+void updatePositionAsync(const String& newPosition, const String& command) {
+  MoveCommand cmd;
+  cmd.targetPosition = newPosition;
+  cmd.command = command;
+  
+  // Envoyer dans la queue (timeout 100ms)
+  if (xQueueSend(moveQueue, &cmd, pdMS_TO_TICKS(100)) == pdTRUE) {
+    Serial.println("[SWITCH TRACK] ✅ Commande ajoutée à la queue: " + newPosition);
+  } else {
+    Serial.println("[SWITCH TRACK] ⚠️  Queue pleine, commande ignorée");
+  }
+}
+
+// Fonction bloquante de mouvement du vérin (appelée par la tâche dédiée)
+void moveVerin(const String& position) {
+  String currentPos = getCurrentPosition();
+  
+  // Si déjà dans la bonne position, ne rien faire
+  if (currentPos == position) {
+    Serial.println("[SWITCH TRACK] ℹ️  Déjà en position " + position);
+    return;
+  }
+  
+  isMoving = true;
+  
+  if (position == "left") {
+    // Mouvement vers "left" (ex. : rétraction)
     digitalWrite(VERIN_IN1_PIN, LOW);
     digitalWrite(VERIN_IN2_PIN, HIGH);
     Serial.println("[SWITCH TRACK] 🔄 Vérin en mouvement vers GAUCHE");
-    delay(MOVE_DURATION);  // Temps de mouvement
+    vTaskDelay(pdMS_TO_TICKS(MOVE_DURATION));  // Délai non-bloquant FreeRTOS
     stopVerin();
     Serial.println("[SWITCH TRACK] ✅ Vérin en position GAUCHE");
-  } else if (currentPosition == "right") {
+  } else if (position == "right") {
     // Mouvement vers "right" (ex. : extension)
     digitalWrite(VERIN_IN1_PIN, HIGH);
     digitalWrite(VERIN_IN2_PIN, LOW);
     Serial.println("[SWITCH TRACK] 🔄 Vérin en mouvement vers DROITE");
-    delay(MOVE_DURATION);  // Temps de mouvement
+    vTaskDelay(pdMS_TO_TICKS(MOVE_DURATION));  // Délai non-bloquant FreeRTOS
     stopVerin();
     Serial.println("[SWITCH TRACK] ✅ Vérin en position DROITE");
   }
-
-  // Incrémenter le compteur de mouvements et sauvegarder la configuration
+  
+  isMoving = false;
+  
+  // Mettre à jour la position (thread-safe)
+  setCurrentPosition(position);
+  
+  // Incrémenter le compteur de mouvements et sauvegarder
   moveCount++;
   saveSwitchConfig();
 }
@@ -529,10 +588,11 @@ void sendHeartbeat() {
   doc["moduleId"] = MODULE_ID;
   doc["password"] = MODULE_PASSWORD;
   doc["uptime"] = millis() - uptimeStart;
-  doc["position"] = currentPosition;
+  doc["position"] = getCurrentPosition();
   doc["wifiRSSI"] = WiFi.RSSI();
   doc["freeHeap"] = freeHeap;
   doc["move_count"] = moveCount;
+  doc["is_moving"] = isMoving;
 
   String message;
   serializeJson(doc, message);
@@ -549,8 +609,8 @@ void sendTelemetry() {
   doc["moduleId"] = MODULE_ID;
   doc["password"] = MODULE_PASSWORD;
   doc["uptime"] = millis() - uptimeStart;
-  doc["position"] = currentPosition;
-  doc["status"] = "operational";
+  doc["position"] = getCurrentPosition();
+  doc["status"] = isMoving ? "moving" : "operational";
   doc["move_count"] = moveCount;
 
   String message;
@@ -595,6 +655,106 @@ void saveSwitchConfig() {
   }
 
   configFile.close();
+}
+
+// ========================================
+// TÂCHES FREERTOS
+// ========================================
+
+// Tâche dédiée au contrôle du vérin (exécution sur Core 0)
+void verinTask(void* parameter) {
+  Serial.println("[VERIN TASK] 🚀 Tâche vérin démarrée");
+  
+  MoveCommand cmd;
+  
+  while (true) {
+    // Attendre une commande dans la queue (bloquant)
+    if (xQueueReceive(moveQueue, &cmd, portMAX_DELAY) == pdTRUE) {
+      Serial.println("[VERIN TASK] 📥 Commande reçue: " + cmd.targetPosition);
+      
+      // Exécuter le mouvement (bloquant pour cette tâche uniquement)
+      moveVerin(cmd.targetPosition);
+      
+      // Envoyer la réponse après le mouvement
+      sendCommandResponse(cmd.command, "success", cmd.targetPosition);
+      
+      Serial.println("[VERIN TASK] ✅ Mouvement terminé");
+    }
+  }
+}
+
+// Tâche dédiée au WebSocket et monitoring (exécution sur Core 1)
+void websocketTask(void* parameter) {
+  Serial.println("[WEBSOCKET TASK] 🚀 Tâche WebSocket démarrée");
+  
+  unsigned long lastStatusCheck = 0;
+  unsigned long lastConnectionState = false;
+  unsigned long lastHeartbeat = 0;
+  unsigned long lastTelemetry = 0;
+  unsigned long lastWebSocketCheck = 0;
+  
+  while (true) {
+    unsigned long now = millis();
+    
+    // *** MONITORING WIFI PÉRIODIQUE ***
+    if (now - lastStatusCheck > 15000) {
+      lastStatusCheck = now;
+      bool currentState = wifi.isConnected();
+      
+      // Affichage du statut
+      if (currentState) {
+        Serial.println("🟢 WiFi connecté - IP: " + WiFi.localIP().toString() + 
+                       " | Signal: " + String(WiFi.RSSI()) + " dBm");
+      } else {
+        Serial.println("🔴 WiFi déconnecté - Portail actif");
+      }
+      
+      // Détection des changements d'état
+      if (currentState != lastConnectionState) {
+        if (currentState) {
+          Serial.println("🎉 Connexion WiFi établie !");
+          connectSocket();
+        } else {
+          Serial.println("⚠️  Connexion WiFi perdue");
+          isAuthenticated = false;
+          stopVerin();
+        }
+        lastConnectionState = currentState;
+      }
+    }
+    
+    // *** GESTION WEBSOCKET ***
+    if (wifi.isConnected()) {
+      // Traitement des messages WebSocket
+      webSocket.loop();
+      
+      // Vérification connexion WebSocket
+      if (now - lastWebSocketCheck > 10000) {
+        lastWebSocketCheck = now;
+        if (!webSocket.isConnected() && isAuthenticated) {
+          Serial.println("[WEBSOCKET TASK] ⚠️  Connexion WebSocket perdue");
+          isAuthenticated = false;
+          stopVerin();
+          connectSocket();
+        }
+      }
+      
+      // Heartbeat périodique
+      if (isAuthenticated && now - lastHeartbeat > 60000) {
+        sendHeartbeat();
+        lastHeartbeat = now;
+      }
+      
+      // Télémétrie périodique
+      if (isAuthenticated && now - lastTelemetry > 10000) {
+        sendTelemetry();
+        lastTelemetry = now;
+      }
+    }
+    
+    // Pause pour éviter saturation CPU
+    vTaskDelay(pdMS_TO_TICKS(50));
+  }
 }
 
 void loadSwitchConfig() {
