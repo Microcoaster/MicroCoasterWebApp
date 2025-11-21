@@ -4,6 +4,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 ## [Unreleased]
 
+## [1.0.0] - 21-11-2025
+
 ### Ajouté
 
 - **Système de chronologies (Timelines) complet** : Éditeur visuel de séquences temporelles avec support du drag & drop, zoom dynamique, lecture/pause/reprise et sauvegarde automatique
@@ -156,7 +158,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 - Ce fichier CHANGELOG pour suivre toute les prochaines modifications
 
-[unreleased]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.0.0...v0.1.0
 [0.0.0]: https://github.com/Microcoaster/MicroCoasterWebApp/releases/tag/v0.0.0
