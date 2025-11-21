@@ -106,165 +106,156 @@ function makeSwitchController(root) {
 
 /**
  * Crée un contrôleur de lecteur audio interactif
- * Gère la lecture de pistes audio avec playlist dynamique et contrôles de lecture
+ * Gère la lecture de pistes audio WAV depuis la carte SD de l'ESP32 avec contrôles complets
  * @param {HTMLElement} panel - Élément DOM du panneau du contrôleur audio
  * @returns {Object} Objet contrôleur avec méthodes de gestion de playlist et état
  */
 function makeAudioController(panel) {
   const list = panel.querySelector('[data-role="au_list"]');
-  const btn = panel.querySelector('[data-role="au_play"]');
+  const playBtn = panel.querySelector('[data-role="au_play"]');
+  const pauseBtn = panel.querySelector('[data-role="au_pause"]');
+  const stopBtn = panel.querySelector('[data-role="au_stop"]');
+  const volumeSlider = panel.querySelector('[data-role="au_volume"]');
+  const volumeDisplay = panel.querySelector('[data-role="au_volume_display"]');
+  const statusText = panel.querySelector('[data-role="au_status"] .status-text');
+  const statusIndicator = panel.querySelector('[data-role="au_status"] .status-indicator');
 
-  let tag = panel.querySelector('[data-role="au_tag"]');
-  if (!tag) {
-    tag = document.createElement('audio');
-    tag.preload = 'metadata';
-    tag.hidden = true;
-    tag.dataset.role = 'au_tag';
-    panel.appendChild(tag);
-  }
-
-  const IMG = { ON: urlImg('button_green_on.png'), OFF: urlImg('button_green_off.png') };
-  preload(Object.values(IMG));
-
-  let tracks = [
-    { file: '001.mp3', title: 'Taron' },
-    { file: '002.mp3', title: 'Fenrir' },
-    { file: '003.mp3', title: 'Veloci' },
-  ];
-
-  let index = 0;
-  let cooldown = false;
-  let blinkTimer = null,
-    lampOn = false;
+  let tracks = [];
+  let currentTrack = null;
+  let volume = 50;
+  // uploadInProgress supprimé - fichiers directement sur SD
 
   /**
-   * Met à jour l'état visuel de la lampe du lecteur audio
-   * @param {boolean} on - État de la lampe (allumée/éteinte)
+   * Met à jour l'affichage du statut de lecture
+   * @param {string} status - Statut ('stopped', 'playing', 'paused', 'loading')
+   * @param {string} [trackName] - Nom de la piste en cours
    * @returns {void}
    * @private
    */
-  const setLamp = on => {
-    if (btn) btn.src = on ? IMG.ON : IMG.OFF;
+  const updateStatus = (status, trackName = '') => {
+    if (!statusText || !statusIndicator) return;
+
+    let statusLabel = '';
+    let indicatorClass = '';
+
+    switch (status) {
+      case 'playing':
+        statusLabel = trackName ? `Playing: ${trackName}` : 'Playing';
+        indicatorClass = 'playing';
+        break;
+      case 'paused':
+        statusLabel = trackName ? `Paused: ${trackName}` : 'Paused';
+        indicatorClass = 'paused';
+        break;
+      case 'stopped':
+        statusLabel = 'Stopped';
+        indicatorClass = 'stopped';
+        currentTrack = null;
+        break;
+      case 'loading':
+        statusLabel = 'Loading...';
+        indicatorClass = 'loading';
+        break;
+      default:
+        statusLabel = 'Unknown';
+        indicatorClass = 'stopped';
+    }
+
+    statusText.textContent = statusLabel;
+    statusIndicator.className = `status-indicator ${indicatorClass}`;
   };
 
   /**
-   * Démarre le clignotement de la lampe du lecteur audio
+   * Met à jour l'affichage de la liste des pistes
    * @returns {void}
    * @private
    */
-  function startBlink() {
-    if (blinkTimer || cooldown) return;
-    lampOn = false;
-    setLamp(false);
-    blinkTimer = setInterval(() => {
-      lampOn = !lampOn;
-      setLamp(lampOn);
-    }, 800);
-  }
-
-  /**
-   * Arrête le clignotement de la lampe du lecteur audio
-   * @param {boolean} [forceOff=true] - Force l'état éteint
-   * @returns {void}
-   * @private
-   */
-  function stopBlink(forceOff = true) {
-    if (blinkTimer) {
-      clearInterval(blinkTimer);
-      blinkTimer = null;
-    }
-    lampOn = !forceOff;
-    setLamp(!forceOff);
-  }
-
-  /**
-   * Affiche la liste des pistes audio disponibles
-   * @returns {void}
-   * @private
-   */
-  function render() {
+  const renderPlaylist = () => {
     if (!list) return;
+
+    if (tracks.length === 0) {
+      list.innerHTML = '<div class="playlist-empty">No audio files</div>';
+      return;
+    }
+
     list.innerHTML = '';
-    tracks.forEach((t, i) => {
-      const el = document.createElement('div');
-      el.className = 'track clickable' + (i === index ? ' active' : '');
-      el.innerHTML = `<span>${t.title || t.file}</span><small>${t.file}</small>`;
-      el.addEventListener('click', () => {
-        if (cooldown) return;
-        index = i;
-        mark();
-        load(false);
+    tracks.forEach(track => {
+      const trackElement = document.createElement('div');
+      trackElement.className = `track clickable${currentTrack === track.file ? ' active' : ''}`;
+      trackElement.innerHTML = `<span>${track.title || track.file}</span><small>${track.file}</small>`;
+      trackElement.addEventListener('click', () => {
+        if (panel.classList.contains('offline')) return; // uploadInProgress supprimé
+        playTrack(track.file);
       });
-      list.appendChild(el);
+      list.appendChild(trackElement);
+    });
+  };
+
+  /**
+   * Met à jour l'affichage du volume
+   * @returns {void}
+   * @private
+   */
+  const updateVolumeDisplay = () => {
+    if (volumeDisplay) {
+      volumeDisplay.textContent = `${volume}%`;
+    }
+  };
+
+  /**
+   * Joue une piste audio spécifique
+   * @param {string} trackFile - Nom du fichier à jouer
+   * @returns {void}
+   * @private
+   */
+  const playTrack = trackFile => {
+    currentTrack = trackFile;
+    renderPlaylist();
+    updateStatus('loading', trackFile);
+    window.ws_sendCommand(panel, 'audio_play', { filename: trackFile, delay: 0 });
+  };
+
+  // Événements des boutons de contrôle
+  if (playBtn) {
+    playBtn.addEventListener('click', () => {
+      if (panel.classList.contains('offline')) return; // uploadInProgress supprimé
+      if (currentTrack) {
+        window.ws_sendCommand(panel, 'audio_play', { filename: currentTrack, delay: 0 });
+      } else if (tracks.length > 0) {
+        playTrack(tracks[0].file);
+      }
     });
   }
 
-  /**
-   * Marque la piste actuellement sélectionnée dans la liste
-   * @returns {void}
-   * @private
-   */
-  function mark() {
-    if (!list) return;
-    [...list.children].forEach((el, i) => el.classList.toggle('active', i === index));
+  if (pauseBtn) {
+    pauseBtn.addEventListener('click', () => {
+      if (panel.classList.contains('offline')) return; // uploadInProgress supprimé
+      window.ws_sendCommand(panel, 'audio_pause', {});
+    });
   }
 
-  /**
-   * Charge une piste audio dans le lecteur
-   * @param {boolean} autoplay - Lance automatiquement la lecture
-   * @returns {void}
-   * @private
-   */
-  function load(autoplay) {
-    const t = tracks[index];
-    if (!t) return;
-    tag.src = t.file;
-    if (autoplay && !cooldown) {
-      const p = tag.play();
-      if (p && p.catch) p.catch(() => {});
-      stopBlink(false);
-    } else {
-      if (!panel.classList.contains('offline')) startBlink();
-    }
+  if (stopBtn) {
+    stopBtn.addEventListener('click', () => {
+      if (panel.classList.contains('offline')) return; // uploadInProgress supprimé
+      window.ws_sendCommand(panel, 'audio_stop', {});
+    });
   }
 
-  /**
-   * Démarre une période de refroidissement du lecteur audio
-   * @returns {void}
-   * @private
-   */
-  function beginCooldown() {
-    cooldown = true;
-    panel.classList.add('locked');
-    stopBlink(true);
-    setTimeout(() => {
-      cooldown = false;
-      panel.classList.remove('locked');
-      if (tag.paused && !panel.classList.contains('offline')) startBlink();
-    }, 30000);
+  // Contrôle du volume
+  if (volumeSlider) {
+    let volumeTimeout;
+    volumeSlider.addEventListener('input', e => {
+      volume = parseInt(e.target.value);
+      updateVolumeDisplay();
+      // Debounce: attendre 100ms avant d'envoyer la commande
+      clearTimeout(volumeTimeout);
+      volumeTimeout = setTimeout(() => {
+        if (!panel.classList.contains('offline')) {
+          window.ws_sendCommand(panel, 'audio_volume', { level: volume });
+        }
+      }, 100);
+    });
   }
-
-  btn?.addEventListener('click', () => {
-    if (cooldown || panel.classList.contains('offline')) return;
-    beginCooldown();
-
-    if (!tag.src) load(false);
-    const t = tracks[index];
-    if (t) window.ws_sendCommand(panel, 'play', { track: t.file }, btn);
-
-    const p = tag.play();
-    if (p && p.catch) p.catch(() => {});
-  });
-
-  tag.addEventListener('play', () => {
-    if (!cooldown) stopBlink(false);
-  });
-  tag.addEventListener('pause', () => {
-    if (!cooldown && !panel.classList.contains('offline')) startBlink();
-  });
-  tag.addEventListener('ended', () => {
-    if (!cooldown && !panel.classList.contains('offline')) startBlink();
-  });
 
   /**
    * Callback exécuté lorsque le module audio passe en ligne
@@ -272,8 +263,10 @@ function makeAudioController(panel) {
    * @private
    */
   function onPresenceOnline() {
-    panel.classList.remove('locked');
-    if (tag.paused) startBlink();
+    // Demander la liste des fichiers disponibles
+    window.ws_sendCommand(panel, 'audio_list_request', {});
+    // Mettre à jour le volume
+    window.ws_sendCommand(panel, 'audio_volume', { level: volume });
   }
 
   /**
@@ -282,70 +275,66 @@ function makeAudioController(panel) {
    * @private
    */
   function onPresenceOffline() {
-    panel.classList.add('locked');
-    stopBlink(true);
+    updateStatus('stopped');
   }
 
   /**
    * Met à jour l'état du lecteur audio avec les données de télémétrie
-   * Gère la playlist, la piste courante et l'état de lecture
-   * @param {Object} [payload={}] - Données de télémétrie (playlist, current, track, playing)
+   * @param {Object} payload - Données reçues
    * @returns {void}
    * @private
    */
-  function updateTelemetry(payload = {}) {
-    if (payload.playlist) {
-      const arr = Array.isArray(payload.playlist) ? payload.playlist : [];
-      if (arr.length) {
-        tracks = arr
-          .map(x => {
-            if (typeof x === 'string') {
-              const [file, title] = x.split('|');
-              return { file, title: title || file.split('/').pop() || file };
-            }
-            return {
-              file: x.file || '',
-              title: x.title || (x.file ? x.file.split('/').pop() : ''),
-            };
-          })
-          .filter(t => t.file);
-        index = Math.min(index, Math.max(0, tracks.length - 1));
-        render();
-        mark();
-      }
+  function updateTelemetry(payload) {
+    if (payload.audio_list) {
+      tracks = payload.audio_list.map(file => ({
+        file: file,
+        title: file.replace('.wav', '').replace(/_/g, ' '),
+      }));
+      renderPlaylist();
     }
-    if ('current' in payload) {
-      const i = Number(payload.current);
-      if (Number.isInteger(i) && tracks[i]) {
-        index = i;
-        mark();
+
+    if (payload.audio_status) {
+      const status = payload.audio_status;
+      let displayStatus = 'stopped';
+      let trackName = '';
+
+      if (status.playing) {
+        displayStatus = 'playing';
+        if (status.current_file) {
+          trackName = status.current_file.replace('.wav', '').replace(/_/g, ' ');
+          currentTrack = status.current_file;
+        }
+      } else if (status.paused) {
+        displayStatus = 'paused';
+        if (status.current_file) {
+          trackName = status.current_file.replace('.wav', '').replace(/_/g, ' ');
+        }
       }
+
+      updateStatus(displayStatus, trackName);
+      renderPlaylist();
     }
-    if ('track' in payload) {
-      const f = String(payload.track);
-      const i = tracks.findIndex(t => t.file === f);
-      if (i >= 0) {
-        index = i;
-        mark();
+
+    if (payload.audio_volume !== undefined) {
+      volume = payload.audio_volume;
+      if (volumeSlider) {
+        volumeSlider.value = volume;
       }
-    }
-    if ('playing' in payload) {
-      const playing = !!payload.playing;
-      const isOffline = panel.classList.contains('offline');
-      if (playing) stopBlink(false);
-      else if (!isOffline) startBlink();
+      updateVolumeDisplay();
     }
   }
 
-  render();
-  load(false);
+  // Initialisation
+  updateVolumeDisplay();
+  updateStatus('stopped');
+  renderPlaylist();
 
   return {
     onPresenceOnline,
     onPresenceOffline,
     updateTelemetry,
     destroy() {
-      if (blinkTimer) clearInterval(blinkTimer);
+      // Nettoyage si nécessaire
     },
   };
 }
@@ -671,6 +660,19 @@ document.getElementById('disableOnlineFilter')?.addEventListener('click', () => 
     socket.on('module_telemetry', data => {
       // Mettre à jour la télémétrie sans changer le statut de présence
       updateTelemetry(data.moduleId, data);
+    });
+
+    // Réponses spécifiques aux modules audio
+    socket.on('audio_list_response', data => {
+      updateTelemetry(data.moduleId, { audio_list: data.files });
+    });
+
+    socket.on('audio_status_update', data => {
+      updateTelemetry(data.moduleId, { audio_status: data });
+    });
+
+    socket.on('audio_volume_update', data => {
+      updateTelemetry(data.moduleId, { audio_volume: data.volume });
     });
 
     // Confirmation de commande

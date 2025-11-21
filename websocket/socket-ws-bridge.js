@@ -50,6 +50,7 @@ class SocketWSBridge {
   /**
    * Envoie une commande d'un client Socket.IO vers un ESP32 WebSocket
    * Fait le pont entre l'interface web et les modules IoT
+   * AJOUT: Détection automatique du mode timeline côté serveur
    * @param {string} moduleId - ID du module ESP32 cible
    * @param {string} command - Commande à exécuter (ex: 'move', 'stop')
    * @param {Object} [params={}] - Paramètres de la commande
@@ -63,6 +64,15 @@ class SocketWSBridge {
       if (!this.esp32Server.isESPConnected(moduleId)) {
         Logger.esp.warn(`❌ Bridge: ESP32 ${moduleId} not connected via WebSocket`);
         return false;
+      }
+
+      // LOGIQUE DE DÉTECTION TIMELINE CÔTÉ SERVEUR
+      if (command === 'audio_play') {
+        // Détecter automatiquement si c'est une timeline basée sur les paramètres
+        const isTimelineBased = params.start_seconds > 0 || params.duration > 0;
+        params.timeline_mode = isTimelineBased;
+
+        Logger.esp.info(`🌉 Bridge: Audio command detected - Timeline mode: ${isTimelineBased}`);
       }
 
       Logger.esp.info(`🌉 Bridge: Forwarding command to ESP32 ${moduleId}: ${command}`);
