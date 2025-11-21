@@ -105,13 +105,13 @@ router.get('/api', requireAuth, async (req, res) => {
 
     res.json({
       success: true,
-      timelines: timelines
+      timelines: timelines,
     });
   } catch (error) {
     Logger.app.error('Erreur lors de la récupération des timelines:', error);
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la récupération des timelines'
+      error: 'Erreur lors de la récupération des timelines',
     });
   }
 });
@@ -125,7 +125,7 @@ router.get('/api/:id', requireAuth, async (req, res) => {
     if (!timelineId || isNaN(timelineId)) {
       return res.status(400).json({
         success: false,
-        error: 'ID de timeline invalide'
+        error: 'ID de timeline invalide',
       });
     }
 
@@ -134,19 +134,19 @@ router.get('/api/:id', requireAuth, async (req, res) => {
     if (!timeline) {
       return res.status(404).json({
         success: false,
-        error: 'Timeline non trouvée'
+        error: 'Timeline non trouvée',
       });
     }
 
     res.json({
       success: true,
-      timeline: timeline
+      timeline: timeline,
     });
   } catch (error) {
     Logger.app.error('Erreur lors de la récupération de la timeline:', error);
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la récupération de la timeline'
+      error: 'Erreur lors de la récupération de la timeline',
     });
   }
 });
@@ -160,7 +160,7 @@ router.post('/api', requireAuth, async (req, res) => {
     if (!name || !data) {
       return res.status(400).json({
         success: false,
-        error: 'Nom et données requis'
+        error: 'Nom et données requis',
       });
     }
 
@@ -169,13 +169,13 @@ router.post('/api', requireAuth, async (req, res) => {
     res.json({
       success: true,
       timelineId: timelineId,
-      message: 'Timeline créée avec succès'
+      message: 'Timeline créée avec succès',
     });
   } catch (error) {
     Logger.app.error('Erreur lors de la création de la timeline:', error);
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la création de la timeline'
+      error: 'Erreur lors de la création de la timeline',
     });
   }
 });
@@ -190,7 +190,7 @@ router.put('/api/:id', requireAuth, async (req, res) => {
     if (!timelineId || isNaN(timelineId)) {
       return res.status(400).json({
         success: false,
-        error: 'ID de timeline invalide'
+        error: 'ID de timeline invalide',
       });
     }
 
@@ -199,19 +199,19 @@ router.put('/api/:id', requireAuth, async (req, res) => {
     if (!success) {
       return res.status(404).json({
         success: false,
-        error: 'Timeline non trouvée ou accès refusé'
+        error: 'Timeline non trouvée ou accès refusé',
       });
     }
 
     res.json({
       success: true,
-      message: 'Timeline mise à jour avec succès'
+      message: 'Timeline mise à jour avec succès',
     });
   } catch (error) {
     Logger.app.error('Erreur lors de la mise à jour de la timeline:', error);
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la mise à jour de la timeline'
+      error: 'Erreur lors de la mise à jour de la timeline',
     });
   }
 });
@@ -225,7 +225,7 @@ router.delete('/api/:id', requireAuth, async (req, res) => {
     if (!timelineId || isNaN(timelineId)) {
       return res.status(400).json({
         success: false,
-        error: 'ID de timeline invalide'
+        error: 'ID de timeline invalide',
       });
     }
 
@@ -234,19 +234,19 @@ router.delete('/api/:id', requireAuth, async (req, res) => {
     if (!success) {
       return res.status(404).json({
         success: false,
-        error: 'Timeline non trouvée ou accès refusé'
+        error: 'Timeline non trouvée ou accès refusé',
       });
     }
 
     res.json({
       success: true,
-      message: 'Timeline supprimée avec succès'
+      message: 'Timeline supprimée avec succès',
     });
   } catch (error) {
     Logger.app.error('Erreur lors de la suppression de la timeline:', error);
     res.status(500).json({
       success: false,
-      error: 'Erreur lors de la suppression de la timeline'
+      error: 'Erreur lors de la suppression de la timeline',
     });
   }
 });

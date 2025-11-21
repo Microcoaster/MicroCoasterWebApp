@@ -70,7 +70,7 @@
   cursor: pointer;
   transition: all 0.3s ease;
   display: flex;
-  align-items: center;  
+  align-items: center;
   justify-content: center;
   gap: 8px;
   font-weight: 600;
@@ -138,11 +138,21 @@
   animation-fill-mode: both;
 }
 
-.module-item:nth-child(1) { animation-delay: 0.05s; }
-.module-item:nth-child(2) { animation-delay: 0.1s; }
-.module-item:nth-child(3) { animation-delay: 0.15s; }
-.module-item:nth-child(4) { animation-delay: 0.2s; }
-.module-item:nth-child(5) { animation-delay: 0.25s; }
+.module-item:nth-child(1) {
+  animation-delay: 0.05s;
+}
+.module-item:nth-child(2) {
+  animation-delay: 0.1s;
+}
+.module-item:nth-child(3) {
+  animation-delay: 0.15s;
+}
+.module-item:nth-child(4) {
+  animation-delay: 0.2s;
+}
+.module-item:nth-child(5) {
+  animation-delay: 0.25s;
+}
 
 @keyframes slideInUp {
   0% {
@@ -743,7 +753,7 @@
 /* Timeline playback indicator */
 .playback-indicator {
   position: absolute;
-  top: 0; 
+  top: 0;
   bottom: 0;
   width: 2px;
   background: #ff6b6b;
@@ -876,8 +886,13 @@
   cursor: move;
   user-select: none;
   min-height: 56px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.02);
-  transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.15s ease;
+  box-shadow:
+    0 6px 18px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.02);
+  transition:
+    transform 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.15s ease;
   opacity: 0.98;
   z-index: 20;
   display: flex;
@@ -887,13 +902,15 @@
 
 .timeline-action:hover {
   transform: translateY(-4px);
-  box-shadow: 0 18px 40px rgba(0,0,0,0.45);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.45);
   z-index: 40;
 }
 
 .timeline-action.selected {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px rgba(32, 194, 106, 0.12), 0 12px 30px rgba(0,0,0,0.4);
+  box-shadow:
+    0 0 0 3px rgba(32, 194, 106, 0.12),
+    0 12px 30px rgba(0, 0, 0, 0.4);
   z-index: 50;
 }
 
@@ -1133,7 +1150,9 @@
 .timeline-action.selected {
   border-color: #2ed573 !important;
   background: linear-gradient(135deg, #2ed573, #1db660) !important;
-  box-shadow: 0 0 0 3px rgba(46, 213, 115, 0.3), 0 6px 20px rgba(46, 213, 115, 0.4) !important;
+  box-shadow:
+    0 0 0 3px rgba(46, 213, 115, 0.3),
+    0 6px 20px rgba(46, 213, 115, 0.4) !important;
 }
 
 /* Menu contextuel */
@@ -1173,7 +1192,7 @@
   background: rgba(46, 213, 115, 0.1);
 }
 
-.context-menu-item[data-action="delete"]:hover {
+.context-menu-item[data-action='delete']:hover {
   background: rgba(255, 107, 107, 0.1);
 }
 
@@ -1239,7 +1258,7 @@
 .element-duration {
   font-size: 11px;
   opacity: 0.8;
-  background: rgba(255,255,255,0.04);
+  background: rgba(255, 255, 255, 0.04);
   padding: 4px 6px;
   border-radius: 6px;
   color: var(--text);
@@ -1255,17 +1274,27 @@
   height: 12px;
   border-radius: 50%;
   background: #4e6aa3; /* default gray */
-  box-shadow: 0 0 0 4px rgba(0,0,0,0.12) inset, 0 4px 12px rgba(0,0,0,0.35);
-  border: 2px solid rgba(255,255,255,0.06);
-  transition: background-color 0.3s ease, box-shadow 0.3s ease;
+  box-shadow:
+    0 0 0 4px rgba(0, 0, 0, 0.12) inset,
+    0 4px 12px rgba(0, 0, 0, 0.35);
+  border: 2px solid rgba(255, 255, 255, 0.06);
+  transition:
+    background-color 0.3s ease,
+    box-shadow 0.3s ease;
 }
 .timeline-action .status-dot.online {
   background: #10b981; /* green */
-  box-shadow: 0 0 20px rgba(16,185,129,0.25), 0 0 0 4px rgba(0,0,0,0.12) inset, 0 4px 12px rgba(0,0,0,0.35);
+  box-shadow:
+    0 0 20px rgba(16, 185, 129, 0.25),
+    0 0 0 4px rgba(0, 0, 0, 0.12) inset,
+    0 4px 12px rgba(0, 0, 0, 0.35);
 }
 .timeline-action .status-dot.offline {
   background: #ef4444; /* red */
-  box-shadow: 0 0 20px rgba(239,68,68,0.22), 0 0 0 4px rgba(0,0,0,0.12) inset, 0 4px 12px rgba(0,0,0,0.35);
+  box-shadow:
+    0 0 20px rgba(239, 68, 68, 0.22),
+    0 0 0 4px rgba(0, 0, 0, 0.12) inset,
+    0 4px 12px rgba(0, 0, 0, 0.35);
 }
 
 /* Resize handles */
@@ -1320,10 +1349,7 @@
   min-height: 80px;
   position: relative;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-  background: linear-gradient(90deg, 
-    rgba(255, 255, 255, 0.02) 0px, 
-    transparent 1px
-  );
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.02) 0px, transparent 1px);
   background-size: 20px 100%;
   transition: background-color 0.2s ease;
   pointer-events: none;
@@ -1421,20 +1447,26 @@
 .timeline-action.conflict {
   border-color: #ff6b6b !important;
   background: linear-gradient(135deg, #ff6b6b, #ee5a52) !important;
-  box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.3), 0 6px 20px rgba(255, 107, 107, 0.4) !important;
+  box-shadow:
+    0 0 0 3px rgba(255, 107, 107, 0.3),
+    0 6px 20px rgba(255, 107, 107, 0.4) !important;
   animation: conflictPulse 0.8s ease-in-out infinite alternate;
 }
 
 .timeline-action.valid-placement {
   border-color: #2ed573 !important;
   background: linear-gradient(135deg, #2ed573, #1db660) !important;
-  box-shadow: 0 0 0 3px rgba(46, 213, 115, 0.3), 0 6px 20px rgba(46, 213, 115, 0.4) !important;
+  box-shadow:
+    0 0 0 3px rgba(46, 213, 115, 0.3),
+    0 6px 20px rgba(46, 213, 115, 0.4) !important;
 }
 
 .timeline-action.suggestion-highlight {
   border-color: #ffa502 !important;
   background: linear-gradient(135deg, #ffa502, #ff8c00) !important;
-  box-shadow: 0 0 0 3px rgba(255, 165, 2, 0.3), 0 6px 20px rgba(255, 165, 2, 0.4) !important;
+  box-shadow:
+    0 0 0 3px rgba(255, 165, 2, 0.3),
+    0 6px 20px rgba(255, 165, 2, 0.4) !important;
   animation: suggestionGlow 1.5s ease-in-out infinite alternate;
 }
 
@@ -1442,21 +1474,29 @@
 @keyframes conflictPulse {
   0% {
     transform: scale(1);
-    box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.3), 0 6px 20px rgba(255, 107, 107, 0.4);
+    box-shadow:
+      0 0 0 3px rgba(255, 107, 107, 0.3),
+      0 6px 20px rgba(255, 107, 107, 0.4);
   }
   100% {
     transform: scale(1.02);
-    box-shadow: 0 0 0 6px rgba(255, 107, 107, 0.2), 0 8px 25px rgba(255, 107, 107, 0.5);
+    box-shadow:
+      0 0 0 6px rgba(255, 107, 107, 0.2),
+      0 8px 25px rgba(255, 107, 107, 0.5);
   }
 }
 
 /* Animation de lueur pour les suggestions */
 @keyframes suggestionGlow {
   0% {
-    box-shadow: 0 0 0 3px rgba(255, 165, 2, 0.3), 0 6px 20px rgba(255, 165, 2, 0.4);
+    box-shadow:
+      0 0 0 3px rgba(255, 165, 2, 0.3),
+      0 6px 20px rgba(255, 165, 2, 0.4);
   }
   100% {
-    box-shadow: 0 0 0 6px rgba(255, 165, 2, 0.2), 0 8px 25px rgba(255, 165, 2, 0.5);
+    box-shadow:
+      0 0 0 6px rgba(255, 165, 2, 0.2),
+      0 8px 25px rgba(255, 165, 2, 0.5);
   }
 }
 

@@ -135,7 +135,9 @@ class ESP32WebSocketServer {
 
       // Vérifier que le moduleId dans le message correspond à l'identité authentifiée
       if (message.moduleId && message.moduleId !== ws.moduleId) {
-        Logger.esp.warn(`🚨 SECURITY: ESP ${ws.moduleId} trying to spoof ${message.moduleId} in ${type} message`);
+        Logger.esp.warn(
+          `🚨 SECURITY: ESP ${ws.moduleId} trying to spoof ${message.moduleId} in ${type} message`
+        );
         ws.close(1008, 'Module ID mismatch - security violation');
         return;
       }

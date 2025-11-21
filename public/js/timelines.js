@@ -124,7 +124,7 @@ class TimelineSequencer {
     // WebSocket manager
     this.websocketManager = {
       isConnected: false,
-      send: (message) => this.sendWebSocketMessage(message)
+      send: message => this.sendWebSocketMessage(message),
     };
 
     // Auto-save state
@@ -172,7 +172,7 @@ class TimelineSequencer {
     } else {
       // Aucune timeline sélectionnée - messages d'avertissement
       this.instructions.innerHTML = `
-        <h4>${window.timelineTranslations?.select_timeline_first || '📋 Sélectionnez d\'abord une chronologie'}</h4>
+        <h4>${window.timelineTranslations?.select_timeline_first || "📋 Sélectionnez d'abord une chronologie"}</h4>
         <p>${window.timelineTranslations?.create_or_select_timeline || 'Créez ou sélectionnez une chronologie pour commencer à ajouter des modules'}</p>
       `;
     }
@@ -244,7 +244,7 @@ class TimelineSequencer {
       // Préparer les données
       const timelineData = {
         name: this.currentTimeline.name,
-        data: this.generateSequence()
+        data: this.generateSequence(),
       };
 
       // Envoyer à l'API pour mettre à jour la timeline
@@ -253,7 +253,7 @@ class TimelineSequencer {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(timelineData)
+        body: JSON.stringify(timelineData),
       });
 
       const data = await response.json();
@@ -273,10 +273,10 @@ class TimelineSequencer {
           this.hideAutoSaveIndicator();
         }, 2000);
       } else {
-        throw new Error(data.error || 'Erreur lors de l\'auto-sauvegarde');
+        throw new Error(data.error || "Erreur lors de l'auto-sauvegarde");
       }
     } catch (error) {
-      console.error('Erreur lors de l\'auto-sauvegarde:', error);
+      console.error("Erreur lors de l'auto-sauvegarde:", error);
       this.showAutoSaveIndicator('error');
 
       // Masquer l'indicateur d'erreur après 3 secondes
@@ -358,12 +358,14 @@ class TimelineSequencer {
 
     switch (state) {
       case 'pending':
-        this.autoSaveIndicator.textContent = translations.autoSavePending || 'Sauvegarde en attente...';
+        this.autoSaveIndicator.textContent =
+          translations.autoSavePending || 'Sauvegarde en attente...';
         this.autoSaveIndicator.style.backgroundColor = '#ffa502';
         this.autoSaveIndicator.style.color = 'white';
         break;
       case 'saving':
-        this.autoSaveIndicator.textContent = translations.autoSaveSaving || 'Sauvegarde en cours...';
+        this.autoSaveIndicator.textContent =
+          translations.autoSaveSaving || 'Sauvegarde en cours...';
         this.autoSaveIndicator.style.backgroundColor = '#3742fa';
         this.autoSaveIndicator.style.color = 'white';
         break;
@@ -373,7 +375,8 @@ class TimelineSequencer {
         this.autoSaveIndicator.style.color = 'white';
         break;
       case 'error':
-        this.autoSaveIndicator.textContent = translations.autoSaveError || '⚠ Erreur de sauvegarde';
+        this.autoSaveIndicator.textContent =
+          translations.autoSaveError || '⚠ Erreur de sauvegarde';
         this.autoSaveIndicator.style.backgroundColor = '#ff4757';
         this.autoSaveIndicator.style.color = 'white';
         break;
@@ -413,30 +416,30 @@ class TimelineSequencer {
         'Content-Type': 'application/json',
       },
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success && data.timelines && data.timelines.length > 0) {
-        if (data.timelines.length === 1) {
-          // Une seule timeline - charger celle-ci (qui devrait être la même que lastTimelineId)
-          const timeline = data.timelines[0];
-          this.setCurrentTimeline(timeline);
-          this.loadTimelineData(timeline);
-          this.switchToTab('modules');
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.timelines && data.timelines.length > 0) {
+          if (data.timelines.length === 1) {
+            // Une seule timeline - charger celle-ci (qui devrait être la même que lastTimelineId)
+            const timeline = data.timelines[0];
+            this.setCurrentTimeline(timeline);
+            this.loadTimelineData(timeline);
+            this.switchToTab('modules');
+          } else {
+            // Plusieurs timelines - ne pas charger automatiquement, rester sur savedTimelinesTab
+            this.switchToTab('saved');
+          }
         } else {
-          // Plusieurs timelines - ne pas charger automatiquement, rester sur savedTimelinesTab
-          this.switchToTab('saved');
+          // Aucune timeline disponible ou erreur, supprimer de localStorage et vérifier
+          localStorage.removeItem('lastTimelineId');
+          this.checkForAvailableTimelines();
         }
-      } else {
-        // Aucune timeline disponible ou erreur, supprimer de localStorage et vérifier
+      })
+      .catch(error => {
+        console.error('Erreur lors du chargement de la dernière timeline:', error);
         localStorage.removeItem('lastTimelineId');
         this.checkForAvailableTimelines();
-      }
-    })
-    .catch(error => {
-      console.error('Erreur lors du chargement de la dernière timeline:', error);
-      localStorage.removeItem('lastTimelineId');
-      this.checkForAvailableTimelines();
-    });
+      });
   }
 
   /**
@@ -454,33 +457,33 @@ class TimelineSequencer {
         'Content-Type': 'application/json',
       },
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success && data.timelines && data.timelines.length > 0) {
-        if (data.timelines.length === 1) {
-          // Une seule timeline - la charger automatiquement
-          const timeline = data.timelines[0];
-          this.setCurrentTimeline(timeline);
-          this.loadTimelineData(timeline);
-          this.switchToTab('modules');
+      .then(response => response.json())
+      .then(data => {
+        if (data.success && data.timelines && data.timelines.length > 0) {
+          if (data.timelines.length === 1) {
+            // Une seule timeline - la charger automatiquement
+            const timeline = data.timelines[0];
+            this.setCurrentTimeline(timeline);
+            this.loadTimelineData(timeline);
+            this.switchToTab('modules');
+          } else {
+            // Plusieurs timelines - rester sur l'onglet savedTimelinesTab
+            this.switchToTab('saved');
+          }
         } else {
-          // Plusieurs timelines - rester sur l'onglet savedTimelinesTab
-          this.switchToTab('saved');
+          // Aucune timeline disponible, ouvrir la modale de création
+          setTimeout(() => {
+            this.createNewTimeline();
+          }, 500); // Petit délai pour laisser la page se charger
         }
-      } else {
-        // Aucune timeline disponible, ouvrir la modale de création
+      })
+      .catch(error => {
+        console.error('Erreur lors de la vérification des timelines disponibles:', error);
+        // En cas d'erreur, ouvrir quand même la modale de création
         setTimeout(() => {
           this.createNewTimeline();
-        }, 500); // Petit délai pour laisser la page se charger
-      }
-    })
-    .catch(error => {
-      console.error('Erreur lors de la vérification des timelines disponibles:', error);
-      // En cas d'erreur, ouvrir quand même la modale de création
-      setTimeout(() => {
-        this.createNewTimeline();
-      }, 500);
-    });
+        }, 500);
+      });
   }
 
   // ================================================================================
@@ -523,7 +526,7 @@ class TimelineSequencer {
 
     this.websocketManager.isConnected = true;
 
-    window.socket.on('command_error', (data) => {
+    window.socket.on('command_error', data => {
       console.error('Command failed:', data);
       const moduleName = data.moduleId || 'Module inconnu';
       const errorMsg = data.error || 'Erreur inconnue';
@@ -531,16 +534,16 @@ class TimelineSequencer {
     });
 
     // Écouter les événements de présence des modules (comme dans modules.js)
-    window.socket.on('user:module:online', (data) => {
+    window.socket.on('user:module:online', data => {
       this.setModulePresence(data.moduleId, true);
     });
 
-    window.socket.on('user:module:offline', (data) => {
+    window.socket.on('user:module:offline', data => {
       this.setModulePresence(data.moduleId, false);
     });
 
     // Synchronisation initiale des statuts
-    window.socket.on('module_states_sync', (data) => {
+    window.socket.on('module_states_sync', data => {
       if (data.states) {
         Object.entries(data.states).forEach(([moduleId, state]) => {
           this.setModulePresence(moduleId, state.online || false);
@@ -558,13 +561,13 @@ class TimelineSequencer {
     }
 
     // Écouter les erreurs générales
-    window.socket.on('error', (data) => {
+    window.socket.on('error', data => {
       console.error('WebSocket error:', data);
       window.showToast?.('Erreur de communication', 'error', 3000);
     });
 
     // Écouter les réponses de liste de fichiers audio
-    window.socket.on('audio_list_response', (data) => {
+    window.socket.on('audio_list_response', data => {
       if (data.files && data.moduleId) {
         this.populateAudioFileSelect(data.moduleId, data.files);
       }
@@ -583,7 +586,7 @@ class TimelineSequencer {
     // Update sidebar module items and module panels (keep parity with modules.js behavior)
     const selectors = [
       `.module-item[data-module-id="${moduleId}"]`,
-      `.panel[data-mid="${moduleId}"]`
+      `.panel[data-mid="${moduleId}"]`,
     ];
 
     selectors.forEach(sel => {
@@ -598,7 +601,13 @@ class TimelineSequencer {
         // Mettre à jour le badge de statut si présent
         const stateBadge = element.querySelector('.state');
         if (stateBadge) {
-          stateBadge.textContent = online ? (window.t ? window.t('common.online') : 'En ligne') : (window.t ? window.t('common.offline') : 'Hors ligne');
+          stateBadge.textContent = online
+            ? window.t
+              ? window.t('common.online')
+              : 'En ligne'
+            : window.t
+              ? window.t('common.offline')
+              : 'Hors ligne';
           stateBadge.classList.toggle('online', online);
           stateBadge.classList.toggle('offline', !online);
         }
@@ -619,7 +628,16 @@ class TimelineSequencer {
       if (dot) {
         dot.classList.toggle('online', online);
         dot.classList.toggle('offline', !online);
-        dot.setAttribute('title', online ? (window.t ? window.t('common.online') : 'En ligne') : (window.t ? window.t('common.offline') : 'Hors ligne'));
+        dot.setAttribute(
+          'title',
+          online
+            ? window.t
+              ? window.t('common.online')
+              : 'En ligne'
+            : window.t
+              ? window.t('common.offline')
+              : 'Hors ligne'
+        );
         dot.setAttribute('aria-hidden', 'true');
       }
     });
@@ -647,7 +665,7 @@ class TimelineSequencer {
       moduleId: message.moduleId,
       command: message.command,
       ...message.parameters,
-      duration: message.duration
+      duration: message.duration,
     };
 
     console.log('Sending WebSocket message:', serverMessage);
@@ -672,11 +690,11 @@ class TimelineSequencer {
     // Collecter les modules uniques qui ont besoin de la commande de timeline
     // UNIQUEMENT les Audio Player car Switch Track n'a pas besoin de pause/resume
     const audioPlayerModules = new Set();
-    
+
     this.elements.forEach(element => {
       const moduleType = element.moduleData.type;
       const moduleId = element.moduleData.id;
-      
+
       // Ne traiter que les Audio Player pour les commandes timeline
       if (moduleType === 'Audio Player') {
         audioPlayerModules.add(moduleId);
@@ -688,14 +706,16 @@ class TimelineSequencer {
       const serverMessage = {
         moduleId: moduleId,
         command: command,
-        parameters: {}
+        parameters: {},
       };
 
       console.log('Sending timeline control command to Audio Player:', serverMessage);
       window.socket.emit('send_module_command', serverMessage);
     });
-    
-    console.log(`Timeline command '${command}' sent to ${audioPlayerModules.size} unique Audio Player(s)`);
+
+    console.log(
+      `Timeline command '${command}' sent to ${audioPlayerModules.size} unique Audio Player(s)`
+    );
   }
 
   /**
@@ -710,19 +730,21 @@ class TimelineSequencer {
     // Mettre à jour le cache avec les nouvelles données
     this.audioFileCache[moduleId] = {
       files: files,
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
 
     // Trouver tous les selects audio pour ce module
-    const audioSelects = document.querySelectorAll(`.audio-file-select[data-module-id="${moduleId}"]`);
-    
+    const audioSelects = document.querySelectorAll(
+      `.audio-file-select[data-module-id="${moduleId}"]`
+    );
+
     audioSelects.forEach(select => {
       // Sauvegarder la valeur actuellement sélectionnée
       const currentValue = select.value || select.dataset.currentValue || '';
-      
+
       // Vider les options existantes
       select.innerHTML = '<option value="">Sélectionnez un fichier audio</option>';
-      
+
       // Ajouter les fichiers comme options
       files.forEach(file => {
         const option = document.createElement('option');
@@ -730,7 +752,7 @@ class TimelineSequencer {
         option.textContent = file;
         select.appendChild(option);
       });
-      
+
       // Restaurer la valeur précédemment sélectionnée si elle existe dans la nouvelle liste
       if (currentValue && files.includes(currentValue)) {
         select.value = currentValue;
@@ -751,31 +773,35 @@ class TimelineSequencer {
    */
   setupZoom() {
     // Zoom avec Ctrl+molette et navigation avec Shift+molette
-    this.track.addEventListener('wheel', e => {
-      if (e.ctrlKey) {
-        // Zoom In/Out avec Ctrl+molette
-        e.preventDefault();
+    this.track.addEventListener(
+      'wheel',
+      e => {
+        if (e.ctrlKey) {
+          // Zoom In/Out avec Ctrl+molette
+          e.preventDefault();
 
-        const direction = e.deltaY < 0 ? 1 : -1; // Molette vers le haut = zoom in
-        const newZoom = this.zoomLevel + direction * ZOOM_STEP;
+          const direction = e.deltaY < 0 ? 1 : -1; // Molette vers le haut = zoom in
+          const newZoom = this.zoomLevel + direction * ZOOM_STEP;
 
-        // Limiter le zoom
-        this.zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
+          // Limiter le zoom
+          this.zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, newZoom));
 
-        this.updateZoom();
-      } else if (e.shiftKey) {
-        // Navigation horizontale dans la timeline avec Shift+molette
-        e.preventDefault();
+          this.updateZoom();
+        } else if (e.shiftKey) {
+          // Navigation horizontale dans la timeline avec Shift+molette
+          e.preventDefault();
 
-        const direction = e.deltaY < 0 ? -1 : 1; // Molette vers le haut = reculer
-        const newStart = this.viewportStart + direction * SCROLL_STEP;
+          const direction = e.deltaY < 0 ? -1 : 1; // Molette vers le haut = reculer
+          const newStart = this.viewportStart + direction * SCROLL_STEP;
 
-        // Empêcher de descendre en dessous de 0
-        this.viewportStart = Math.max(0, newStart);
+          // Empêcher de descendre en dessous de 0
+          this.viewportStart = Math.max(0, newStart);
 
-        this.updateViewport();
-      }
-    }, { passive: false }); // Explicitement marquer comme non-passive car on utilise preventDefault()
+          this.updateViewport();
+        }
+      },
+      { passive: false }
+    ); // Explicitement marquer comme non-passive car on utilise preventDefault()
   }
 
   /**
@@ -866,9 +892,9 @@ class TimelineSequencer {
       // Position verticale basée sur la piste
       const trackHeight = this.track.offsetHeight - 60; // Hauteur disponible (sans la règle)
       const laneHeight = trackHeight / 8; // 8 pistes
-      const baseTop = 60 + (trackIndex * laneHeight) + 5; // +5px pour un petit padding
+      const baseTop = 60 + trackIndex * laneHeight + 5; // +5px pour un petit padding
       const top = baseTop;
-      
+
       element.style.top = `${top}px`;
       element.style.height = `${laneHeight - 10}px`; // -10px pour le padding
     } else {
@@ -992,17 +1018,17 @@ class TimelineSequencer {
         const marker = document.createElement('div');
         marker.className = 'time-marker';
         marker.style.left = `${position}px`;
-        
+
         // Toujours afficher la ligne
         const isMajorMarker = time % labelInterval === 0;
         const lineClass = isMajorMarker ? 'marker-line' : 'marker-line secondary';
         let markerHTML = `<div class="${lineClass}"></div>`;
-        
+
         // Afficher le label seulement selon l'intervalle de zoom
         if (isMajorMarker) {
           markerHTML += `<div class="marker-label">${this.formatTime(time)}</div>`;
         }
-        
+
         marker.innerHTML = markerHTML;
         this.timeMarkers.appendChild(marker);
       }
@@ -1052,7 +1078,7 @@ class TimelineSequencer {
       this.track.classList.remove('drag-over-module');
       this.hideDragTimeIndicator();
       this.dragToastShown = false; // Réinitialiser le flag du toast
-      
+
       // Si le drag s'est terminé sans drop et que la timeline est vide, remettre les instructions
       if (this.elements.length === 0) {
         this.showInstructions();
@@ -1083,8 +1109,10 @@ class TimelineSequencer {
     if (playFromStartBtn) playFromStartBtn.addEventListener('click', () => this.playFromStart());
     if (playPauseBtn) playPauseBtn.addEventListener('click', () => this.togglePlayPause());
     if (modulesTab) modulesTab.addEventListener('click', () => this.switchToTab('modules'));
-    if (savedTimelinesTab) savedTimelinesTab.addEventListener('click', () => this.switchToTab('saved'));
-    if (createTimelineBtn) createTimelineBtn.addEventListener('click', () => this.createNewTimeline());
+    if (savedTimelinesTab)
+      savedTimelinesTab.addEventListener('click', () => this.switchToTab('saved'));
+    if (createTimelineBtn)
+      createTimelineBtn.addEventListener('click', () => this.createNewTimeline());
   }
 
   /**
@@ -1134,7 +1162,7 @@ class TimelineSequencer {
         this.track.classList.add('drag-disabled');
         // Afficher le toast seulement une fois pendant le drag
         if (!this.dragToastShown) {
-          window.showToast?.('Sélectionnez d\'abord une chronologie', 'warning', 2000);
+          window.showToast?.("Sélectionnez d'abord une chronologie", 'warning', 2000);
           this.dragToastShown = true;
         }
       }
@@ -1174,7 +1202,7 @@ class TimelineSequencer {
 
     // Vérifier qu'une timeline est sélectionnée
     if (!this.currentTimeline) {
-      window.showToast?.('Veuillez d\'abord sélectionner ou créer une chronologie', 'error', 3000);
+      window.showToast?.("Veuillez d'abord sélectionner ou créer une chronologie", 'error', 3000);
       return;
     }
 
@@ -1197,15 +1225,28 @@ class TimelineSequencer {
 
       if (trackIndex === null) {
         // Aucune piste disponible, afficher un message d'erreur
-        window.showToast?.('Impossible de placer le module ici : toutes les pistes sont occupées à cette position', 'error', 3000);
+        window.showToast?.(
+          'Impossible de placer le module ici : toutes les pistes sont occupées à cette position',
+          'error',
+          3000
+        );
       } else {
         // Vérifier les conflits temporels pour le même module avant de placer
-        const defaultDuration = this.getModuleConfig(moduleData.type).actions[this.dragModuleAction].duration.default;
-        const hasConflict = this.hasModuleTimeConflict(moduleData.id, timePosition, defaultDuration);
+        const defaultDuration = this.getModuleConfig(moduleData.type).actions[this.dragModuleAction]
+          .duration.default;
+        const hasConflict = this.hasModuleTimeConflict(
+          moduleData.id,
+          timePosition,
+          defaultDuration
+        );
 
         if (hasConflict) {
           // Conflit détecté - annuler le placement et afficher un toast d'avertissement
-          window.showToast?.('Impossible de placer ce module : conflit temporel avec une action existante du même module', 'error', 3000);
+          window.showToast?.(
+            'Impossible de placer ce module : conflit temporel avec une action existante du même module',
+            'error',
+            3000
+          );
 
           // Remettre l'élément dans la sidebar (pas de placement sur la timeline)
           // L'élément reste dans la sidebar, pas de nettoyage nécessaire
@@ -1233,7 +1274,7 @@ class TimelineSequencer {
     const trackHeight = this.track.offsetHeight - 60; // Hauteur disponible (sans la règle)
     const laneHeight = trackHeight / 8; // 8 pistes
     const relativeY = y - 60; // Position relative sans la règle
-    
+
     // Calculer l'index de la piste
     const trackIndex = Math.floor(relativeY / laneHeight);
     return Math.max(0, Math.min(7, trackIndex)); // Limiter entre 0 et 7
@@ -1249,7 +1290,10 @@ class TimelineSequencer {
    */
   findAvailableTrackIndex(timePosition, startTrackIndex) {
     // Récupérer la durée par défaut du module à placer
-    const defaultDuration = this.getModuleConfig(this.dragModuleType || 'generic-module').actions[this.dragModuleAction || Object.keys(this.getModuleConfig(this.dragModuleType || 'generic-module').actions)[0]].duration.default;
+    const defaultDuration = this.getModuleConfig(this.dragModuleType || 'generic-module').actions[
+      this.dragModuleAction ||
+        Object.keys(this.getModuleConfig(this.dragModuleType || 'generic-module').actions)[0]
+    ].duration.default;
 
     // Vérifier d'abord si la piste de départ est libre sur toute la durée
     if (this.isTrackAvailableForDuration(timePosition, defaultDuration, startTrackIndex)) {
@@ -1312,7 +1356,7 @@ class TimelineSequencer {
       }
 
       // Vérifier proximité avec la bordure droite (début du module existant)
-      const rightDistance = Math.abs((timePosition + duration) - elementStart);
+      const rightDistance = Math.abs(timePosition + duration - elementStart);
       if (rightDistance < bestSnapDistance) {
         bestSnapPosition = elementStart - duration;
         bestSnapDistance = rightDistance;
@@ -1320,17 +1364,26 @@ class TimelineSequencer {
     }
 
     // Utiliser la position d'accrochage si elle est disponible
-    const finalTimePosition = bestSnapDistance < snapThresholdSeconds ? bestSnapPosition : timePosition;
+    const finalTimePosition =
+      bestSnapDistance < snapThresholdSeconds ? bestSnapPosition : timePosition;
 
     // Vérifier si la position finale est disponible sur la piste préférée
-    if (this.isTrackAvailableForDuration(finalTimePosition, duration, preferredTrackIndex, draggedElementData)) {
+    if (
+      this.isTrackAvailableForDuration(
+        finalTimePosition,
+        duration,
+        preferredTrackIndex,
+        draggedElementData
+      )
+    ) {
       return { trackIndex: preferredTrackIndex, timePosition: finalTimePosition };
     }
 
     // Logique de collision normale si pas d'accrochage trouvé ou position occupée
     // Chercher un module existant qui cause la collision sur la piste préférée
     const conflictingElement = this.elements.find(element => {
-      if (element === draggedElementData || element.trackIndex !== preferredTrackIndex) return false;
+      if (element === draggedElementData || element.trackIndex !== preferredTrackIndex)
+        return false;
       const startA = finalTimePosition;
       const endA = finalTimePosition + duration;
       const startB = element.startTime;
@@ -1344,12 +1397,28 @@ class TimelineSequencer {
       const conflictingTrack = conflictingElement.trackIndex;
 
       // Essayer d'abord la piste au-dessus (index plus petit)
-      if (conflictingTrack > 0 && this.isTrackAvailableForDuration(finalTimePosition, duration, conflictingTrack - 1, draggedElementData)) {
+      if (
+        conflictingTrack > 0 &&
+        this.isTrackAvailableForDuration(
+          finalTimePosition,
+          duration,
+          conflictingTrack - 1,
+          draggedElementData
+        )
+      ) {
         return { trackIndex: conflictingTrack - 1, timePosition: finalTimePosition };
       }
 
       // Puis la piste en-dessous (index plus grand)
-      if (conflictingTrack < 7 && this.isTrackAvailableForDuration(finalTimePosition, duration, conflictingTrack + 1, draggedElementData)) {
+      if (
+        conflictingTrack < 7 &&
+        this.isTrackAvailableForDuration(
+          finalTimePosition,
+          duration,
+          conflictingTrack + 1,
+          draggedElementData
+        )
+      ) {
         return { trackIndex: conflictingTrack + 1, timePosition: finalTimePosition };
       }
     }
@@ -1358,7 +1427,14 @@ class TimelineSequencer {
     // chercher une piste disponible dans l'ordre de proximité
     const availableTracks = [];
     for (let trackIndex = 0; trackIndex <= 7; trackIndex++) {
-      if (this.isTrackAvailableForDuration(finalTimePosition, duration, trackIndex, draggedElementData)) {
+      if (
+        this.isTrackAvailableForDuration(
+          finalTimePosition,
+          duration,
+          trackIndex,
+          draggedElementData
+        )
+      ) {
         availableTracks.push(trackIndex);
       }
     }
@@ -1461,7 +1537,9 @@ class TimelineSequencer {
       const currentEndTime = currentAction.startTime + currentAction.duration;
 
       // Vérifier si on peut placer après cette action
-      if (!this.hasModuleTimeConflict(moduleId, currentEndTime, preferredDuration, excludeElement)) {
+      if (
+        !this.hasModuleTimeConflict(moduleId, currentEndTime, preferredDuration, excludeElement)
+      ) {
         return currentEndTime;
       }
     }
@@ -1610,7 +1688,10 @@ class TimelineSequencer {
 
     // Vérifier si la durée peut être modifiée (min != max)
     const actionConfig = moduleConfig.actions[defaultAction];
-    const canResize = actionConfig && actionConfig.duration && actionConfig.duration.min !== actionConfig.duration.max;
+    const canResize =
+      actionConfig &&
+      actionConfig.duration &&
+      actionConfig.duration.min !== actionConfig.duration.max;
 
     element.innerHTML = `
       <div class="element-header">
@@ -1630,27 +1711,27 @@ class TimelineSequencer {
     // Events
     element.addEventListener('click', e => {
       e.stopPropagation();
-      
+
       // Fermer tout menu contextuel ouvert
       this.hideContextMenu();
-      
+
       // Ne pas ouvrir la modale si c'était un drag ou un resize récent
       if (this.wasDragging || this.wasResizing) {
         this.wasDragging = false;
         this.wasResizing = false;
         return;
       }
-      
+
       this.selectElement(element);
     });
 
     // Double-clic pour ouvrir la configuration
     element.addEventListener('dblclick', e => {
       e.stopPropagation();
-      
+
       // Fermer tout menu contextuel ouvert
       this.hideContextMenu();
-      
+
       this.selectElement(element);
       this.openConfig(element);
     });
@@ -1659,10 +1740,10 @@ class TimelineSequencer {
     element.addEventListener('contextmenu', e => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Fermer tout menu contextuel ouvert avant d'en ouvrir un nouveau
       this.hideContextMenu();
-      
+
       this.selectElement(element);
       this.showContextMenu(element, e.clientX, e.clientY);
     });
@@ -1670,20 +1751,20 @@ class TimelineSequencer {
     element.addEventListener('mousedown', e => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       // Vérifier si on clique sur une poignée de redimensionnement
       const resizeHandle = e.target.closest('.resize-handle');
       if (resizeHandle) {
         this.startResize(element, resizeHandle, e);
         return;
       }
-      
+
       // Marquer le début du drag potentiel
       this.dragStartTime = Date.now();
       this.dragStartX = e.clientX;
       this.dragStartY = e.clientY;
       this.wasDragging = false;
-      
+
       this.startDrag(element, e);
     });
 
@@ -1747,7 +1828,7 @@ class TimelineSequencer {
     // Position verticale basée sur la piste (sans scroll offset pour le positionnement initial)
     const trackHeight = this.track.offsetHeight - 60; // Hauteur disponible (sans la règle)
     const laneHeight = trackHeight / 8; // 8 pistes
-    const baseTop = 60 + (trackIndex * laneHeight) + 5; // +5px pour un petit padding
+    const baseTop = 60 + trackIndex * laneHeight + 5; // +5px pour un petit padding
 
     element.style.top = `${baseTop}px`;
     element.style.height = `${laneHeight - 10}px`; // -10px pour le padding
@@ -1764,18 +1845,20 @@ class TimelineSequencer {
    * @private
    */
   getModuleConfig(moduleType) {
-    return MODULE_CONFIGS[moduleType] || {
-      name: 'Module inconnu',
-      icon: '❓',
-      color: '#666666',
-      actions: {
-        unknown: {
-          name: 'Action inconnue',
-          duration: { min: 1, max: 10, default: 1 },
-          params: {},
+    return (
+      MODULE_CONFIGS[moduleType] || {
+        name: 'Module inconnu',
+        icon: '❓',
+        color: '#666666',
+        actions: {
+          unknown: {
+            name: 'Action inconnue',
+            duration: { min: 1, max: 10, default: 1 },
+            params: {},
+          },
         },
-      },
-    };
+      }
+    );
   }
 
   /**
@@ -1850,11 +1933,16 @@ class TimelineSequencer {
         </div>
 
         <div class="config-section" id="actionConfigContainer">
-          ${this.generateActionConfigUI(moduleType, actionType, {
-            startTime: parseFloat(timelineElement.element.dataset.startTime),
-            duration: parseFloat(timelineElement.element.dataset.duration),
-            ...timelineElement.actionParams,
-          }, timelineElement.element.dataset.moduleId)}
+          ${this.generateActionConfigUI(
+            moduleType,
+            actionType,
+            {
+              startTime: parseFloat(timelineElement.element.dataset.startTime),
+              duration: parseFloat(timelineElement.element.dataset.duration),
+              ...timelineElement.actionParams,
+            },
+            timelineElement.element.dataset.moduleId
+          )}
         </div>
 
         <div class="config-section">
@@ -1876,21 +1964,24 @@ class TimelineSequencer {
       this.clearSelection();
       modal.remove();
     });
-    modal
-      .querySelector('#deleteElement')
-      .addEventListener('click', () => {
-        this.deleteElement(timelineElement.element);
-        modal.remove();
-      });
+    modal.querySelector('#deleteElement').addEventListener('click', () => {
+      this.deleteElement(timelineElement.element);
+      modal.remove();
+    });
     modal
       .querySelector('#saveConfig')
       .addEventListener('click', () => this.saveConfig(timelineElement, modal));
     modal.querySelector('#actionTypeSelect').addEventListener('change', e => {
       const container = modal.querySelector('#actionConfigContainer');
-      container.innerHTML = this.generateActionConfigUI(moduleType, e.target.value, {
-        startTime: parseFloat(timelineElement.element.dataset.startTime),
-        duration: parseFloat(timelineElement.element.dataset.duration),
-      }, timelineElement.element.dataset.moduleId);
+      container.innerHTML = this.generateActionConfigUI(
+        moduleType,
+        e.target.value,
+        {
+          startTime: parseFloat(timelineElement.element.dataset.startTime),
+          duration: parseFloat(timelineElement.element.dataset.duration),
+        },
+        timelineElement.element.dataset.moduleId
+      );
     });
     modal.addEventListener('click', e => {
       if (e.target === modal) {
@@ -1960,7 +2051,12 @@ class TimelineSequencer {
 
     // Paramètres spécifiques
     Object.entries(action.params).forEach(([paramName, paramConfig]) => {
-      html += this.generateParameterInput(paramName, paramConfig, currentValues[paramName], moduleId);
+      html += this.generateParameterInput(
+        paramName,
+        paramConfig,
+        currentValues[paramName],
+        moduleId
+      );
     });
 
     html += `</div>`;
@@ -1993,12 +2089,12 @@ class TimelineSequencer {
           const fileId = `audio-files-${moduleId}-${Date.now()}`;
           let selectHtml = `<select class="config-select audio-file-select" name="${paramName}" id="${fileId}" data-module-id="${moduleId}" data-current-value="${value}">
             <option value="">Chargement...</option>`;
-          
+
           // Si on a déjà une valeur, l'ajouter comme option temporaire
           if (value) {
             selectHtml += `<option value="${value}" selected>${value}</option>`;
           }
-          
+
           selectHtml += `</select>`;
           html += selectHtml;
 
@@ -2007,7 +2103,7 @@ class TimelineSequencer {
           const CACHE_DURATION = 10000; // 10 secondes
           const now = Date.now();
 
-          if (cachedData && (now - cachedData.timestamp) < CACHE_DURATION) {
+          if (cachedData && now - cachedData.timestamp < CACHE_DURATION) {
             // Utiliser les données du cache
             setTimeout(() => {
               this.populateAudioFileSelect(moduleId, cachedData.files);
@@ -2019,7 +2115,7 @@ class TimelineSequencer {
                 window.socket.emit('send_module_command', {
                   moduleId: moduleId,
                   command: 'audio_list_request',
-                  params: {}
+                  params: {},
                 });
               }
             }, 100);
@@ -2074,7 +2170,9 @@ class TimelineSequencer {
     const startTimeInput = modal.querySelector('.start-time-input');
     const durationInput = modal.querySelector('.duration-input');
 
-    const startTime = startTimeInput ? parseFloat(startTimeInput.value) : parseFloat(timelineElement.element.dataset.startTime);
+    const startTime = startTimeInput
+      ? parseFloat(startTimeInput.value)
+      : parseFloat(timelineElement.element.dataset.startTime);
     const duration = durationInput ? parseFloat(durationInput.value) : timelineElement.duration;
 
     const actionParams = {};
@@ -2106,8 +2204,9 @@ class TimelineSequencer {
     const moduleConfig = this.getModuleConfig(timelineElement.element.dataset.moduleType);
     const actionConfig = moduleConfig.actions[actionType];
 
-    timelineElement.element.querySelector('.element-duration').textContent = this.formatTime(duration);
-    
+    timelineElement.element.querySelector('.element-duration').textContent =
+      this.formatTime(duration);
+
     // Construire le texte de l'action avec le nom du fichier audio si applicable
     let actionText = actionConfig.name;
     if (timelineElement.element.dataset.moduleType === 'Audio Player' && actionParams.filename) {
@@ -2159,9 +2258,10 @@ class TimelineSequencer {
         const deltaX = Math.abs(e.clientX - this.dragStartX);
         const deltaY = Math.abs(e.clientY - this.dragStartY);
         const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-        
+
         // Si la distance est suffisante, c'est un drag
-        if (distance > 5) { // 5px de tolérance
+        if (distance > 5) {
+          // 5px de tolérance
           hasMoved = true;
           this.isPotentialDrag = false; // Ce n'est plus un potentiel clic
         }
@@ -2176,12 +2276,21 @@ class TimelineSequencer {
         const preferredTrackIndex = this.getTrackIndexFromY(y + 60); // +60 pour compenser la règle
 
         // Trouver la meilleure piste disponible pour éviter les collisions
-        const bestPosition = this.findBestTrackForDrag(timePosition, preferredTrackIndex, this.draggedElement);
+        const bestPosition = this.findBestTrackForDrag(
+          timePosition,
+          preferredTrackIndex,
+          this.draggedElement
+        );
 
         if (bestPosition !== null) {
           // Mise à jour position avec la piste optimale et position temporelle ajustée
           const duration = parseFloat(this.draggedElement.dataset.duration);
-          this.positionElement(this.draggedElement, bestPosition.timePosition, duration, bestPosition.trackIndex);
+          this.positionElement(
+            this.draggedElement,
+            bestPosition.timePosition,
+            duration,
+            bestPosition.trackIndex
+          );
           this.draggedElement.dataset.startTime = bestPosition.timePosition.toFixed(2);
           this.draggedElement.dataset.trackIndex = bestPosition.trackIndex.toString();
 
@@ -2195,7 +2304,12 @@ class TimelineSequencer {
           // Validation des conflits temporels pour le même module
           // Utiliser la position snappée pour la détection de conflit
           const moduleId = this.draggedElement.dataset.moduleId;
-          const hasConflict = this.hasModuleTimeConflict(moduleId, bestPosition.timePosition, duration, elementData);
+          const hasConflict = this.hasModuleTimeConflict(
+            moduleId,
+            bestPosition.timePosition,
+            duration,
+            elementData
+          );
 
           // Supprimer les indicateurs précédents
           if (conflictIndicator) {
@@ -2204,7 +2318,11 @@ class TimelineSequencer {
           }
 
           // Supprimer les classes de feedback précédentes
-          this.draggedElement.classList.remove('conflict', 'valid-placement', 'suggestion-highlight');
+          this.draggedElement.classList.remove(
+            'conflict',
+            'valid-placement',
+            'suggestion-highlight'
+          );
 
           if (hasConflict) {
             // Conflit détecté - feedback visuel rouge
@@ -2236,31 +2354,45 @@ class TimelineSequencer {
     const handleMouseUp = () => {
       if (this.draggedElement) {
       }
-      
+
       // Vérifier s'il y a un conflit à la position finale
       const elementData = this.elements.find(e => e.element === this.draggedElement);
       if (elementData && hasMoved) {
         const moduleId = this.draggedElement.dataset.moduleId;
         const currentTimePosition = parseFloat(this.draggedElement.dataset.startTime);
         const duration = parseFloat(this.draggedElement.dataset.duration);
-        
-        const hasConflict = this.hasModuleTimeConflict(moduleId, currentTimePosition, duration, elementData);
-        
+
+        const hasConflict = this.hasModuleTimeConflict(
+          moduleId,
+          currentTimePosition,
+          duration,
+          elementData
+        );
+
         if (hasConflict) {
           // Conflit détecté - remettre à la position d'origine
-          this.positionElement(this.draggedElement, originalStartTime, originalDuration, originalTrackIndex);
+          this.positionElement(
+            this.draggedElement,
+            originalStartTime,
+            originalDuration,
+            originalTrackIndex
+          );
           this.draggedElement.dataset.startTime = originalStartTime.toFixed(2);
           this.draggedElement.dataset.trackIndex = originalTrackIndex.toString();
-          
+
           // Remettre à jour les données
           elementData.startTime = originalStartTime;
           elementData.trackIndex = originalTrackIndex;
-          
+
           // Afficher un toast d'erreur
-          window.showToast?.('Déplacement annulé : conflit temporel avec une action existante du même module', 'error', 3000);
+          window.showToast?.(
+            'Déplacement annulé : conflit temporel avec une action existante du même module',
+            'error',
+            3000
+          );
         }
       }
-      
+
       // Supprimer les indicateurs de feedback
       if (conflictIndicator) {
         conflictIndicator.remove();
@@ -2271,12 +2403,12 @@ class TimelineSequencer {
 
       // Masquer les zones de suggestion
       this.hidePlacementSuggestions();
-      
+
       // Si on a bougé, marquer que c'était un drag
       if (hasMoved) {
         this.wasDragging = true;
       }
-      
+
       this.draggedElement = null;
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
@@ -2288,12 +2420,12 @@ class TimelineSequencer {
       if (hasMoved && elementData) {
         const currentTimePosition = parseFloat(this.draggedElement?.dataset.startTime || '0');
         const hasFinalConflict = this.hasModuleTimeConflict(
-          this.draggedElement?.dataset.moduleId || '', 
-          currentTimePosition, 
-          parseFloat(this.draggedElement?.dataset.duration || '0'), 
+          this.draggedElement?.dataset.moduleId || '',
+          currentTimePosition,
+          parseFloat(this.draggedElement?.dataset.duration || '0'),
           elementData
         );
-        
+
         if (!hasFinalConflict) {
           this.triggerAutoSave();
         }
@@ -2319,11 +2451,18 @@ class TimelineSequencer {
     if (elementData) {
       const moduleConfig = this.getModuleConfig(elementData.moduleData.type);
       const actionConfig = moduleConfig.actions[elementData.actionType];
-      const canResize = actionConfig && actionConfig.duration && actionConfig.duration.min !== actionConfig.duration.max;
-      
+      const canResize =
+        actionConfig &&
+        actionConfig.duration &&
+        actionConfig.duration.min !== actionConfig.duration.max;
+
       if (!canResize) {
         // Durée fixe - empêcher le redimensionnement
-        window.showToast?.('La durée de cette action est fixe et ne peut pas être modifiée', 'warning', 2000);
+        window.showToast?.(
+          'La durée de cette action est fixe et ne peut pas être modifiée',
+          'warning',
+          2000
+        );
         return;
       }
     }
@@ -2377,13 +2516,21 @@ class TimelineSequencer {
         const moduleConfig = this.getModuleConfig(elementData.moduleData.type);
         const actionConfig = moduleConfig.actions[elementData.actionType];
         if (actionConfig && actionConfig.duration) {
-          newDuration = Math.max(actionConfig.duration.min, Math.min(actionConfig.duration.max, newDuration));
+          newDuration = Math.max(
+            actionConfig.duration.min,
+            Math.min(actionConfig.duration.max, newDuration)
+          );
         }
       }
 
       // Vérifier les conflits temporels pour le même module
       const moduleId = element.dataset.moduleId;
-      const hasConflict = this.hasModuleTimeConflict(moduleId, newStartTime, newDuration, elementData);
+      const hasConflict = this.hasModuleTimeConflict(
+        moduleId,
+        newStartTime,
+        newDuration,
+        elementData
+      );
 
       // Supprimer l'indicateur de conflit précédent
       if (conflictIndicator) {
@@ -2409,7 +2556,12 @@ class TimelineSequencer {
       }
 
       // Mettre à jour l'élément
-      this.positionElement(element, newStartTime, newDuration, parseInt(element.dataset.trackIndex));
+      this.positionElement(
+        element,
+        newStartTime,
+        newDuration,
+        parseInt(element.dataset.trackIndex)
+      );
 
       // Mettre à jour l'indicateur de temps
       this.updateResizeTimeIndicator(newStartTime, newDuration);
@@ -2435,31 +2587,45 @@ class TimelineSequencer {
       if (this.resizingElement) {
         this.resizingElement.classList.remove('resizing');
       }
-      
+
       // Vérifier s'il y a un conflit à la taille finale
       const elementData = this.elements.find(e => e.element === this.resizingElement);
       if (elementData) {
         const moduleId = this.resizingElement.dataset.moduleId;
         const currentStartTime = parseFloat(this.resizingElement.dataset.startTime);
         const currentDuration = parseFloat(this.resizingElement.dataset.duration);
-        
-        const hasConflict = this.hasModuleTimeConflict(moduleId, currentStartTime, currentDuration, elementData);
-        
+
+        const hasConflict = this.hasModuleTimeConflict(
+          moduleId,
+          currentStartTime,
+          currentDuration,
+          elementData
+        );
+
         if (hasConflict) {
           // Conflit détecté - remettre à la taille d'origine
-          this.positionElement(this.resizingElement, originalStartTime, originalDuration, parseInt(this.resizingElement.dataset.trackIndex));
+          this.positionElement(
+            this.resizingElement,
+            originalStartTime,
+            originalDuration,
+            parseInt(this.resizingElement.dataset.trackIndex)
+          );
           this.resizingElement.dataset.startTime = originalStartTime.toFixed(2);
           this.resizingElement.dataset.duration = originalDuration.toString();
-          
+
           // Remettre à jour les données
           elementData.startTime = originalStartTime;
           elementData.duration = originalDuration;
-          
+
           // Afficher un toast d'erreur
-          window.showToast?.('Redimensionnement annulé : conflit temporel avec une action existante du même module', 'error', 3000);
+          window.showToast?.(
+            'Redimensionnement annulé : conflit temporel avec une action existante du même module',
+            'error',
+            3000
+          );
         }
       }
-      
+
       // Supprimer l'indicateur de conflit
       if (conflictIndicator) {
         conflictIndicator.remove();
@@ -2467,10 +2633,10 @@ class TimelineSequencer {
 
       // Supprimer les classes de feedback
       this.resizingElement.classList.remove('conflict', 'valid-placement');
-      
+
       // Marquer que c'était un resize
       this.wasResizing = true;
-      
+
       this.resizingElement = null;
       this.resizeHandle = null;
       this.resizeType = null;
@@ -2485,17 +2651,18 @@ class TimelineSequencer {
         const currentStartTime = parseFloat(this.resizingElement?.dataset.startTime || '0');
         const currentDuration = parseFloat(this.resizingElement?.dataset.duration || '0');
         const hasFinalConflict = this.hasModuleTimeConflict(
-          this.resizingElement?.dataset.moduleId || '', 
-          currentStartTime, 
-          currentDuration, 
+          this.resizingElement?.dataset.moduleId || '',
+          currentStartTime,
+          currentDuration,
           elementData
         );
-        
+
         if (!hasFinalConflict) {
           this.triggerAutoSave();
         }
       }
-    };    document.addEventListener('mousemove', handleMouseMove);
+    };
+    document.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseup', handleMouseUp);
   }
 
@@ -2699,7 +2866,7 @@ class TimelineSequencer {
     });
 
     // Fermer le menu au clic ailleurs (y compris clic gauche)
-    const closeMenu = (e) => {
+    const closeMenu = e => {
       // Fermer le menu si le clic n'est pas sur le menu lui-même
       if (!contextMenu.contains(e.target)) {
         this.hideContextMenu();
@@ -2709,7 +2876,7 @@ class TimelineSequencer {
     };
 
     // Fermer le menu avec Échap
-    const closeMenuOnEscape = (e) => {
+    const closeMenuOnEscape = e => {
       if (e.key === 'Escape') {
         this.hideContextMenu();
         document.removeEventListener('keydown', closeMenuOnEscape);
@@ -2853,7 +3020,8 @@ class TimelineSequencer {
       // En cours de lecture
       this.playPauseButton.classList.add('playing');
       if (playPauseIcon) {
-        playPauseIcon.innerHTML = '<path d="M6 19H10V5H6V19ZM14 5V19H18V5H14Z" fill="currentColor"/>';
+        playPauseIcon.innerHTML =
+          '<path d="M6 19H10V5H6V19ZM14 5V19H18V5H14Z" fill="currentColor"/>';
       }
     } else if (this.isPlaying && this.isPaused) {
       // En pause
@@ -2896,7 +3064,7 @@ class TimelineSequencer {
     // Calculer le temps actuel AVANT de mettre en pause
     const elapsedTime = (Date.now() - this.startTime) / 1000;
     this.currentTime = elapsedTime;
-    
+
     this.isPaused = true;
     this.pausedTime = Date.now();
 
@@ -2937,10 +3105,10 @@ class TimelineSequencer {
     if (!this.isPlaying || !this.isPaused) return;
 
     this.isPaused = false;
-    
+
     // Ajuster le startTime pour reprendre là où on s'était arrêté
     // Nouveau startTime = maintenant - temps écoulé avant la pause
-    this.startTime = Date.now() - (this.currentTime * 1000);
+    this.startTime = Date.now() - this.currentTime * 1000;
 
     // Reprogrammer UNIQUEMENT les actions qui n'ont pas encore été exécutées
     const remainingElements = this.elements
@@ -2951,7 +3119,9 @@ class TimelineSequencer {
       })
       .sort((a, b) => a.startTime - b.startTime);
 
-    console.log(`Resuming timeline from ${this.currentTime.toFixed(2)}s with ${remainingElements.length} remaining actions`);
+    console.log(
+      `Resuming timeline from ${this.currentTime.toFixed(2)}s with ${remainingElements.length} remaining actions`
+    );
 
     // Reprogrammer les actions avec les nouveaux timings
     this.scheduleActionsFromTime(remainingElements, this.currentTime);
@@ -3004,7 +3174,7 @@ class TimelineSequencer {
    */
   scheduleActionsFromTime(elements, fromTime) {
     this.timeouts = [];
-    
+
     // Programmer les nouvelles actions qui commencent après fromTime
     elements.forEach(el => {
       // Calculer le délai relatif par rapport au temps actuel
@@ -3020,30 +3190,35 @@ class TimelineSequencer {
     // NOUVEAU: Reprogrammer les arrêts audio pour les actions déjà en cours
     this.elements.forEach(el => {
       // Vérifier si c'est un Audio Player qui a déjà commencé mais pas encore fini
-      if (el.moduleData.type === 'Audio Player' && 
-          el.startTime <= fromTime && 
-          (el.startTime + el.duration) > fromTime) {
-        
+      if (
+        el.moduleData.type === 'Audio Player' &&
+        el.startTime <= fromTime &&
+        el.startTime + el.duration > fromTime
+      ) {
         // Calculer le temps restant pour cette action
         const remainingTime = (el.startTime + el.duration - fromTime) * 1000;
-        
+
         if (remainingTime > 0) {
-          console.log(`[TIMELINE] Reprogramming audio stop for ${el.moduleData.id} in ${(remainingTime/1000).toFixed(2)}s`);
-          
+          console.log(
+            `[TIMELINE] Reprogramming audio stop for ${el.moduleData.id} in ${(remainingTime / 1000).toFixed(2)}s`
+          );
+
           const stopTimeout = setTimeout(() => {
             if (this.isPlaying && !this.isPaused) {
-              console.log(`[TIMELINE] Auto-stopping audio for ${el.moduleData.id} after pause/resume`);
-              
+              console.log(
+                `[TIMELINE] Auto-stopping audio for ${el.moduleData.id} after pause/resume`
+              );
+
               const stopMessage = {
                 moduleId: el.moduleData.id,
                 command: 'audio_stop',
-                parameters: {}
+                parameters: {},
               };
-              
+
               this.websocketManager.send(stopMessage);
             }
           }, remainingTime);
-          
+
           this.timeouts.push(stopTimeout);
         }
       }
@@ -3051,8 +3226,8 @@ class TimelineSequencer {
 
     // Programmer l'arrêt final basé sur l'élément le plus long
     if (elements.length > 0) {
-      const lastElement = elements.reduce((max, el) => 
-        (el.startTime + el.duration) > (max.startTime + max.duration) ? el : max
+      const lastElement = elements.reduce((max, el) =>
+        el.startTime + el.duration > max.startTime + max.duration ? el : max
       );
       const totalDuration = (lastElement.startTime + lastElement.duration - fromTime) * 1000;
       if (totalDuration > 0) {
@@ -3075,24 +3250,30 @@ class TimelineSequencer {
   executeAction(element) {
     // Validation des données
     if (!element.moduleData || !element.moduleData.id) {
-      console.error('Module ID manquant pour l\'élément:', element);
+      console.error("Module ID manquant pour l'élément:", element);
       window.showToast?.('Erreur: Module ID manquant', 'error', 3000);
       return;
     }
 
     if (!element.actionType) {
-      console.error('Type d\'action manquant pour l\'élément:', element);
+      console.error("Type d'action manquant pour l'élément:", element);
       window.showToast?.('Erreur: Action manquante', 'error', 3000);
       return;
     }
 
     // Vérifier si le module est en ligne
-    const moduleElement = document.querySelector(`.module-item[data-module-id="${element.moduleData.id}"]`);
+    const moduleElement = document.querySelector(
+      `.module-item[data-module-id="${element.moduleData.id}"]`
+    );
     const isOnline = moduleElement && moduleElement.classList.contains('online');
 
     if (!isOnline) {
       console.warn(`Module ${element.moduleData.id} hors ligne - commande ignorée`);
-      window.showToast?.(`Module ${element.moduleData.name || element.moduleData.id} hors ligne - action ignorée`, 'warning', 3000);
+      window.showToast?.(
+        `Module ${element.moduleData.name || element.moduleData.id} hors ligne - action ignorée`,
+        'warning',
+        3000
+      );
       return;
     }
 
@@ -3115,24 +3296,28 @@ class TimelineSequencer {
     // Les Switch Track n'ont pas besoin d'arrêt car ils se terminent naturellement
     if (element.moduleData.type === 'Audio Player' && element.duration > 0) {
       const stopDelay = element.duration * 1000; // Convertir en millisecondes
-      
-      console.log(`[TIMELINE] Programming audio stop for ${element.moduleData.id} in ${element.duration}s`);
-      
+
+      console.log(
+        `[TIMELINE] Programming audio stop for ${element.moduleData.id} in ${element.duration}s`
+      );
+
       const stopTimeout = setTimeout(() => {
         // Vérifier qu'on est toujours en lecture avant d'arrêter
         if (this.isPlaying && !this.isPaused) {
-          console.log(`[TIMELINE] Auto-stopping audio for ${element.moduleData.id} after ${element.duration}s`);
-          
+          console.log(
+            `[TIMELINE] Auto-stopping audio for ${element.moduleData.id} after ${element.duration}s`
+          );
+
           const stopMessage = {
             moduleId: element.moduleData.id,
             command: 'audio_stop',
-            parameters: {}
+            parameters: {},
           };
-          
+
           this.websocketManager.send(stopMessage);
         }
       }, stopDelay);
-      
+
       // Stocker le timeout pour pouvoir l'annuler si nécessaire (pause/stop)
       this.timeouts.push(stopTimeout);
     }
@@ -3224,17 +3409,14 @@ class TimelineSequencer {
       duration: element.duration,
       actionType: element.actionType,
       actionParams: element.actionParams || {},
-      trackIndex: element.trackIndex || 0
+      trackIndex: element.trackIndex || 0,
     }));
 
-    const totalDuration = Math.max(
-      ...this.elements.map(e => e.startTime + e.duration),
-      0
-    );
+    const totalDuration = Math.max(...this.elements.map(e => e.startTime + e.duration), 0);
 
     return {
       elements: elements,
-      totalDuration: totalDuration
+      totalDuration: totalDuration,
     };
   }
 
@@ -3328,19 +3510,19 @@ class TimelineSequencer {
         'Content-Type': 'application/json',
       },
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        this.displayTimelines(data.timelines);
-      } else {
-        console.error('Erreur lors du chargement des timelines:', data.error);
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          this.displayTimelines(data.timelines);
+        } else {
+          console.error('Erreur lors du chargement des timelines:', data.error);
+          this.showEmptyState();
+        }
+      })
+      .catch(error => {
+        console.error('Erreur réseau:', error);
         this.showEmptyState();
-      }
-    })
-    .catch(error => {
-      console.error('Erreur réseau:', error);
-      this.showEmptyState();
-    });
+      });
   }
 
   /**
@@ -3361,11 +3543,12 @@ class TimelineSequencer {
     // Récupérer la liste des modules disponibles pour validation
     const availableModules = this.getAvailableModules();
 
-    list.innerHTML = timelines.map(timeline => {
-      const validation = this.validateTimeline(timeline, availableModules);
-      const hasMissingModules = validation.missingModules.length > 0;
+    list.innerHTML = timelines
+      .map(timeline => {
+        const validation = this.validateTimeline(timeline, availableModules);
+        const hasMissingModules = validation.missingModules.length > 0;
 
-      return `
+        return `
         <div class="saved-timeline-item ${hasMissingModules ? 'has-missing-modules' : ''}"
              data-timeline-id="${timeline.id}">
           <div class="saved-timeline-header">
@@ -3380,14 +3563,19 @@ class TimelineSequencer {
             <span class="timeline-duration">${this.formatTime(this.calculateTimelineDuration(timeline))}</span>
             ${hasMissingModules ? ` | ${validation.missingModules.length} module(s) manquant(s)` : ''}
           </div>
-          ${hasMissingModules ? `
+          ${
+            hasMissingModules
+              ? `
             <div class="missing-modules-list">
               Modules manquants: ${validation.missingModules.join(', ')}
             </div>
-          ` : ''}
+          `
+              : ''
+          }
         </div>
       `;
-    }).join('');
+      })
+      .join('');
 
     // Ajouter les événements de clic
     list.querySelectorAll('.saved-timeline-item').forEach(item => {
@@ -3399,7 +3587,7 @@ class TimelineSequencer {
 
     // Ajouter les événements pour les boutons de suppression
     list.querySelectorAll('.timeline-delete-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', e => {
         e.stopPropagation(); // Empêcher le clic sur la timeline
         const timelineId = btn.dataset.timelineId;
         this.showDeleteConfirmationModal(timelineId);
@@ -3430,7 +3618,7 @@ class TimelineSequencer {
 
     return {
       isValid: missingModules.length === 0,
-      missingModules: [...new Set(missingModules)] // Éliminer les doublons
+      missingModules: [...new Set(missingModules)], // Éliminer les doublons
     };
   }
 
@@ -3445,7 +3633,7 @@ class TimelineSequencer {
       modules.push({
         id: item.dataset.moduleId,
         name: item.dataset.moduleName,
-        type: item.dataset.moduleType
+        type: item.dataset.moduleType,
       });
     });
     return modules;
@@ -3482,7 +3670,7 @@ class TimelineSequencer {
     return date.toLocaleDateString('fr-FR', {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
     });
   }
 
@@ -3497,7 +3685,7 @@ class TimelineSequencer {
 
     const translations = window.timelineTranslations || {
       noSavedTimelines: 'Aucune timeline sauvegardée',
-      saveFirstTimeline: 'Sauvegardez votre première timeline pour la retrouver ici'
+      saveFirstTimeline: 'Sauvegardez votre première timeline pour la retrouver ici',
     };
 
     list.innerHTML = `
@@ -3526,7 +3714,7 @@ class TimelineSequencer {
     if (moduleItems.length === 0 && !existingEmptyState) {
       const translations = window.timelineTranslations || {
         noModulesYet: 'Aucun module ajouté',
-        addFirstModule: 'Ajoutez votre premier module pour commencer.'
+        addFirstModule: 'Ajoutez votre premier module pour commencer.',
       };
 
       modulesList.innerHTML = `
@@ -3551,33 +3739,32 @@ class TimelineSequencer {
    * @private
    */
   loadTimeline(timelineId) {
-
     fetch(`/timelines/api/${timelineId}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
       },
     })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Timeline non trouvée');
-      }
-      return response.json();
-    })
-    .then(data => {
-      if (data.success && data.timeline) {
-        this.setCurrentTimeline(data.timeline); // Définir comme timeline courante
-        this.loadTimelineData(data.timeline);
-        this.switchToTab('modules'); // Basculer automatiquement vers modules
-        window.showToast?.('Timeline chargée avec succès', 'success', 2000);
-      } else {
-        throw new Error(data.error || 'Erreur lors du chargement');
-      }
-    })
-    .catch(error => {
-      console.error('Erreur lors du chargement de la timeline:', error);
-      window.showToast?.('Erreur lors du chargement de la timeline', 'error', 3000);
-    });
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Timeline non trouvée');
+        }
+        return response.json();
+      })
+      .then(data => {
+        if (data.success && data.timeline) {
+          this.setCurrentTimeline(data.timeline); // Définir comme timeline courante
+          this.loadTimelineData(data.timeline);
+          this.switchToTab('modules'); // Basculer automatiquement vers modules
+          window.showToast?.('Timeline chargée avec succès', 'success', 2000);
+        } else {
+          throw new Error(data.error || 'Erreur lors du chargement');
+        }
+      })
+      .catch(error => {
+        console.error('Erreur lors du chargement de la timeline:', error);
+        window.showToast?.('Erreur lors du chargement de la timeline', 'error', 3000);
+      });
   }
 
   /**
@@ -3594,7 +3781,7 @@ class TimelineSequencer {
         id: moduleElement.dataset.moduleId,
         name: moduleElement.dataset.moduleName,
         type: moduleElement.dataset.moduleType,
-        isOnline: moduleElement.dataset.isOnline === 'true'
+        isOnline: moduleElement.dataset.isOnline === 'true',
       };
     }
 
@@ -3606,7 +3793,7 @@ class TimelineSequencer {
           id: module.module_id,
           name: module.name || module.module_id,
           type: module.type || 'Unknown',
-          isOnline: false // Par défaut offline si chargé depuis l'API
+          isOnline: false, // Par défaut offline si chargé depuis l'API
         };
       }
     }
@@ -3657,11 +3844,17 @@ class TimelineSequencer {
         if (actionConfig) {
           // Construire le texte de l'action avec le nom du fichier audio si applicable
           let actionText = actionConfig.name;
-          if (moduleData.type === 'Audio Player' && elementData.actionParams && elementData.actionParams.filename) {
+          if (
+            moduleData.type === 'Audio Player' &&
+            elementData.actionParams &&
+            elementData.actionParams.filename
+          ) {
             actionText = `${actionConfig.name} - ${elementData.actionParams.filename}`;
           }
           createdElement.element.querySelector('.element-action').textContent = actionText;
-          createdElement.element.querySelector('.element-duration').textContent = this.formatTime(elementData.duration);
+          createdElement.element.querySelector('.element-duration').textContent = this.formatTime(
+            elementData.duration
+          );
         }
 
         // Repositionner l'élément avec les bonnes données
@@ -3683,11 +3876,11 @@ class TimelineSequencer {
       // Timeline avec des éléments : calculer le temps maximum + 2s
       const maxTime = Math.max(...timeline.data.elements.map(el => el.startTime + el.duration));
       const targetDuration = maxTime + 2; // Temps max + 2 secondes
-      
+
       // Ajuster le zoom pour que la durée cible corresponde à la durée par défaut
       this.zoomLevel = DEFAULT_VIEWPORT_DURATION / targetDuration;
       this.zoomLevel = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, this.zoomLevel)); // Limiter le zoom
-      
+
       // Calculer la durée du viewport selon le zoom ajusté
       this.viewportDuration = DEFAULT_VIEWPORT_DURATION / this.zoomLevel;
       this.viewportStart = 0; // Toujours commencer à 0
@@ -3787,7 +3980,7 @@ class TimelineSequencer {
     // Préparer les données
     const timelineData = {
       name: this.currentTimeline.name, // Utiliser le nom existant
-      data: this.generateSequence()
+      data: this.generateSequence(),
     };
 
     // Envoyer à l'API pour mettre à jour la timeline
@@ -3796,29 +3989,29 @@ class TimelineSequencer {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(timelineData)
+      body: JSON.stringify(timelineData),
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Mettre à jour la timeline courante avec les nouvelles données
-        this.currentTimeline.data = timelineData.data;
-        this.currentTimeline.updated_at = new Date().toISOString();
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Mettre à jour la timeline courante avec les nouvelles données
+          this.currentTimeline.data = timelineData.data;
+          this.currentTimeline.updated_at = new Date().toISOString();
 
-        // Mettre à jour l'état de la dernière sauvegarde pour éviter les sauvegardes inutiles
-        this.lastSavedSequence = this.generateSequence();
+          // Mettre à jour l'état de la dernière sauvegarde pour éviter les sauvegardes inutiles
+          this.lastSavedSequence = this.generateSequence();
 
-        window.showToast?.('Timeline sauvegardée avec succès', 'success', 3000);
-        // Recharger la liste des timelines sauvegardées
-        this.loadSavedTimelines();
-      } else {
-        throw new Error(data.error || 'Erreur lors de la sauvegarde');
-      }
-    })
-    .catch(error => {
-      console.error('Erreur lors de la sauvegarde:', error);
-      window.showToast?.('Erreur lors de la sauvegarde', 'error', 3000);
-    });
+          window.showToast?.('Timeline sauvegardée avec succès', 'success', 3000);
+          // Recharger la liste des timelines sauvegardées
+          this.loadSavedTimelines();
+        } else {
+          throw new Error(data.error || 'Erreur lors de la sauvegarde');
+        }
+      })
+      .catch(error => {
+        console.error('Erreur lors de la sauvegarde:', error);
+        window.showToast?.('Erreur lors de la sauvegarde', 'error', 3000);
+      });
   }
 
   /**
@@ -3874,8 +4067,8 @@ class TimelineSequencer {
       name: timelineName,
       data: {
         elements: [],
-        totalDuration: 0
-      }
+        totalDuration: 0,
+      },
     };
 
     // Envoyer à l'API pour créer la timeline
@@ -3884,41 +4077,41 @@ class TimelineSequencer {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify(timelineData)
+      body: JSON.stringify(timelineData),
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Créer l'objet timeline pour la définir comme courante
-        const newTimeline = {
-          id: data.timelineId,
-          name: timelineName,
-          data: timelineData.data,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
-        };
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Créer l'objet timeline pour la définir comme courante
+          const newTimeline = {
+            id: data.timelineId,
+            name: timelineName,
+            data: timelineData.data,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          };
 
-        this.setCurrentTimeline(newTimeline); // Définir comme timeline courante
+          this.setCurrentTimeline(newTimeline); // Définir comme timeline courante
 
-        // Basculer vers l'onglet modules pour permettre l'édition
-        this.switchToTab('modules');
+          // Basculer vers l'onglet modules pour permettre l'édition
+          this.switchToTab('modules');
 
-        // Recharger la liste des timelines sauvegardées pour afficher la nouvelle
-        this.loadSavedTimelines();
+          // Recharger la liste des timelines sauvegardées pour afficher la nouvelle
+          this.loadSavedTimelines();
 
-        // Initialiser l'état de la dernière sauvegarde pour une timeline vide
-        this.lastSavedSequence = this.generateSequence();
+          // Initialiser l'état de la dernière sauvegarde pour une timeline vide
+          this.lastSavedSequence = this.generateSequence();
 
-        // Afficher un message de succès
-        window.showToast?.(`Timeline "${timelineName}" créée avec succès.`, 'success', 4000);
-      } else {
-        throw new Error(data.error || 'Erreur lors de la création');
-      }
-    })
-    .catch(error => {
-      console.error('Erreur lors de la création de la timeline:', error);
-      window.showToast?.('Erreur lors de la création de la timeline', 'error', 3000);
-    });
+          // Afficher un message de succès
+          window.showToast?.(`Timeline "${timelineName}" créée avec succès.`, 'success', 4000);
+        } else {
+          throw new Error(data.error || 'Erreur lors de la création');
+        }
+      })
+      .catch(error => {
+        console.error('Erreur lors de la création de la timeline:', error);
+        window.showToast?.('Erreur lors de la création de la timeline', 'error', 3000);
+      });
   }
 
   /**
@@ -3989,27 +4182,27 @@ class TimelineSequencer {
         'Content-Type': 'application/json',
       },
     })
-    .then(response => response.json())
-    .then(data => {
-      if (data.success) {
-        // Si la timeline supprimée était celle actuellement sélectionnée, la désélectionner
-        if (this.currentTimeline && this.currentTimeline.id == timelineId) {
-          this.setCurrentTimeline(null);
-          this.clear();
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          // Si la timeline supprimée était celle actuellement sélectionnée, la désélectionner
+          if (this.currentTimeline && this.currentTimeline.id == timelineId) {
+            this.setCurrentTimeline(null);
+            this.clear();
+          }
+
+          // Recharger la liste des timelines
+          this.loadSavedTimelines();
+
+          window.showToast?.('Timeline supprimée avec succès', 'success', 3000);
+        } else {
+          throw new Error(data.error || 'Erreur lors de la suppression');
         }
-
-        // Recharger la liste des timelines
-        this.loadSavedTimelines();
-
-        window.showToast?.('Timeline supprimée avec succès', 'success', 3000);
-      } else {
-        throw new Error(data.error || 'Erreur lors de la suppression');
-      }
-    })
-    .catch(error => {
-      console.error('Erreur lors de la suppression de la timeline:', error);
-      window.showToast?.('Erreur lors de la suppression de la timeline', 'error', 3000);
-    });
+      })
+      .catch(error => {
+        console.error('Erreur lors de la suppression de la timeline:', error);
+        window.showToast?.('Erreur lors de la suppression de la timeline', 'error', 3000);
+      });
   }
 }
 
@@ -4020,7 +4213,7 @@ document.addEventListener('DOMContentLoaded', function () {
   // Gestionnaire pour le bouton de création de timeline
   const createTimelineBtn = document.getElementById('createTimelineBtn');
   if (createTimelineBtn) {
-    createTimelineBtn.addEventListener('click', function() {
+    createTimelineBtn.addEventListener('click', function () {
       window.timeline.createNewTimeline();
     });
   }
@@ -4031,20 +4224,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (createTimelineModal && createTimelineForm) {
     // Gestionnaire pour la soumission du formulaire
-    createTimelineForm.addEventListener('submit', function(event) {
+    createTimelineForm.addEventListener('submit', function (event) {
       window.timeline.handleCreateTimelineSubmit(event);
     });
 
     // Gestionnaire pour fermer la modale en cliquant sur le bouton X
     const closeBtn = createTimelineModal.querySelector('.close-btn');
     if (closeBtn) {
-      closeBtn.addEventListener('click', function() {
+      closeBtn.addEventListener('click', function () {
         window.timeline.closeCreateTimelineModal();
       });
     }
 
     // Gestionnaire pour fermer la modale en cliquant en dehors
-    createTimelineModal.addEventListener('click', function(event) {
+    createTimelineModal.addEventListener('click', function (event) {
       if (event.target === createTimelineModal) {
         window.timeline.closeCreateTimelineModal();
       }
@@ -4053,7 +4246,7 @@ document.addEventListener('DOMContentLoaded', function () {
     // Gestionnaire pour le bouton Annuler
     const cancelBtn = createTimelineModal.querySelector('#cancelCreateTimelineBtn');
     if (cancelBtn) {
-      cancelBtn.addEventListener('click', function() {
+      cancelBtn.addEventListener('click', function () {
         window.timeline.closeCreateTimelineModal();
       });
     }
@@ -4067,24 +4260,24 @@ document.addEventListener('DOMContentLoaded', function () {
 
   if (deleteTimelineModal && closeDeleteBtn && cancelDeleteBtn && confirmDeleteBtn) {
     // Gestionnaire pour fermer la modale en cliquant sur le bouton X
-    closeDeleteBtn.addEventListener('click', function() {
+    closeDeleteBtn.addEventListener('click', function () {
       window.timeline.hideDeleteConfirmationModal();
     });
 
     // Gestionnaire pour fermer la modale en cliquant en dehors
-    deleteTimelineModal.addEventListener('click', function(event) {
+    deleteTimelineModal.addEventListener('click', function (event) {
       if (event.target === deleteTimelineModal) {
         window.timeline.hideDeleteConfirmationModal();
       }
     });
 
     // Gestionnaire pour le bouton Annuler
-    cancelDeleteBtn.addEventListener('click', function() {
+    cancelDeleteBtn.addEventListener('click', function () {
       window.timeline.hideDeleteConfirmationModal();
     });
 
     // Gestionnaire pour le bouton Confirmer
-    confirmDeleteBtn.addEventListener('click', function() {
+    confirmDeleteBtn.addEventListener('click', function () {
       const timelineId = deleteTimelineModal.dataset.timelineId;
       if (timelineId) {
         window.timeline.deleteTimeline(timelineId);

@@ -40,7 +40,7 @@ class TimelineDAO extends BaseDAO {
       name: row.name,
       data: row.data, // Déjà parsé par mysql2 car colonne JSON
       created_at: row.created_at,
-      updated_at: row.updated_at
+      updated_at: row.updated_at,
     }));
   }
 
@@ -65,7 +65,7 @@ class TimelineDAO extends BaseDAO {
       name: row.name,
       data: row.data, // Déjà parsé par mysql2 car colonne JSON
       created_at: row.created_at,
-      updated_at: row.updated_at
+      updated_at: row.updated_at,
     };
   }
 

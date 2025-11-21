@@ -71,7 +71,7 @@ class SocketWSBridge {
         // Détecter automatiquement si c'est une timeline basée sur les paramètres
         const isTimelineBased = params.start_seconds > 0 || params.duration > 0;
         params.timeline_mode = isTimelineBased;
-        
+
         Logger.esp.info(`🌉 Bridge: Audio command detected - Timeline mode: ${isTimelineBased}`);
       }
 
