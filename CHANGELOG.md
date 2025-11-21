@@ -4,8 +4,22 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 ## [Unreleased]
 
+## [1.0.0] - 21-11-2025
+
 ### Ajouté
 
+- **Système de chronologies (Timelines) complet** : Éditeur visuel de séquences temporelles avec support du drag & drop, zoom dynamique, lecture/pause/reprise et sauvegarde automatique
+- **Éditeur de timeline interactif** : Placement de modules sur plusieurs pistes (8 lanes), redimensionnement des blocs, snapping intelligent, et détection de conflits temporels
+- **Contrôle de lecture timeline** : Lecture, pause, reprise et arrêt avec synchronisation WebSocket temps réel des modules physiques (Audio Player et Switch Track)
+- **Arrêt automatique des blocs audio** : Programmation automatique de `audio_stop` à la fin de la durée de chaque bloc Audio Player pour éviter que la musique continue indéfiniment
+- **Système de pause/reprise intelligent** : Gestion correcte des timeouts lors de la pause, reprogrammation des arrêts audio pour les actions en cours lors de la reprise
+- **Optimisation des commandes timeline** : Envoi de `timeline_pause`, `timeline_resume` et `timeline_stop` uniquement aux modules Audio Player (dédoublonnage pour éviter le spam aux Switch Track)
+- **Auto-sauvegarde intelligente** : Détection des changements avant sauvegarde, indicateur visuel de statut, sauvegarde différée de 2 secondes après modification
+- **Sélection intelligente des timelines** : Chargement automatique de la dernière timeline utilisée, gestion du cas "une seule timeline" vs "plusieurs timelines"
+- **Menu contextuel sur clic droit** : Accès rapide aux actions (configurer, dupliquer, supprimer) sur les blocs de timeline
+- **Validation de suppression de timeline** : Confirmation avant suppression pour éviter les pertes accidentelles
+- **Support avancé de l'audio** : Démarrage à une position spécifique dans le fichier (`start_seconds`), contrôle du volume par bloc, durée limitée de lecture
+- **Architecture WebSocket unifiée pour audio** : Fonction `playAudio()` unique remplaçant `playAudioFile()` et `playTimelineAudio()`, auto-détection du mode timeline
 - **Module Audio Player ESP32 complet** : Nouveau firmware pour module audio avec support MP3/WAV, gestionnaire WiFi intelligent, communication WebSocket native et stockage sur carte SD
 - **Support MP3 étendu** : Ajout du support complet des fichiers MP3 (en plus du WAV existant) avec analyse des métadonnées ID3 et frame sync
 - **Interface utilisateur audio interactive** : Contrôles complets de lecture (play/pause/stop), liste de pistes, contrôle du volume, et affichage du statut en temps réel
@@ -17,7 +31,25 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 ### Modifié
 
+- **Amélioration de la gestion de la pause timeline** : Sauvegarde correcte du `currentTime` lors de la pause, reprogrammation intelligente des actions restantes avec calcul du temps relatif
+- **Optimisation de l'architecture audio ESP32** : Refonte de `playAudio()` avec structure `AudioParams` unifiée, élimination de la duplication de code entre modes standard et timeline
+- **Suppression de l'animation de déplacement des blocs** : Interface plus réactive lors du drag & drop de modules sur la timeline
+- **Désactivation du resize pour les durées fixes** : Impossibilité de redimensionner les blocs Switch Track (durée fixe de 3 secondes) pour éviter les erreurs utilisateur
 - **Correction des traductions de statut de module** : Le statut "Hors ligne" s'affiche désormais correctement en français pour tous les états de connexion du module
+
+### Corrigé
+
+- **Spam de commandes aux modules Switch Track** : Correction de `sendTimelineControlCommand()` pour n'envoyer `timeline_pause/resume/stop` qu'aux modules Audio Player (les Switch Track n'en ont pas besoin)
+- **Dédoublonnage des commandes timeline** : Utilisation d'un `Set` pour envoyer chaque commande une seule fois par module unique, même si le module apparaît plusieurs fois dans la timeline
+- **Conflits temporels détectés** : Vérification de `hasModuleTimeConflict()` empêchant le placement de deux actions du même module qui se chevauchent dans le temps
+- **Musique qui continue après la fin du bloc** : Ajout d'un système d'arrêt automatique programmé pour les Audio Player à la fin de la durée de chaque bloc
+- **Gestion de la pause/reprise défaillante** : Correction du calcul de `startTime` lors de la reprise, reprogrammation correcte des actions restantes avec `scheduleActionsFromTime()`
+
+### Refactorisé
+
+- **Uniformisation des fonctions de scheduling** : Création de `scheduleActionsFromTime()` pour gérer la reprogrammation après pause avec calcul du temps relatif
+- **Centralisation de la logique d'arrêt audio** : Programmation des arrêts audio directement dans `executeAction()` et `scheduleActionsFromTime()` pour éviter la duplication
+- **Architecture multi-threading FreeRTOS pour Audio Player** : Refonte complète du firmware audio.cpp avec architecture FreeRTOS robuste (tâche audio sur Core 0, tâche WebSocket sur Core 1), queue de commandes non-bloquantes, mutex pour protection des variables partagées, et élimination totale des `delay()` bloquants
 
 ### Note importante sur le module audio
 
@@ -126,7 +158,8 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 - Ce fichier CHANGELOG pour suivre toute les prochaines modifications
 
-[unreleased]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.2.0...HEAD
+[unreleased]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v1.0.0...HEAD
+[1.0.0]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.2.0...v1.0.0
 [0.2.0]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.1.0...v0.2.0
 [0.1.0]: https://github.com/Microcoaster/MicroCoasterWebApp/compare/v0.0.0...v0.1.0
 [0.0.0]: https://github.com/Microcoaster/MicroCoasterWebApp/releases/tag/v0.0.0

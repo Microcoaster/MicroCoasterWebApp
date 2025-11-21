@@ -81,6 +81,7 @@ router.get('/', requireAuth, async (req, res) => {
       currentPage: 'timelines',
       user: user,
       modules: formattedModules,
+      modulesJson: JSON.stringify(formattedModules), // Pour accès côté client
     });
   } catch (error) {
     Logger.app.error('Erreur lors du chargement des timelines:', error);
@@ -88,6 +89,164 @@ router.get('/', requireAuth, async (req, res) => {
       title: `${req.t('common.error')} - ${req.t('common.app_name')}`,
       message: 'Une erreur est survenue lors du chargement des timelines',
       error: process.env.NODE_ENV === 'development' ? error : {},
+    });
+  }
+});
+
+/**
+ * API Routes pour les timelines
+ */
+
+// GET /timelines/api - Récupère toutes les timelines de l'utilisateur
+router.get('/api', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    const timelines = await databaseManager.timelines.findByUserId(userId);
+
+    res.json({
+      success: true,
+      timelines: timelines,
+    });
+  } catch (error) {
+    Logger.app.error('Erreur lors de la récupération des timelines:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la récupération des timelines',
+    });
+  }
+});
+
+// GET /timelines/api/:id - Récupère une timeline spécifique
+router.get('/api/:id', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    const timelineId = parseInt(req.params.id);
+
+    if (!timelineId || isNaN(timelineId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de timeline invalide',
+      });
+    }
+
+    const timeline = await databaseManager.timelines.findById(timelineId, userId);
+
+    if (!timeline) {
+      return res.status(404).json({
+        success: false,
+        error: 'Timeline non trouvée',
+      });
+    }
+
+    res.json({
+      success: true,
+      timeline: timeline,
+    });
+  } catch (error) {
+    Logger.app.error('Erreur lors de la récupération de la timeline:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la récupération de la timeline',
+    });
+  }
+});
+
+// POST /timelines/api - Crée une nouvelle timeline
+router.post('/api', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    const { name, data } = req.body;
+
+    if (!name || !data) {
+      return res.status(400).json({
+        success: false,
+        error: 'Nom et données requis',
+      });
+    }
+
+    const timelineId = await databaseManager.timelines.create(userId, name, data);
+
+    res.json({
+      success: true,
+      timelineId: timelineId,
+      message: 'Timeline créée avec succès',
+    });
+  } catch (error) {
+    Logger.app.error('Erreur lors de la création de la timeline:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la création de la timeline',
+    });
+  }
+});
+
+// PUT /timelines/api/:id - Met à jour une timeline
+router.put('/api/:id', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    const timelineId = parseInt(req.params.id);
+    const { name, data } = req.body;
+
+    if (!timelineId || isNaN(timelineId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de timeline invalide',
+      });
+    }
+
+    const success = await databaseManager.timelines.update(timelineId, userId, name, data);
+
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Timeline non trouvée ou accès refusé',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Timeline mise à jour avec succès',
+    });
+  } catch (error) {
+    Logger.app.error('Erreur lors de la mise à jour de la timeline:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la mise à jour de la timeline',
+    });
+  }
+});
+
+// DELETE /timelines/api/:id - Supprime une timeline
+router.delete('/api/:id', requireAuth, async (req, res) => {
+  try {
+    const userId = req.session.user_id;
+    const timelineId = parseInt(req.params.id);
+
+    if (!timelineId || isNaN(timelineId)) {
+      return res.status(400).json({
+        success: false,
+        error: 'ID de timeline invalide',
+      });
+    }
+
+    const success = await databaseManager.timelines.delete(timelineId, userId);
+
+    if (!success) {
+      return res.status(404).json({
+        success: false,
+        error: 'Timeline non trouvée ou accès refusé',
+      });
+    }
+
+    res.json({
+      success: true,
+      message: 'Timeline supprimée avec succès',
+    });
+  } catch (error) {
+    Logger.app.error('Erreur lors de la suppression de la timeline:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur lors de la suppression de la timeline',
     });
   }
 });
