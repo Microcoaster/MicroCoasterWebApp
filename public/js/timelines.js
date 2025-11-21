@@ -2996,6 +2996,7 @@ class TimelineSequencer {
   /**
    * Programme l'exécution des actions à partir d'un temps de référence
    * Utilisé pour reprendre la lecture après une pause
+   * NOUVEAU: Gère aussi les arrêts audio pour les actions déjà en cours
    * @param {Array<Object>} elements - Liste des éléments à exécuter
    * @param {number} fromTime - Temps de référence en secondes
    * @returns {void}
@@ -3003,6 +3004,8 @@ class TimelineSequencer {
    */
   scheduleActionsFromTime(elements, fromTime) {
     this.timeouts = [];
+    
+    // Programmer les nouvelles actions qui commencent après fromTime
     elements.forEach(el => {
       // Calculer le délai relatif par rapport au temps actuel
       const relativeDelay = (el.startTime - fromTime) * 1000;
@@ -3011,6 +3014,38 @@ class TimelineSequencer {
           this.executeAction(el);
         }, relativeDelay);
         this.timeouts.push(timeout);
+      }
+    });
+
+    // NOUVEAU: Reprogrammer les arrêts audio pour les actions déjà en cours
+    this.elements.forEach(el => {
+      // Vérifier si c'est un Audio Player qui a déjà commencé mais pas encore fini
+      if (el.moduleData.type === 'Audio Player' && 
+          el.startTime <= fromTime && 
+          (el.startTime + el.duration) > fromTime) {
+        
+        // Calculer le temps restant pour cette action
+        const remainingTime = (el.startTime + el.duration - fromTime) * 1000;
+        
+        if (remainingTime > 0) {
+          console.log(`[TIMELINE] Reprogramming audio stop for ${el.moduleData.id} in ${(remainingTime/1000).toFixed(2)}s`);
+          
+          const stopTimeout = setTimeout(() => {
+            if (this.isPlaying && !this.isPaused) {
+              console.log(`[TIMELINE] Auto-stopping audio for ${el.moduleData.id} after pause/resume`);
+              
+              const stopMessage = {
+                moduleId: el.moduleData.id,
+                command: 'audio_stop',
+                parameters: {}
+              };
+              
+              this.websocketManager.send(stopMessage);
+            }
+          }, remainingTime);
+          
+          this.timeouts.push(stopTimeout);
+        }
       }
     });
 
@@ -3032,6 +3067,7 @@ class TimelineSequencer {
    * Exécute une action de module via WebSocket
    * Envoie la commande au serveur pour contrôler le module physique
    * Vérifie que le module est en ligne avant d'envoyer la commande
+   * NOUVEAU: Programme automatiquement l'arrêt pour les Audio Player à la fin du bloc
    * @param {Object} element - Élément contenant les données d'action
    * @returns {void}
    * @private
@@ -3061,7 +3097,6 @@ class TimelineSequencer {
     }
 
     // Déterminer la commande à envoyer
-    // REFONTE: Toujours utiliser audio_play - le serveur détecte automatiquement le mode timeline
     const command = element.actionType;
 
     const message = {
@@ -3075,6 +3110,32 @@ class TimelineSequencer {
 
     console.log('Executing action:', message);
     this.websocketManager.send(message);
+
+    // NOUVEAU: Programmer l'arrêt automatique pour les Audio Player
+    // Les Switch Track n'ont pas besoin d'arrêt car ils se terminent naturellement
+    if (element.moduleData.type === 'Audio Player' && element.duration > 0) {
+      const stopDelay = element.duration * 1000; // Convertir en millisecondes
+      
+      console.log(`[TIMELINE] Programming audio stop for ${element.moduleData.id} in ${element.duration}s`);
+      
+      const stopTimeout = setTimeout(() => {
+        // Vérifier qu'on est toujours en lecture avant d'arrêter
+        if (this.isPlaying && !this.isPaused) {
+          console.log(`[TIMELINE] Auto-stopping audio for ${element.moduleData.id} after ${element.duration}s`);
+          
+          const stopMessage = {
+            moduleId: element.moduleData.id,
+            command: 'audio_stop',
+            parameters: {}
+          };
+          
+          this.websocketManager.send(stopMessage);
+        }
+      }, stopDelay);
+      
+      // Stocker le timeout pour pouvoir l'annuler si nécessaire (pause/stop)
+      this.timeouts.push(stopTimeout);
+    }
   }
 
   /**
