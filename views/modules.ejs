@@ -11,7 +11,7 @@
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
 <body class="compact">
-
+  <%- include('partials/mobile-overlays') %>
   <%- include('partials/navbar', { currentPage: 'modules', user: user }) %>
 
   <div class="container-fluid main-content">
@@ -37,11 +37,13 @@
                       </button>
                     </div>
 
-                    <label class="toggle">
-                      <input type="checkbox" id="filterOnlineOnly" name="filterOnlineOnly">
-                      <span><%= t('modules.online_only') %></span>
-                    </label>
-                    <button id="openModal" class="btn"><%= t('modules.add_module_button') %></button>
+                    <div class="modules-actions-row">
+                      <label class="toggle">
+                        <input type="checkbox" id="filterOnlineOnly" name="filterOnlineOnly">
+                        <span><%= t('modules.online_only') %></span>
+                      </label>
+                      <button id="openModal" class="btn"><%= t('modules.add_module_button') %></button>
+                    </div>
                   </div>
                 </header>
               </div>

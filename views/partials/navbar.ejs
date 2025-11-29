@@ -1,4 +1,4 @@
-<nav class="navbar">
+<nav class="navbar navbar-visible">
   <div class="navbar-container">
     <div class="navbar-left">
       <div class="brand-logo">
@@ -6,7 +6,9 @@
           <img src="/assets/img/microcoasters_logo_pos.svg" alt="MicroCoaster" class="navbar-logo">
         </a>
       </div>
-      <div class="navbar-nav">
+      
+      <!-- Desktop Navigation -->
+      <div class="navbar-nav navbar-nav-desktop">
         <a href="/dashboard" class="nav-link <%= currentPage === 'dashboard' ? 'active' : '' %>">
           <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="7"/>
@@ -14,7 +16,7 @@
             <rect x="14" y="14" width="7" height="7"/>
             <rect x="3" y="14" width="7" height="7"/>
           </svg>
-          <%= t('common.dashboard') %>
+          <span class="nav-text"><%= t('common.dashboard') %></span>
         </a>
         <a href="/modules" class="nav-link <%= currentPage === 'modules' ? 'active' : '' %>">
           <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -29,24 +31,14 @@
             <line x1="1" y1="9" x2="4" y2="9"/>
             <line x1="1" y1="14" x2="4" y2="14"/>
           </svg>
-          <%= t('common.modules') %>
+          <span class="nav-text"><%= t('common.modules') %></span>
         </a>
         <a href="/timelines" class="nav-link <%= currentPage === 'timelines' ? 'active' : '' %>">
           <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <circle cx="12" cy="12" r="10"/>
             <polyline points="12,6 12,12 16,14"/>
           </svg>
-          <%= t('common.timelines') %>
-        </a>
-        <a href="/documentations" class="nav-link <%= currentPage === 'documentations' ? 'active' : '' %>">
-          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-            <polyline points="14,2 14,8 20,8"/>
-            <line x1="16" y1="13" x2="8" y2="13"/>
-            <line x1="16" y1="17" x2="8" y2="17"/>
-            <polyline points="10,9 9,9 8,9"/>
-          </svg>
-          <%= t('common.docs') %>
+          <span class="nav-text"><%= t('common.timelines') %></span>
         </a>
         <% if (user && user.is_admin) { %>
         <a href="/admin" class="nav-link <%= currentPage === 'admin' ? 'active' : '' %>">
@@ -54,45 +46,206 @@
             <circle cx="12" cy="12" r="3"/>
             <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
           </svg>
-          <%= t('common.admin') %>
+          <span class="nav-text"><%= t('common.admin') %></span>
         </a>
         <% } %>
       </div>
     </div>
+    
     <div class="navbar-right">
-      <!-- Language Selector -->
-      <div class="nav-link language-selector" id="language-selector">
-        <span class="language-current" data-lang="<%= language %>">
-          <img src="/assets/flags/<%= language %>.svg" alt="<%= language === 'en' ? 'English' : 'Français' %>" class="flag-icon">
-          <%= language.toUpperCase() %>
-        </span>
-        <div class="language-dropdown">
-          <a href="#" class="language-option <%= language === 'fr' ? 'active' : '' %>" data-lang="fr">
-            <img src="/assets/flags/fr.svg" alt="Français" class="flag-icon">
-            Français
-          </a>
-          <a href="#" class="language-option <%= language === 'en' ? 'active' : '' %>" data-lang="en">
-            <img src="/assets/flags/en.svg" alt="English" class="flag-icon">
-            English
-          </a>
+      <!-- Desktop Right Menu -->
+      <div class="navbar-right-desktop">
+        <!-- Language Selector -->
+        <div class="nav-link language-selector" id="language-selector">
+          <span class="language-current" data-lang="<%= language %>">
+            <img src="/assets/flags/<%= language %>.svg" alt="<%= language === 'en' ? 'English' : 'Français' %>" class="flag-icon">
+            <span class="language-text"><%= language.toUpperCase() %></span>
+          </span>
+          <div class="language-dropdown">
+            <a href="#" class="language-option <%= language === 'fr' ? 'active' : '' %>" data-lang="fr">
+              <img src="/assets/flags/fr.svg" alt="Français" class="flag-icon">
+              Français
+            </a>
+            <a href="#" class="language-option <%= language === 'en' ? 'active' : '' %>" data-lang="en">
+              <img src="/assets/flags/en.svg" alt="English" class="flag-icon">
+              English
+            </a>
+          </div>
         </div>
+        
+        <a href="/profile" class="nav-link profile <%= currentPage === 'profile' ? 'active' : '' %>">
+          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span class="profile-name"><%= user ? user.name : t('common.profile') %></span>
+        </a>
+        <a href="/logout" class="nav-link logout">
+          <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 5H7a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3"/>
+            <path d="M14 16l5-4-5-4"/>
+            <path d="M19 12H9"/>
+          </svg>
+          <span class="nav-text"><%= t('common.logout') %></span>
+        </a>
       </div>
       
-      <a href="/profile" class="nav-link profile <%= currentPage === 'profile' ? 'active' : '' %>">
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
-          <circle cx="12" cy="7" r="4"/>
-        </svg>
-        <span class="profile-name"><%= user ? user.name : t('common.profile') %></span>
-      </a>
-      <a href="/logout" class="nav-link logout">
-        <svg class="nav-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <path d="M10 5H7a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3"/>
-          <path d="M14 16l5-4-5-4"/>
-          <path d="M19 12H9"/>
-        </svg>
-        <%= t('common.logout') %>
-      </a>
+      <!-- Mobile Hamburger Button -->
+      <button class="navbar-toggler" id="navbar-toggler" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+        <span class="navbar-toggler-icon"></span>
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    </div>
+  </div>
+  
+  <!-- Mobile Menu -->
+  <div class="navbar-mobile-menu" id="navbar-mobile-menu">
+    <div class="navbar-mobile-content">
+      <!-- Navigation Links -->
+      <div class="navbar-mobile-nav">
+        <a href="/dashboard" class="nav-link-mobile <%= currentPage === 'dashboard' ? 'active' : '' %>">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="3" width="7" height="7"/>
+            <rect x="14" y="3" width="7" height="7"/>
+            <rect x="14" y="14" width="7" height="7"/>
+            <rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          <%= t('common.dashboard') %>
+        </a>
+        <a href="/modules" class="nav-link-mobile <%= currentPage === 'modules' ? 'active' : '' %>">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="4" y="4" width="16" height="16" rx="2"/>
+            <rect x="9" y="9" width="6" height="6"/>
+            <line x1="9" y1="1" x2="9" y2="4"/>
+            <line x1="15" y1="1" x2="15" y2="4"/>
+            <line x1="9" y1="20" x2="9" y2="23"/>
+            <line x1="15" y1="20" x2="15" y2="23"/>
+            <line x1="20" y1="9" x2="23" y2="9"/>
+            <line x1="20" y1="14" x2="23" y2="14"/>
+            <line x1="1" y1="9" x2="4" y2="9"/>
+            <line x1="1" y1="14" x2="4" y2="14"/>
+          </svg>
+          <%= t('common.modules') %>
+        </a>
+        <a href="/timelines" class="nav-link-mobile <%= currentPage === 'timelines' ? 'active' : '' %>">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="10"/>
+            <polyline points="12,6 12,12 16,14"/>
+          </svg>
+          <%= t('common.timelines') %>
+        </a>
+        <% if (user && user.is_admin) { %>
+        <a href="/admin" class="nav-link-mobile <%= currentPage === 'admin' ? 'active' : '' %>">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <%= t('common.admin') %>
+        </a>
+        <% } %>
+      </div>
+      
+      <!-- Mobile User Section -->
+      <div class="navbar-mobile-user">
+        <div class="mobile-user-info">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+            <circle cx="12" cy="7" r="4"/>
+          </svg>
+          <span><%= user ? user.name : t('common.profile') %></span>
+        </div>
+        
+        <!-- Mobile Language Selector -->
+        <div class="mobile-language-selector">
+          <span class="mobile-language-label"><%= t('common.language') || 'Langue' %></span>
+          <div class="mobile-language-options">
+            <a href="#" class="mobile-language-option <%= language === 'fr' ? 'active' : '' %>" data-lang="fr">
+              <img src="/assets/flags/fr.svg" alt="Français" class="flag-icon">
+              Français
+            </a>
+            <a href="#" class="mobile-language-option <%= language === 'en' ? 'active' : '' %>" data-lang="en">
+              <img src="/assets/flags/en.svg" alt="English" class="flag-icon">
+              English
+            </a>
+          </div>
+        </div>
+        
+        <a href="/profile" class="nav-link-mobile">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+          </svg>
+          <%= t('common.profile') %>
+        </a>
+        
+        <a href="/logout" class="nav-link-mobile logout-mobile">
+          <svg class="nav-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M10 5H7a3 3 0 0 0-3 3v8a3 3 0 0 0 3 3h3"/>
+            <path d="M14 16l5-4-5-4"/>
+            <path d="M19 12H9"/>
+          </svg>
+          <%= t('common.logout') %>
+        </a>
+      </div>
     </div>
   </div>
 </nav>
+
+<script>
+// Navbar mobile toggle
+(function() {
+  const toggler = document.getElementById('navbar-toggler');
+  const mobileMenu = document.getElementById('navbar-mobile-menu');
+  const body = document.body;
+  
+  if (toggler && mobileMenu) {
+    toggler.addEventListener('click', function() {
+      const isOpen = mobileMenu.classList.contains('open');
+      
+      if (isOpen) {
+        mobileMenu.classList.remove('open');
+        toggler.classList.remove('active');
+        body.style.overflow = '';
+      } else {
+        mobileMenu.classList.add('open');
+        toggler.classList.add('active');
+        body.style.overflow = 'hidden';
+      }
+    });
+    
+    // Close menu when clicking outside
+    mobileMenu.addEventListener('click', function(e) {
+      if (e.target === mobileMenu) {
+        mobileMenu.classList.remove('open');
+        toggler.classList.remove('active');
+        body.style.overflow = '';
+      }
+    });
+    
+    // Close menu when clicking on a link
+    const mobileLinks = mobileMenu.querySelectorAll('.nav-link-mobile');
+    mobileLinks.forEach(link => {
+      link.addEventListener('click', function() {
+        mobileMenu.classList.remove('open');
+        toggler.classList.remove('active');
+        body.style.overflow = '';
+      });
+    });
+  }
+  
+  // Mobile language selector
+  const mobileLangOptions = document.querySelectorAll('.mobile-language-option');
+  mobileLangOptions.forEach(option => {
+    option.addEventListener('click', function(e) {
+      e.preventDefault();
+      const lang = this.getAttribute('data-lang');
+      
+      // Use the same language change logic as desktop
+      if (window.changeLanguage) {
+        window.changeLanguage(lang);
+      }
+    });
+  });
+})();
+</script>

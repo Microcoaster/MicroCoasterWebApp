@@ -35,7 +35,8 @@
     "show": "Afficher",
     "items": "éléments",
     "no_results": "Aucun résultat trouvé",
-    "try_modify_filters": "Essayez de modifier vos filtres de recherche"
+    "try_modify_filters": "Essayez de modifier vos filtres de recherche",
+    "language": "Langue"
   },
   "auth": {
     "login_title": "CONNEXION",
@@ -269,5 +270,14 @@
   "error": {
     "title": "Oops! Une erreur s'est produite",
     "back_to_dashboard": "Retour au Dashboard"
+  },
+  "mobile": {
+    "rotate_device": "Veuillez tourner votre appareil",
+    "rotate_message": "Pour une meilleure expérience, veuillez utiliser votre appareil en mode paysage",
+    "landscape_required": "Mode paysage requis",
+    "feature_not_available": "Cette fonctionnalité n'est pas disponible sur mobile",
+    "use_desktop": "Veuillez utiliser un ordinateur pour accéder à cette page",
+    "timelines_desktop_only": "L'éditeur de chronologies nécessite un écran plus grand",
+    "return_dashboard": "Retour au tableau de bord"
   }
 }

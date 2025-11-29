@@ -1089,3 +1089,94 @@
     width: 80px;
   }
 }
+
+/* Conteneur pour les boutons sur desktop */
+.modules-actions-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+/* ===== RESPONSIVE MOBILE & TABLET POUR PAGE MODULES ===== */
+@media (max-width: 1024px) {
+  .page-header {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 20px 16px;
+    flex-wrap: wrap;
+  }
+
+  .page-title {
+    width: 100%;
+    text-align: center;
+    font-size: 24px;
+    margin: 0 0 8px 0;
+    order: 1;
+  }
+
+  .page-actions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    order: 2;
+  }
+
+  .searchbar {
+    width: 100%;
+    order: 1;
+  }
+
+  /* Conteneur pour les 2 boutons côte à côte */
+  .modules-actions-row {
+    display: flex;
+    gap: 12px;
+    width: 100%;
+    order: 2;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .toggle {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  #openModal {
+    flex-shrink: 0;
+    width: auto;
+  }
+}
+
+/* Ajustements pour petits écrans */
+@media (max-width: 480px) {
+  .page-title {
+    font-size: 22px;
+    margin: 0 0 6px 0;
+  }
+
+  .page-header {
+    padding: 16px 12px;
+    gap: 16px;
+  }
+
+  .page-actions {
+    gap: 12px;
+  }
+
+  .searchbar input {
+    font-size: 15px;
+    padding: 12px 40px 12px 12px;
+  }
+
+  .toggle span {
+    font-size: 14px;
+  }
+
+  #openModal {
+    font-size: 14px;
+    padding: 12px 20px;
+  }
+}

@@ -4,6 +4,53 @@ Tous les changements notables de ce projet seront documentés dans ce fichier.
 
 ## [Unreleased]
 
+### Ajouté
+
+- **Navbar responsive avec menu hamburger**
+  - Affichage d’un bouton hamburger sur mobile et tablette (≤ 1024px)
+  - Menu mobile complet avec liens (Dashboard, Modules, Timelines, Admin), profil, langue et déconnexion
+  - Fermeture automatique du menu lors du clic sur un lien ou en dehors de la zone de menu
+
+- **Système d’overlay mobile unifié**
+  - Partial EJS `partials/mobile-overlays` inclus sur toutes les pages principales (dashboard, modules, admin, profil)
+  - Overlay de rotation du téléphone avec nouvelle icône SVG centrée et animée
+  - Détection d’orientation mobile (portrait/paysage) avec blocage du scroll en mode portrait
+  - Désactivation spécifique de l’overlay de rotation sur la page Timelines (overlay de blocage dédié)
+
+- **Responsive page de login**
+  - Amélioration complète du responsive pour tablettes et mobiles (portrait & paysage)
+  - Ajustement des tailles de titres, champs, boutons et marges suivant la taille d’écran
+  - Meilleure lisibilité et utilisation sur petits écrans
+
+- **Responsive page « Mes modules »**
+  - Mise en page adaptée pour mobile et tablette avec titre centré
+  - Barre de recherche pleine largeur sous le titre
+  - Deux boutons alignés côte à côte sous la barre de recherche (`En ligne seulement` et `+ Ajouter un module`)
+  - Comportement cohérent entre mobile et tablette (même layout)
+
+### Modifié
+
+- **Navbar globale**
+  - Passage en `position: fixed` avec animation de masquage/affichage via `transform: translateY()`
+  - Unification du style mobile et tablette (seuil 1024px) pour simplifier l’interface
+  - Suppression du lien vers la page « Documentation » dans la navbar desktop et mobile
+
+- **Comportement de la navbar au scroll**
+  - Ajout d’un système de masquage automatique de la navbar au scroll (auto-hide)
+  - La navbar se cache lors du scroll vers le bas et réapparaît lors du scroll vers le haut
+  - Protection contre le masquage lorsque le menu mobile est ouvert
+  - Ajustement des seuils de scroll et optimisation avec `requestAnimationFrame`
+
+- **Overlay mobile timelines**
+  - Amélioration du style et du responsive de l’overlay de blocage sur mobile pour la page Timelines
+  - Meilleure compatibilité avec les petites résolutions et textes traduits
+
+### Supprimé
+
+- **Fonctionnalité Documentation**
+  - Suppression du lien « Documentation » de la navbar (desktop et mobile)
+  - Suppression complète de la route Express, de la vue `documentations.ejs`, des styles `documentations.css` et des tests associés
+
 ## [1.0.0] - 21-11-2025
 
 ### Ajouté

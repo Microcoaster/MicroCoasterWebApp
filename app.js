@@ -39,7 +39,6 @@ const adminRoutes = require('./routes/admin');
 const moduleRoutes = require('./routes/modules');
 const dashboardRoutes = require('./routes/dashboard');
 const timelinesRoutes = require('./routes/timelines');
-const documentationsRoutes = require('./routes/documentations');
 const languageRoutes = require('./routes/language');
 
 // Language middleware
@@ -123,7 +122,6 @@ app.use('/admin', adminRoutes);
 app.use('/dashboard', dashboardRoutes);
 app.use('/modules', moduleRoutes);
 app.use('/timelines', timelinesRoutes);
-app.use('/documentations', documentationsRoutes);
 app.use('/api/language', languageRoutes);
 
 app.use((req, res) => {

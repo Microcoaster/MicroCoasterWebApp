@@ -35,7 +35,8 @@
     "show": "Show",
     "items": "items",
     "no_results": "No results found",
-    "try_modify_filters": "Try modifying your search filters"
+    "try_modify_filters": "Try modifying your search filters",
+    "language": "Language"
   },
   "auth": {
     "login_title": "LOGIN",
@@ -269,5 +270,14 @@
   "error": {
     "title": "Oops! An error occurred",
     "back_to_dashboard": "Back to Dashboard"
+  },
+  "mobile": {
+    "rotate_device": "Please rotate your device",
+    "rotate_message": "For a better experience, please use your device in landscape mode",
+    "landscape_required": "Landscape mode required",
+    "feature_not_available": "This feature is not available on mobile",
+    "use_desktop": "Please use a desktop computer to access this page",
+    "timelines_desktop_only": "The timeline editor requires a larger screen",
+    "return_dashboard": "Return to dashboard"
   }
 }
