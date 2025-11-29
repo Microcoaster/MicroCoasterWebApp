@@ -308,7 +308,6 @@ function initMobileOrientation() {
   // Ne pas activer l'overlay de rotation sur la page timelines (elle a son propre overlay)
   const isTimelinesPage = window.location.pathname.includes('/timelines');
   if (isTimelinesPage) {
-    console.log('⏭️ Overlay de rotation désactivé sur la page timelines');
     return;
   }
 
@@ -318,8 +317,6 @@ function initMobileOrientation() {
   // Écouter les changements d'orientation
   window.addEventListener('resize', handleOrientationChange);
   window.addEventListener('orientationchange', handleOrientationChange);
-
-  console.log("📱 Détection d'orientation mobile activée");
 }
 
 // Exposer les fonctions globalement
@@ -337,7 +334,6 @@ window.handleOrientationChange = handleOrientationChange;
 function initNavbarAutoHide() {
   const navbar = document.querySelector('.navbar');
   if (!navbar) {
-    console.warn('⚠️ Navbar not found for auto-hide');
     return;
   }
 
@@ -355,7 +351,6 @@ function initNavbarAutoHide() {
 
     const scrollTop =
       window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
-    // console.log('📜 Scroll:', scrollTop); // Debug scroll position
 
     // Ne pas cacher si on est tout en haut
     if (scrollTop <= scrollThreshold) {
@@ -378,14 +373,12 @@ function initNavbarAutoHide() {
       if (!navbar.classList.contains('navbar-hidden')) {
         navbar.classList.remove('navbar-visible');
         navbar.classList.add('navbar-hidden');
-        console.log('🔼 Navbar cachée - scroll bas:', scrollTop);
       }
     } else if (scrollTop < lastScrollTop) {
       // Scroll vers le haut - montrer la navbar
       if (!navbar.classList.contains('navbar-visible')) {
         navbar.classList.remove('navbar-hidden');
         navbar.classList.add('navbar-visible');
-        console.log('🔽 Navbar visible - scroll haut:', scrollTop);
       }
     }
 
@@ -417,10 +410,6 @@ function initNavbarAutoHide() {
       document.documentElement.clientHeight
     );
     const hasScroll = scrollHeight > window.innerHeight;
-    console.log('✅ Navbar auto-hide initialized - Scroll pour tester!');
-    console.log(
-      `📏 Page scrollable: ${hasScroll ? 'OUI' : 'NON'} (hauteur: ${scrollHeight}px, fenêtre: ${window.innerHeight}px)`
-    );
 
     // Forcer une vérification initiale
     if (hasScroll) {
