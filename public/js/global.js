@@ -267,8 +267,10 @@ function getCurrentPageName() {
  * @returns {boolean} True si mobile
  */
 function isMobileDevice() {
-  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
-    (window.innerWidth <= 768);
+  return (
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    window.innerWidth <= 768
+  );
 }
 
 /**
@@ -287,7 +289,7 @@ function handleOrientationChange() {
 
   const overlay = document.getElementById('rotate-overlay');
   if (!overlay) return; // L'overlay doit être présent dans le HTML
-  
+
   if (isPortraitMode()) {
     overlay.classList.add('show');
     document.body.style.overflow = 'hidden';
@@ -302,22 +304,22 @@ function handleOrientationChange() {
  */
 function initMobileOrientation() {
   if (!isMobileDevice()) return;
-  
+
   // Ne pas activer l'overlay de rotation sur la page timelines (elle a son propre overlay)
   const isTimelinesPage = window.location.pathname.includes('/timelines');
   if (isTimelinesPage) {
     console.log('⏭️ Overlay de rotation désactivé sur la page timelines');
     return;
   }
-  
+
   // Vérifier l'orientation initiale
   handleOrientationChange();
 
   // Écouter les changements d'orientation
   window.addEventListener('resize', handleOrientationChange);
   window.addEventListener('orientationchange', handleOrientationChange);
-  
-  console.log('📱 Détection d\'orientation mobile activée');
+
+  console.log("📱 Détection d'orientation mobile activée");
 }
 
 // Exposer les fonctions globalement
@@ -351,9 +353,10 @@ function initNavbarAutoHide() {
       return;
     }
 
-    const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    const scrollTop =
+      window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
     // console.log('📜 Scroll:', scrollTop); // Debug scroll position
-    
+
     // Ne pas cacher si on est tout en haut
     if (scrollTop <= scrollThreshold) {
       if (navbar.classList.contains('navbar-hidden')) {
@@ -402,7 +405,7 @@ function initNavbarAutoHide() {
 
   // Écouter le scroll sur window ET sur body (au cas où) avec capture pour attraper tous les scrolls
   window.addEventListener('scroll', onScroll, { passive: true, capture: true });
-  
+
   // Test si le scroll est possible (vérifier après un court délai pour laisser le contenu se charger)
   setTimeout(() => {
     const scrollHeight = Math.max(
@@ -415,8 +418,10 @@ function initNavbarAutoHide() {
     );
     const hasScroll = scrollHeight > window.innerHeight;
     console.log('✅ Navbar auto-hide initialized - Scroll pour tester!');
-    console.log(`📏 Page scrollable: ${hasScroll ? 'OUI' : 'NON'} (hauteur: ${scrollHeight}px, fenêtre: ${window.innerHeight}px)`);
-    
+    console.log(
+      `📏 Page scrollable: ${hasScroll ? 'OUI' : 'NON'} (hauteur: ${scrollHeight}px, fenêtre: ${window.innerHeight}px)`
+    );
+
     // Forcer une vérification initiale
     if (hasScroll) {
       handleScroll();

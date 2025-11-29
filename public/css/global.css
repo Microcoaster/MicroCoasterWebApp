@@ -26,7 +26,9 @@
   min-height: 60px;
   display: flex;
   align-items: center;
-  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease;
+  transition:
+    transform 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    opacity 0.3s ease;
 }
 
 /* Animation de masquage au scroll */
@@ -1388,11 +1390,11 @@ body.compact .face img {
   .navbar-toggler {
     display: none !important;
   }
-  
+
   .navbar-mobile-menu {
     display: none !important;
   }
-  
+
   .navbar-nav-desktop,
   .navbar-right-desktop {
     display: flex !important;
@@ -1404,28 +1406,28 @@ body.compact .face img {
   .navbar-container {
     padding: 0 15px;
   }
-  
+
   .navbar-left {
     gap: 20px;
   }
-  
+
   .navbar-nav-desktop {
     gap: 12px;
   }
-  
+
   .nav-link {
     padding: 8px 12px;
     font-size: 13px;
   }
-  
+
   .nav-text {
     display: none;
   }
-  
+
   .language-text {
     display: none;
   }
-  
+
   .profile-name {
     display: none;
   }
@@ -1436,25 +1438,25 @@ body.compact .face img {
   .navbar {
     padding: 10px 15px;
   }
-  
+
   .navbar-container {
     padding: 0 10px;
   }
-  
+
   .navbar-nav-desktop,
   .navbar-right-desktop {
     display: none !important;
   }
-  
+
   .navbar-toggler {
     display: flex;
   }
-  
+
   .navbar-logo {
     height: 36px;
     max-width: 180px;
   }
-  
+
   .main-content {
     margin-top: 60px;
   }
@@ -1466,17 +1468,17 @@ body.compact .face img {
     height: 28px;
     max-width: 140px;
   }
-  
+
   .navbar-toggler {
     width: 28px;
     height: 28px;
   }
-  
+
   .nav-link-mobile {
     font-size: 16px;
     padding: 14px 16px;
   }
-  
+
   .navbar-mobile-content {
     padding: 70px 15px 15px;
   }
@@ -1524,7 +1526,8 @@ body.compact .face img {
 }
 
 @keyframes rotate-float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) scale(1);
   }
   50% {
@@ -1548,7 +1551,8 @@ body.compact .face img {
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0);
   }
   50% {
@@ -1815,7 +1819,8 @@ body.compact .face img {
 }
 
 @keyframes shake {
-  0%, 100% {
+  0%,
+  100% {
     transform: rotate(0deg);
   }
   25% {
@@ -1827,7 +1832,8 @@ body.compact .face img {
 }
 
 @keyframes pulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(-50%, -50%) scale(1);
     opacity: 1;
   }
