@@ -167,14 +167,148 @@ footer {
 }
 
 /* Responsive login */
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  body {
+    padding: 20px;
+  }
+
+  .center {
+    padding: 0;
+  }
+
   .box {
-    padding: 30px 20px;
-    margin: 20px;
+    padding: 30px 25px;
+    margin: 0;
     min-width: auto;
+    max-width: 100%;
+    width: 100%;
+  }
+
+  .logo {
+    max-width: 280px;
+    margin-bottom: 25px;
+  }
+
+  h1 {
+    font-size: 22px;
+    margin-bottom: 25px;
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='password'] {
+    padding: 14px;
+    font-size: 16px;
+    margin-bottom: 16px;
+  }
+
+  button {
+    padding: 14px;
+    font-size: 15px;
+  }
+
+  .action-link {
+    font-size: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+
+  .register-link p {
+    font-size: 13px;
+  }
+
+  footer {
+    margin-top: 25px;
+    font-size: 11px;
+  }
+}
+
+@media (max-width: 480px) {
+  body {
+    padding: 15px;
+  }
+
+  .box {
+    padding: 25px 20px;
+  }
+
+  .logo {
+    max-width: 240px;
+    margin-bottom: 20px;
   }
 
   h1 {
     font-size: 20px;
+    margin-bottom: 20px;
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='password'] {
+    padding: 12px;
+    font-size: 15px;
+    margin-bottom: 14px;
+  }
+
+  button {
+    padding: 13px;
+    font-size: 14px;
+  }
+
+  .action-link {
+    font-size: 0.95rem;
+    margin-top: 1.2rem;
+  }
+
+  .register-link p {
+    font-size: 12px;
+  }
+
+  .error {
+    padding: 10px;
+    font-size: 13px;
+    margin-bottom: 16px;
+  }
+}
+
+/* Landscape mode on mobile */
+@media (max-height: 600px) and (orientation: landscape) {
+  .center {
+    min-height: auto;
+    padding: 20px 0;
+  }
+
+  .box {
+    padding: 20px;
+  }
+
+  .logo {
+    max-width: 200px;
+    margin-bottom: 15px;
+  }
+
+  h1 {
+    font-size: 18px;
+    margin-bottom: 15px;
+  }
+
+  input[type='text'],
+  input[type='email'],
+  input[type='password'] {
+    padding: 10px;
+    margin-bottom: 12px;
+  }
+
+  button {
+    padding: 11px;
+  }
+
+  .action-link,
+  .register-link {
+    margin-top: 15px;
+  }
+
+  footer {
+    margin-top: 15px;
   }
 }

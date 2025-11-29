@@ -259,6 +259,172 @@ function getCurrentPageName() {
 }
 
 // ================================================================================
+// MOBILE ORIENTATION DETECTION
+// ================================================================================
+
+/**
+ * Détecte si l'appareil est un mobile
+ * @returns {boolean} True si mobile
+ */
+function isMobileDevice() {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ||
+    (window.innerWidth <= 768);
+}
+
+/**
+ * Détecte si l'appareil est en mode portrait
+ * @returns {boolean} True si portrait
+ */
+function isPortraitMode() {
+  return window.innerHeight > window.innerWidth;
+}
+
+/**
+ * Gère l'affichage de l'overlay de rotation
+ */
+function handleOrientationChange() {
+  if (!isMobileDevice()) return;
+
+  const overlay = document.getElementById('rotate-overlay');
+  if (!overlay) return; // L'overlay doit être présent dans le HTML
+  
+  if (isPortraitMode()) {
+    overlay.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  } else {
+    overlay.classList.remove('show');
+    document.body.style.overflow = '';
+  }
+}
+
+/**
+ * Initialise la détection d'orientation mobile
+ */
+function initMobileOrientation() {
+  if (!isMobileDevice()) return;
+  
+  // Ne pas activer l'overlay de rotation sur la page timelines (elle a son propre overlay)
+  const isTimelinesPage = window.location.pathname.includes('/timelines');
+  if (isTimelinesPage) {
+    console.log('⏭️ Overlay de rotation désactivé sur la page timelines');
+    return;
+  }
+  
+  // Vérifier l'orientation initiale
+  handleOrientationChange();
+
+  // Écouter les changements d'orientation
+  window.addEventListener('resize', handleOrientationChange);
+  window.addEventListener('orientationchange', handleOrientationChange);
+  
+  console.log('📱 Détection d\'orientation mobile activée');
+}
+
+// Exposer les fonctions globalement
+window.isMobileDevice = isMobileDevice;
+window.isPortraitMode = isPortraitMode;
+window.handleOrientationChange = handleOrientationChange;
+
+// ================================================================================
+// NAVBAR AUTO-HIDE ON SCROLL
+// ================================================================================
+
+/**
+ * Gère le masquage automatique de la navbar au scroll
+ */
+function initNavbarAutoHide() {
+  const navbar = document.querySelector('.navbar');
+  if (!navbar) {
+    console.warn('⚠️ Navbar not found for auto-hide');
+    return;
+  }
+
+  let lastScrollTop = 0;
+  let ticking = false;
+  const scrollThreshold = 100; // Pixels avant de cacher la navbar
+  const scrollDelta = 10; // Sensibilité du scroll
+
+  function handleScroll() {
+    // Ne pas cacher la navbar si le menu mobile est ouvert
+    const mobileMenu = document.getElementById('navbar-mobile-menu');
+    if (mobileMenu && mobileMenu.classList.contains('open')) {
+      return;
+    }
+
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop || document.body.scrollTop || 0;
+    // console.log('📜 Scroll:', scrollTop); // Debug scroll position
+    
+    // Ne pas cacher si on est tout en haut
+    if (scrollTop <= scrollThreshold) {
+      if (navbar.classList.contains('navbar-hidden')) {
+        navbar.classList.remove('navbar-hidden');
+        navbar.classList.add('navbar-visible');
+      }
+      lastScrollTop = scrollTop;
+      return;
+    }
+
+    // Déterminer la direction du scroll
+    const scrollDiff = Math.abs(lastScrollTop - scrollTop);
+    if (scrollDiff <= scrollDelta) {
+      return;
+    }
+
+    if (scrollTop > lastScrollTop && scrollTop > scrollThreshold) {
+      // Scroll vers le bas - cacher la navbar
+      if (!navbar.classList.contains('navbar-hidden')) {
+        navbar.classList.remove('navbar-visible');
+        navbar.classList.add('navbar-hidden');
+        console.log('🔼 Navbar cachée - scroll bas:', scrollTop);
+      }
+    } else if (scrollTop < lastScrollTop) {
+      // Scroll vers le haut - montrer la navbar
+      if (!navbar.classList.contains('navbar-visible')) {
+        navbar.classList.remove('navbar-hidden');
+        navbar.classList.add('navbar-visible');
+        console.log('🔽 Navbar visible - scroll haut:', scrollTop);
+      }
+    }
+
+    lastScrollTop = scrollTop <= 0 ? 0 : scrollTop;
+  }
+
+  // Utiliser requestAnimationFrame pour de meilleures performances
+  function onScroll() {
+    if (!ticking) {
+      window.requestAnimationFrame(() => {
+        handleScroll();
+        ticking = false;
+      });
+      ticking = true;
+    }
+  }
+
+  // Écouter le scroll sur window ET sur body (au cas où) avec capture pour attraper tous les scrolls
+  window.addEventListener('scroll', onScroll, { passive: true, capture: true });
+  
+  // Test si le scroll est possible (vérifier après un court délai pour laisser le contenu se charger)
+  setTimeout(() => {
+    const scrollHeight = Math.max(
+      document.body.scrollHeight,
+      document.documentElement.scrollHeight,
+      document.body.offsetHeight,
+      document.documentElement.offsetHeight,
+      document.body.clientHeight,
+      document.documentElement.clientHeight
+    );
+    const hasScroll = scrollHeight > window.innerHeight;
+    console.log('✅ Navbar auto-hide initialized - Scroll pour tester!');
+    console.log(`📏 Page scrollable: ${hasScroll ? 'OUI' : 'NON'} (hauteur: ${scrollHeight}px, fenêtre: ${window.innerHeight}px)`);
+    
+    // Forcer une vérification initiale
+    if (hasScroll) {
+      handleScroll();
+    }
+  }, 100);
+}
+
+// ================================================================================
 // INITIALIZATION
 // ================================================================================
 
@@ -273,6 +439,12 @@ document.addEventListener('DOMContentLoaded', function () {
   if (typeof io !== 'undefined') {
     initializeWebSocket();
   }
+
+  // Initialiser la détection d'orientation mobile
+  initMobileOrientation();
+
+  // Initialiser le masquage automatique de la navbar au scroll
+  initNavbarAutoHide();
 
   // Gestion de la fermeture propre de WebSocket lors des changements de page
   window.addEventListener('beforeunload', function () {

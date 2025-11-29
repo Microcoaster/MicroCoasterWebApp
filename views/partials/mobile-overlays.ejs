@@ -1,0 +1,40 @@
+<!-- Mobile Rotation Overlay -->
+<div class="rotate-overlay" id="rotate-overlay">
+  <div class="rotate-content">
+    <div class="rotate-icon">
+      <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <linearGradient id="rotateGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:#20c26a;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:#1db660;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        
+        <!-- Cercle de fond pour les flèches -->
+        <circle cx="60" cy="60" r="50" stroke="rgba(32, 194, 106, 0.2)" stroke-width="2" fill="none"/>
+        
+        <!-- Flèche de rotation supérieure droite -->
+        <path d="M 85 35 A 35 35 0 0 1 95 60" stroke="url(#rotateGradient)" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <path d="M 95 60 L 98 54 L 92 57 Z" fill="url(#rotateGradient)"/>
+        
+        <!-- Flèche de rotation inférieure gauche -->
+        <path d="M 35 85 A 35 35 0 0 1 25 60" stroke="url(#rotateGradient)" stroke-width="3" stroke-linecap="round" fill="none"/>
+        <path d="M 25 60 L 22 66 L 28 63 Z" fill="url(#rotateGradient)"/>
+        
+        <!-- Téléphone au centre -->
+        <g transform="translate(60, 60)">
+          <!-- Corps du téléphone -->
+          <rect x="-15" y="-22" width="30" height="44" rx="3" ry="3" 
+                stroke="rgba(255, 255, 255, 0.9)" stroke-width="2.5" fill="rgba(40, 40, 40, 0.8)"/>
+          <!-- Bouton home -->
+          <circle cx="0" cy="16" r="1.5" fill="rgba(255, 255, 255, 0.6)"/>
+          <!-- Écran -->
+          <rect x="-12" y="-18" width="24" height="30" rx="1" ry="1" 
+                fill="rgba(32, 194, 106, 0.15)" stroke="rgba(32, 194, 106, 0.3)" stroke-width="1"/>
+        </g>
+      </svg>
+    </div>
+    <h2 class="rotate-title"><%= t('mobile.rotate_device') %></h2>
+    <p class="rotate-message"><%= t('mobile.rotate_message') %></p>
+  </div>
+</div>

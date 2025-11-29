@@ -11,7 +11,37 @@
   <link rel="shortcut icon" href="/assets/ico/favicon.ico" type="image/x-icon"/>
 </head>
 <body>
+  <%- include('partials/mobile-overlays') %>
   <%- include('partials/navbar', { currentPage: 'timelines', user: user }) %>
+
+  <!-- Mobile Block Overlay -->
+  <div class="mobile-block-overlay" id="mobile-block-overlay">
+    <div class="mobile-block-content">
+      <div class="mobile-block-icon">
+        <svg width="100" height="100" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2"/>
+          <line x1="12" y1="18" x2="12.01" y2="18"/>
+        </svg>
+        <div class="mobile-block-cross">
+          <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="15" y1="9" x2="9" y2="15"/>
+            <line x1="9" y1="9" x2="15" y2="15"/>
+          </svg>
+        </div>
+      </div>
+      <h2 class="mobile-block-title"><%= t('mobile.feature_not_available') %></h2>
+      <p class="mobile-block-message"><%= t('mobile.timelines_desktop_only') %></p>
+      <p class="mobile-block-submessage"><%= t('mobile.use_desktop') %></p>
+      <a href="/dashboard" class="btn mobile-block-btn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="19" y1="12" x2="5" y2="12"/>
+          <polyline points="12 19 5 12 12 5"/>
+        </svg>
+        <%= t('mobile.return_dashboard') %>
+      </a>
+    </div>
+  </div>
 
   <div class="container-fluid main-content">
     <main class="content">
@@ -231,6 +261,42 @@
       autoSaveSaved: "<%= t('timelines.autoSaveSaved') %>",
       autoSaveError: "<%= t('timelines.autoSaveError') %>"
     };
+
+    // Mobile detection and blocking for timelines page
+    (function() {
+      function checkMobileAccess() {
+        const isMobile = window.isMobileDevice ? window.isMobileDevice() : 
+          (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || 
+          window.innerWidth <= 768);
+        
+        const overlay = document.getElementById('mobile-block-overlay');
+        const mainContent = document.querySelector('.main-content');
+        
+        if (isMobile && overlay) {
+          overlay.style.display = 'flex';
+          if (mainContent) {
+            mainContent.style.display = 'none';
+          }
+          document.body.style.overflow = 'hidden';
+        } else if (overlay) {
+          overlay.style.display = 'none';
+          if (mainContent) {
+            mainContent.style.display = 'block';
+          }
+          document.body.style.overflow = '';
+        }
+      }
+      
+      // Check on load
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', checkMobileAccess);
+      } else {
+        checkMobileAccess();
+      }
+      
+      // Check on resize
+      window.addEventListener('resize', checkMobileAccess);
+    })();
   </script>
 </body>
 </html>
