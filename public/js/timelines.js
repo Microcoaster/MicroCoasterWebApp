@@ -1113,6 +1113,9 @@ class TimelineSequencer {
       savedTimelinesTab.addEventListener('click', () => this.switchToTab('saved'));
     if (createTimelineBtn)
       createTimelineBtn.addEventListener('click', () => this.createNewTimeline());
+
+    // Redimensionnement de la fenêtre
+    window.addEventListener('resize', () => this.handleWindowResize());
   }
 
   /**
@@ -1696,13 +1699,10 @@ class TimelineSequencer {
     element.innerHTML = `
       <div class="element-header">
         <div class="element-icon">${moduleConfig.icon}</div>
-        <div class="element-name">${moduleData.name}</div>
+        <div class="element-name">${moduleData.name} <span class="element-module-id">- ${moduleData.id}</span></div>
       </div>
       <div class="element-action">${moduleConfig.actions[defaultAction].name}</div>
-      <div class="element-footer">
-        <div class="element-module-id">${moduleData.id}</div>
-        <div class="element-duration">${this.formatTime(defaultDuration)}</div>
-      </div>
+      <div class="element-duration">${this.formatTime(defaultDuration)}</div>
       <div class="status-dot" aria-hidden="true"></div>
       ${canResize ? '<div class="resize-handle resize-left" data-resize="left"></div>' : ''}
       ${canResize ? '<div class="resize-handle resize-right" data-resize="right"></div>' : ''}
@@ -1835,7 +1835,33 @@ class TimelineSequencer {
   }
 
   updateElementPositions() {
-    // Cette méthode n'est plus nécessaire car updateZoom() gère déjà les positions
+    // Recalculer la position et la taille de tous les éléments
+    this.elements.forEach(elementData => {
+      this.positionElement(
+        elementData.element,
+        elementData.startTime,
+        elementData.duration,
+        elementData.trackIndex
+      );
+    });
+    // Mettre à jour le viewport
+    this.updateViewport();
+  }
+
+  /**
+   * Gère le redimensionnement de la fenêtre
+   * Recalcule toutes les positions des éléments de timeline
+   * @returns {void}
+   * @private
+   */
+  handleWindowResize() {
+    // Éviter de déclencher trop souvent le recalcul
+    if (this.resizeTimeout) {
+      clearTimeout(this.resizeTimeout);
+    }
+    this.resizeTimeout = setTimeout(() => {
+      this.updateElementPositions();
+    }, 150);
   }
 
   /**
