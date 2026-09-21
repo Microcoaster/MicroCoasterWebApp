@@ -2079,7 +2079,7 @@ class TimelineSequencer {
                   <label class="config-label">${config.label || paramName}</label>`;
 
     switch (config.type) {
-      case 'audio_file_select':
+      case 'audio_file_select': {
         // Vérifier si le module est en ligne
         const moduleElement = document.querySelector(`.module-item[data-module-id="${moduleId}"]`);
         const isOnline = moduleElement && moduleElement.classList.contains('online');
@@ -2128,6 +2128,7 @@ class TimelineSequencer {
           </div>`;
         }
         break;
+      }
       case 'range':
         html += `<div class="range-container">
           <input type="range" class="config-range" name="${paramName}"
@@ -2720,17 +2721,6 @@ class TimelineSequencer {
   hideResizeTimeIndicator() {
     if (this.resizeTimeIndicator) {
       this.resizeTimeIndicator.style.display = 'none';
-    }
-  }
-
-  /**
-   * Masque l'indicateur de temps du drag & drop
-   * @returns {void}
-   * @private
-   */
-  hideDragTimeIndicator() {
-    if (this.dragTimeIndicator) {
-      this.dragTimeIndicator.style.display = 'none';
     }
   }
 
@@ -4186,7 +4176,10 @@ class TimelineSequencer {
       .then(data => {
         if (data.success) {
           // Si la timeline supprimée était celle actuellement sélectionnée, la désélectionner
-          if (this.currentTimeline && this.currentTimeline.id == timelineId) {
+          // timelineId vient de dataset, donc toujours une chaîne, alors que
+          // l'identifiant renvoyé par l'API est un nombre. La comparaison se
+          // fait sur deux chaînes plutôt que sur une coercition implicite.
+          if (this.currentTimeline && String(this.currentTimeline.id) === String(timelineId)) {
             this.setCurrentTimeline(null);
             this.clear();
           }

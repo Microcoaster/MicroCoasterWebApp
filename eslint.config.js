@@ -90,6 +90,7 @@ module.exports = [
         Blob: 'readonly',
         URL: 'readonly',
         FileReader: 'readonly',
+        FormData: 'readonly',
         // Librairies externes
         bootstrap: 'readonly',
       },
