@@ -22,9 +22,9 @@
   // CONFIGURATION PRINCIPALE
   // ========================================
 
-  // Configuration WiFi (identifiants du point d'accès de secours)
-  #define ESP_WIFI_SSID "WifiManager-MicroCoaster"
-  #define ESP_WIFI_PASSWORD "123456789"
+  // Identifiants du portail de secours et du module.
+  // Voir include/env.h.example du depot Module-Audio : env.h n'est pas versionne.
+  #include "env.h"
 
   // Instance du gestionnaire WiFi intelligent avec portail captif
   AyresWiFiManager wifi;
@@ -38,8 +38,8 @@
   const char* server_fingerprint = "";               // Ex: "AA BB CC DD EE FF 00 11 22 33 44 55 66 77 88 99 AA BB CC DD"
 
   // Identifiants uniques du module Audio Player
-  const String MODULE_ID = "MC-0001-AP";                        // ID unique du module (MicroCoaster-Audio Player)
-  const String MODULE_PASSWORD = "KKRBR8uOcijWdIxd3IbMU5BOF6kVFRIW"; // Mot de passe sécurisé pour authentification
+  const String MODULE_ID = MC_MODULE_ID;
+  const String MODULE_PASSWORD = MC_MODULE_PASSWORD;
 
   // ========================================
   // VARIABLES GLOBALES

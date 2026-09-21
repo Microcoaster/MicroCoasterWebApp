@@ -1,0 +1,36 @@
+name: CI
+
+# Le dépôt porte 22 fichiers de test Jest et une configuration ESLint.
+# Sans ce workflow, rien ne les exécutait jamais sur une pull request.
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  qualite:
+    name: Analyse statique et tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Analyse statique
+        run: npx eslint .
+
+      - name: Vérifier le formatage
+        run: npx prettier --check .
+
+      # Les tests unitaires ne touchent ni la base ni le réseau. Les tests
+      # d'intégration sont exclus ici : ils demandent un MySQL, qui n'existe
+      # pas sur le coureur.
+      - name: Tests unitaires
+        run: npx jest --testPathPatterns="tests/(api|bdd|utils|websocket|sim)"
