@@ -57,15 +57,6 @@ npm start           # démarrage
 npm test            # tests
 npx eslint .        # analyse statique
 ```
-
-## Un point à traiter
-
-`sql/default_data.sql` contient les secrets d'authentification des modules en clair, les mêmes que ceux écrits en dur dans les firmwares de `esp/`.
-
-Ces secrets sont ce qui distingue un module légitime d'un client quelconque qui se connecterait au WebSocket. Les laisser dans un fichier versionné les expose à toute personne ayant accès au dépôt, et les grave dans l'historique Git même après correction.
-
-La correction tient en trois temps : un secret différent par module physique, généré à l'appairage et non plus écrit à l'avance ; côté serveur un stockage haché, jamais en clair ; côté module un enregistrement en mémoire non volatile, au même titre que les identifiants WiFi.
-
 ## Écosystème
 
 Les modules pilotés par cette application ont chacun leur dépôt : [Switch Track](https://github.com/Microcoaster/Switch-Track), [Launch Track](https://github.com/Microcoaster/Launch-Track), [Lift Hill](https://github.com/Microcoaster/Lift-Hill), [Module Audio](https://github.com/Microcoaster/Module-Audio), [Smoke Machine](https://github.com/Microcoaster/Smoke-Machine). Le socle commun est le [WiFi Manager](https://github.com/Microcoaster/MicroCoaster_WifiManager).
