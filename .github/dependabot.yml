@@ -1,21 +1,21 @@
 version: 2
 
-# Une pull request groupée par semaine plutôt qu'une par dépendance :
-# sur un projet à deux, un flux quotidien finit ignoré, et des mises à
-# jour ignorées ne valent pas mieux que pas de Dependabot du tout.
+# Une pull request groupée par semaine plutôt qu'une par dépendance : sur un
+# projet à deux, un flux quotidien finit ignoré, et des mises à jour ignorées
+# ne valent pas mieux que pas de Dependabot du tout.
 updates:
-  - package-ecosystem: "npm"
-    directory: "/"
+  - package-ecosystem: npm
+    directory: /
     schedule:
       interval: weekly
       day: monday
     open-pull-requests-limit: 5
     groups:
       dependances:
-        patterns: ["*"]
+        patterns: ['*']
         update-types: [minor, patch]
 
   - package-ecosystem: github-actions
-    directory: "/"
+    directory: /
     schedule:
       interval: monthly
