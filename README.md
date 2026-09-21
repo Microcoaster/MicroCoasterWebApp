@@ -22,7 +22,7 @@ C'est aussi ici que se concentre l'autorité du système. Un module ne décide j
 
 <img src="docs/sections/s02.png" alt="02 Structure" width="100%">
 
-<img src="docs/schemas/arborescence.png" alt="api : gestionnaires d'événements, modules, utilisateurs, notifications. bdd : accès aux données, un DAO par entité. websocket : liaison avec les modules ESP32. routes : routes HTTP. views : gabarits des pages. middleware : authentification et contrôle d'accès. locales : traductions de l'interface. sql : schéma et données initiales. esp : firmwares de référence des modules. sim : simulateurs de modules pour développer sans matériel. tests : tests automatisés." width="100%">
+<img src="docs/schemas/arborescence.png" alt="Arborescence du dépôt. api : les gestionnaires d'événements, modules, utilisateurs, notifications. websocket : la liaison avec les modules ESP32. bdd : l'accès aux données, un DAO par entité. routes : les routes HTTP. middleware : authentification et contrôle d'accès. views : les gabarits des pages. public : les ressources servies telles quelles. locales : les traductions de l'interface. sql : le schéma et les données initiales. esp : les firmwares de référence des modules. sim : les simulateurs de modules, pour développer sans matériel. tests : les tests automatisés. utils : les fonctions partagées." width="100%">
 
 Le dossier `sim/` mérite un mot : il contient des simulateurs qui se font passer pour de vrais modules. On développe et on teste l'orchestration d'un circuit complet sans avoir à câbler quoi que ce soit.
 
