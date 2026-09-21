@@ -28,8 +28,6 @@ Le dossier `sim/` mérite un mot : il contient des simulateurs qui se font passe
 
 <img src="docs/sections/s03.png" alt="03 Installation" width="100%">
 
-<img src="docs/blocs/01.png" alt="Terminal bash : installation" width="100%">
-
 ```bash
 git clone https://github.com/Microcoaster/MicroCoasterWebApp.git
 cd MicroCoasterWebApp
@@ -39,16 +37,12 @@ cp .env.example .env
 
 Renseigner `.env`, puis créer la base :
 
-<img src="docs/blocs/02.png" alt="Terminal bash : créer la base" width="100%">
-
 ```bash
 mysql -u root -p < sql/schema.sql
 mysql -u root -p < sql/default_data.sql
 ```
 
 <img src="docs/sections/s04.png" alt="04 Développement" width="100%">
-
-<img src="docs/blocs/03.png" alt="Terminal bash : développement" width="100%">
 
 ```bash
 npm start           # démarrage
