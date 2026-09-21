@@ -375,7 +375,8 @@ class TimelineSequencer {
         this.autoSaveIndicator.style.color = 'white';
         break;
       case 'error':
-        this.autoSaveIndicator.textContent = translations.autoSaveError || '⚠ Erreur de sauvegarde';
+        this.autoSaveIndicator.textContent =
+          translations.autoSaveError || '⚠ Erreur de sauvegarde';
         this.autoSaveIndicator.style.backgroundColor = '#ff4757';
         this.autoSaveIndicator.style.color = 'white';
         break;
