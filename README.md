@@ -12,6 +12,8 @@ En production sur **[app.microcoaster.com](https://app.microcoaster.com)**.
 
 L'application parle à deux mondes qui n'ont pas les mêmes besoins, et utilise donc deux canaux distincts.
 
+<img src="docs/schemas/architecture.png" alt="Les navigateurs dialoguent avec l'application par Socket.io, qui apporte reconnexion automatique, repli sur long polling et salles par utilisateur. Ils y découvrent les modules connectés, la télémétrie en temps réel, la composition de séquences, les comptes et les notifications. Les modules ESP32 dialoguent par WebSocket natif, en messages JSON courts avec authentification à la connexion : Switch Track, Launch Track, Lift Hill, Module Audio, Smoke Machine et les simulateurs. Au centre, la WebApp en Node.js, Express et MySQL est la seule à connaître l'état complet du circuit." width="100%">
+
 **Socket.io vers les navigateurs.** Reconnexion automatique, repli sur du long polling, salles par utilisateur. C'est confortable côté web et ça tolère un réseau capricieux.
 
 **WebSocket natif vers les ESP32.** Pas de surcouche, pas de négociation de transport : un microcontrôleur n'a ni la mémoire ni le besoin d'un client Socket.io. Les modules s'authentifient à la connexion, puis échangent des messages JSON courts.
@@ -20,19 +22,7 @@ C'est aussi ici que se concentre l'autorité du système. Un module ne décide j
 
 <img src="docs/sections/s02.png" alt="02 Structure" width="100%">
 
-| Dossier | Contenu |
-|:--|:--|
-| `api/` | Gestionnaires d'événements : modules, utilisateurs, notifications |
-| `bdd/` | Accès aux données, un DAO par entité, sur une base commune |
-| `websocket/` | Liaison avec les modules ESP32 |
-| `routes/` | Routes HTTP |
-| `views/` | Gabarits des pages |
-| `middleware/` | Authentification, contrôle d'accès |
-| `locales/` | Traductions de l'interface |
-| `sql/` | Schéma et données initiales |
-| `esp/` | Firmwares de référence des modules |
-| `sim/` | Simulateurs de modules, pour développer sans matériel |
-| `tests/` | Tests automatisés |
+<img src="docs/schemas/arborescence.png" alt="api : gestionnaires d'événements, modules, utilisateurs, notifications. bdd : accès aux données, un DAO par entité. websocket : liaison avec les modules ESP32. routes : routes HTTP. views : gabarits des pages. middleware : authentification et contrôle d'accès. locales : traductions de l'interface. sql : schéma et données initiales. esp : firmwares de référence des modules. sim : simulateurs de modules pour développer sans matériel. tests : tests automatisés." width="100%">
 
 Le dossier `sim/` mérite un mot : il contient des simulateurs qui se font passer pour de vrais modules. On développe et on teste l'orchestration d'un circuit complet sans avoir à câbler quoi que ce soit.
 
