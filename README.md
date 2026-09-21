@@ -1,4 +1,9 @@
-# 🎢 MicroCoaster WebApp
+<div align="center">
+
+<img src="docs/banniere.png" alt="MicroCoaster WebApp, application web de pilotage" width="100%">
+
+</div>
+
 
 Application web de contrôle pour modules ESP32 gérant les différents composants d'un système de montagnes russes miniatures modulaires à l'échelle 1:78.
 
