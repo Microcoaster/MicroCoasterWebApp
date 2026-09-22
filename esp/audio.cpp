@@ -5,7 +5,7 @@
   * Module de lecture audio MP3 avec gestionnaire WiFi automatique et communication WebSocket
   * Support contrôles de lecture et stockage sur carte microSD
   *
-  * Auteurs: CyberSpaceRS, Yamakajump
+  * Auteurs: Cybertrist, Yamakajump
   * Version: 0.0.0
   */
 

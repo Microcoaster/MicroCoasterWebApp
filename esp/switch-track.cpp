@@ -4,7 +4,7 @@
  * Module intelligent d'aiguillage sécurisé pour montagnes russes miniatures
  * Combine gestion WiFi automatique, contrôle d'aiguillage physique et communication WebSocket
  * 
- * Auteurs: CyberSpaceRS, Yamakajump
+ * Auteurs: Cybertrist, Yamakajump
  * Version: 2.0.0
  * 
  * Modifications: Contrôle du vérin électrique via DRV8871 au lieu des LEDs.
