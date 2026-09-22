@@ -59,7 +59,7 @@ The cycle is the organisation's: an issue describes the work, a branch starts fr
 
 <img src="docs/en/sections/s05.png" alt="05 Ecosystem" width="100%">
 
-The modules driven by this application each have their own repository: [Switch Track](https://github.com/Microcoaster/Switch-Track), [Launch Track](https://github.com/Microcoaster/Launch-Track), [Lift Hill](https://github.com/Microcoaster/Lift-Hill), [Audio module](https://github.com/Microcoaster/Module-Audio), [Smoke Machine](https://github.com/Microcoaster/Smoke-Machine). The common base is the [WiFi Manager](https://github.com/Microcoaster/MicroCoaster_WifiManager).
+The modules driven by this application each have their own repository: [Switch Track](https://github.com/Microcoaster/Switch-Track/blob/main/README.en.md), [Launch Track](https://github.com/Microcoaster/Launch-Track/blob/main/README.en.md), [Lift Hill](https://github.com/Microcoaster/Lift-Hill/blob/main/README.en.md), [Audio module](https://github.com/Microcoaster/Module-Audio/blob/main/README.en.md), [Smoke Machine](https://github.com/Microcoaster/Smoke-Machine/blob/main/README.en.md). The common base is the [WiFi Manager](https://github.com/Microcoaster/MicroCoaster_WifiManager/blob/main/README.en.md).
 
 ---
 
